@@ -86,11 +86,12 @@ exports.videosRouter.put("/:video_id/time", (req, res) => __awaiter(void 0, void
             data: { timeStamp: stringTimestamp },
         });
         res.status(201).json({ message: "Timestamp updated successfully." });
-        redisManager_1.redisManager.sendUpdatesToWs({
-            action: "update-time",
-            videoId: video_id,
-            timestamp,
-        });
+        if (req.userId)
+            redisManager_1.redisManager.sendUpdatesToWs({
+                user_id: req.userId,
+                videoId: video_id,
+                timestamp,
+            });
     }
     catch (error) {
         console.error("Error updating video timestamp:", error);
@@ -133,10 +134,6 @@ exports.videosRouter.post("/upload", multer_1.upload.single("file"), (req, res) 
                     "720p": `https://example.com/${file}720p`,
                 },
             },
-        });
-        redisManager_1.redisManager.sendUpdatesToWs({
-            action: "new-add",
-            videoId: video.id,
         });
         res.status(200).json(Object.assign(Object.assign({}, video), { processing_status: "PROCESSING" }));
     }

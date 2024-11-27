@@ -7,7 +7,7 @@ const redisClient = createClient();
 const wss = new WebSocketServer({ server });
 
 interface data {
-  action: "new-add" | "update-time";
+  user_id: string;
   videoId: string;
   timestamp?: number;
 }
@@ -18,11 +18,17 @@ export const SubsriptionData: {
 }[] = [];
 
 function sendUpdatesToWs(data: data) {
-  const { action, videoId, timestamp } = data;
+  const { user_id, videoId, timestamp } = data;
   SubsriptionData.forEach((sub) => {
     if (sub.videoId === videoId) {
       sub.subscribers.forEach((subscriber) => {
-        subscriber.send(JSON.stringify({ action, videoId, timestamp }));
+        subscriber.send(
+          JSON.stringify({
+            type: "video:timestamp_updated",
+            user_id,
+            timestamp,
+          })
+        );
       });
     }
   });
@@ -42,7 +48,6 @@ async function handleIncomingRequests(message: RawData, ws: WebSocket) {
       SubsriptionData.push(subscription);
     }
     subscription.subscribers.push(ws);
-    ws.send("Subscribed");
 
     console.log("SubsriptionData", SubsriptionData);
   }
@@ -54,7 +59,6 @@ async function handleIncomingRequests(message: RawData, ws: WebSocket) {
         );
       }
     });
-    ws.send("Unsubscribed");
   }
 }
 
@@ -62,7 +66,6 @@ async function handleConnectionClosed(ws: WebSocket) {}
 
 wss.on("connection", (ws) => {
   console.log(`${new Date().toISOString()} New client connected`);
-  ws.send("connection successfull");
   ws.on("error", console.error);
 
   ws.on("message", (message) => {

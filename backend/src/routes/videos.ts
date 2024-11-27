@@ -89,12 +89,12 @@ videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
     });
 
     res.status(201).json({ message: "Timestamp updated successfully." });
-
-    redisManager.sendUpdatesToWs({
-      action: "update-time",
-      videoId: video_id,
-      timestamp,
-    });
+    if (req.userId)
+      redisManager.sendUpdatesToWs({
+        user_id: req.userId,
+        videoId: video_id,
+        timestamp,
+      });
   } catch (error: any) {
     console.error("Error updating video timestamp:", error);
     res.status(500).json({ error: "Internal server error." });
@@ -146,11 +146,6 @@ videosRouter.post(
             "720p": `https://example.com/${file}720p`,
           },
         },
-      });
-
-      redisManager.sendUpdatesToWs({
-        action: "new-add",
-        videoId: video.id,
       });
 
       res.status(200).json({ ...video, processing_status: "PROCESSING" });

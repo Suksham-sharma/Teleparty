@@ -18,8 +18,9 @@ const prismaClient_1 = __importDefault(require("../lib/prismaClient"));
 const protectRoute = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
-        // const token = req.cookies.Authentication;
-        const token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
+        var token = req.cookies.Authentication;
+        if (!token)
+            token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
         if (!token) {
             res.status(401).json({
                 success: false,

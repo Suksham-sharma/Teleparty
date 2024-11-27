@@ -1,7 +1,7 @@
 import { createClient, type RedisClientType } from "redis";
 
 interface data {
-  action: "new-add" | "update-time";
+  user_id: string;
   videoId: string;
   timestamp?: number;
 }

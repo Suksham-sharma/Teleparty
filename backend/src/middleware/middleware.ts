@@ -8,8 +8,8 @@ export const protectRoute = async (
   next: NextFunction
 ) => {
   try {
-    // const token = req.cookies.Authentication;
-    const token = req.headers.authorization?.split(" ")[1];
+    var token = req.cookies.Authentication;
+    if (!token) token = req.headers.authorization?.split(" ")[1];
 
     if (!token) {
       res.status(401).json({
