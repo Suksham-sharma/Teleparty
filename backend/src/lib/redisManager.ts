@@ -8,11 +8,14 @@ interface data {
 
 class RedisManager {
   static instance: RedisManager;
-  private publisherClient: RedisClientType;
+  private queueClient: RedisClientType;
+  private subscribeClient: RedisClientType;
   constructor() {
     try {
-      this.publisherClient = createClient();
-      this.publisherClient.connect();
+      this.queueClient = createClient();
+      this.queueClient.connect();
+      this.subscribeClient = createClient();
+      this.subscribeClient.connect();
       console.log("Connected to Redis Clients 🚀");
     } catch (error) {
       throw new Error(`Error connecting to Redis: ${error}`);
@@ -27,9 +30,27 @@ class RedisManager {
     return this.instance;
   }
 
+  private generateRandomId = () => {
+    return Math.random().toString(36).substring(2, 15);
+  };
+
+  sendToWorkerAndSubscribe = async (key: string) => {
+    try {
+      const id = this.generateRandomId();
+      await this.subscribeClient.subscribe(id, (message: any) => {});
+
+      await this.queueClient.lPush(
+        "video-transcode",
+        JSON.stringify({ key: key, requestId: id })
+      );
+    } catch (error: any) {
+      console.log("Error sending data to worker", error);
+    }
+  };
+
   sendUpdatesToWs = async (data: data) => {
     console.log("Sending data to Redis", data);
-    this.publisherClient.lPush("video-Data", JSON.stringify(data));
+    this.queueClient.lPush("video-Data", JSON.stringify(data));
   };
 }
 

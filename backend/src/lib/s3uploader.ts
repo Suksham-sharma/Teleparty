@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
+import { redisManager } from "./redisManager";
 
 interface S3Config {
   region: string;
@@ -55,6 +56,12 @@ export class S3Service {
 
       const command = new PutObjectCommand(uploadParams);
       const response = await this.s3Client.send(command);
+
+      if (response.$metadata.httpStatusCode !== 200) {
+        throw new Error("Error uploading to S3");
+      }
+
+      redisManager.sendToWorkerAndSubscribe(key);
 
       console.log(`Successfully uploaded data to ${bucket}/${key}`);
       return { success: true, data: response };
