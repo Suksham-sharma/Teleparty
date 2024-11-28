@@ -3,6 +3,8 @@ import prismaClient from "../lib/prismaClient";
 import { updateVideoTimeData, uploadVideoData } from "../schemas";
 import { redisManager } from "../lib/redisManager";
 import { upload } from "../lib/multer";
+import { s3VideoUploader } from "../lib/s3uploader";
+import fs from "fs";
 
 export const videosRouter = Router();
 
@@ -110,14 +112,32 @@ videosRouter.post(
       console.log(req.body);
       const videoUploadPayload = uploadVideoData.safeParse(req.body);
 
+      const filePath = req.file?.path;
+
+      if (!filePath) {
+        res.status(400).json({ error: "Invalid file upload." });
+        return;
+      }
+
+      const fileStream = fs.createReadStream(filePath);
+
+      const key = `videos/${filePath}`;
+
+      const uploadResult = await s3VideoUploader.uploadVideoStream(
+        fileStream,
+        key
+      );
+
+      fs.unlinkSync(filePath);
+
       if (!videoUploadPayload.success) {
         res.status(400).json({
-          error: videoUploadPayload.error.errors.map((error) => error.message),
+          error: "Invalid video upload data.",
         });
         return;
       }
 
-      const { title, description, category, file } = videoUploadPayload.data;
+      const { title, description, category } = videoUploadPayload.data;
 
       if (!req.userId) {
         res.status(401).json({ error: "Unauthorized." });
@@ -141,9 +161,9 @@ videosRouter.post(
           creatorId: req.userId,
           channelId: findChannel.id,
           video_urls: {
-            "240p": `https://example.com/${file}240p`,
-            "480p": `https://example.com/${file}480p`,
-            "720p": `https://example.com/${file}720p`,
+            "240p": `https://example.com/${filePath}240p`,
+            "480p": `https://example.com/${filePath}480p`,
+            "720p": `https://example.com/${filePath}720p`,
           },
         },
       });
@@ -186,5 +206,57 @@ videosRouter.get("/:video_id", async (req: Request, res: Response) => {
     res.status(200).json({ ...video, status: "TRANSCODED" });
   } catch (error: any) {
     console.log("Error fetching video:", error);
+  }
+});
+
+videosRouter.post("/upload-video", async (req, res) => {
+  const uploader = s3VideoUploader;
+  const bucket = process.env.S3_BUCKET_NAME;
+
+  try {
+    if (!req.readable) {
+      res.status(400).json({ error: "Invalid stream" });
+      return;
+    }
+
+    const videoUploadPayload = uploadVideoData.safeParse(req.body);
+
+    if (!videoUploadPayload.success) {
+      res.status(400).json({
+        error: "Invalid video upload data.",
+      });
+      return;
+    }
+
+    const { title, description, category } = videoUploadPayload.data;
+
+    if (!req.userId) {
+      res.status(401).json({ error: "Unauthorized." });
+      return;
+    }
+
+    const findChannel = await prismaClient.channel.findUnique({
+      where: { creatorId: req.userId },
+    });
+
+    if (!findChannel) {
+      res.status(404).json({ error: "Channel not found." });
+      return;
+    }
+
+    const key = `${title}-${Date.now()}.mp4`;
+
+    const uploadResult = await uploader.uploadVideoStream(req, key);
+
+    res.status(200).json({
+      message: "Video uploaded successfully",
+      ...uploadResult,
+    });
+  } catch (error: any) {
+    console.error("Upload error:", error);
+    res.status(500).json({
+      error: "Upload failed",
+      details: error.message,
+    });
   }
 });
