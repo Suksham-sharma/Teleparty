@@ -3,7 +3,7 @@ import prismaClient from "../lib/prismaClient";
 import { updateVideoTimeData, uploadVideoData } from "../schemas";
 import { redisManager } from "../lib/redisManager";
 import { upload } from "../lib/multer";
-import { s3VideoUploader } from "../lib/s3uploader";
+import { s3Service } from "../lib/s3uploader";
 import fs from "fs";
 
 export const videosRouter = Router();
@@ -107,26 +107,27 @@ videosRouter.post(
   "/upload",
   upload.single("file"),
   async (req: Request, res: Response) => {
-    console.log("hertdd");
     try {
       console.log(req.body);
       const videoUploadPayload = uploadVideoData.safeParse(req.body);
 
       const filePath = req.file?.path;
+      const key = `Originalvideos/${Date.now()}${req.file?.originalname}`;
 
       if (!filePath) {
         res.status(400).json({ error: "Invalid file upload." });
         return;
       }
 
-      const fileStream = fs.createReadStream(filePath);
+      const fileType = req.file?.mimetype;
+      if (!fileType) {
+        console.log("fileType Error", fileType);
+        return;
+      }
 
-      const key = `videos/${filePath}`;
+      const response = await s3Service.uploadDataToS3(filePath, fileType, key);
 
-      const uploadResult = await s3VideoUploader.uploadVideoStream(
-        fileStream,
-        key
-      );
+      console.log("response", response);
 
       fs.unlinkSync(filePath);
 
@@ -209,54 +210,54 @@ videosRouter.get("/:video_id", async (req: Request, res: Response) => {
   }
 });
 
-videosRouter.post("/upload-video", async (req, res) => {
-  const uploader = s3VideoUploader;
-  const bucket = process.env.S3_BUCKET_NAME;
+// videosRouter.post("/upload-video", async (req, res) => {
+//   const uploader = s3VideoUploader;
+//   const bucket = process.env.S3_BUCKET_NAME;
 
-  try {
-    if (!req.readable) {
-      res.status(400).json({ error: "Invalid stream" });
-      return;
-    }
+//   try {
+//     if (!req.readable) {
+//       res.status(400).json({ error: "Invalid stream" });
+//       return;
+//     }
 
-    const videoUploadPayload = uploadVideoData.safeParse(req.body);
+//     const videoUploadPayload = uploadVideoData.safeParse(req.body);
 
-    if (!videoUploadPayload.success) {
-      res.status(400).json({
-        error: "Invalid video upload data.",
-      });
-      return;
-    }
+//     if (!videoUploadPayload.success) {
+//       res.status(400).json({
+//         error: "Invalid video upload data.",
+//       });
+//       return;
+//     }
 
-    const { title, description, category } = videoUploadPayload.data;
+//     const { title, description, category } = videoUploadPayload.data;
 
-    if (!req.userId) {
-      res.status(401).json({ error: "Unauthorized." });
-      return;
-    }
+//     if (!req.userId) {
+//       res.status(401).json({ error: "Unauthorized." });
+//       return;
+//     }
 
-    const findChannel = await prismaClient.channel.findUnique({
-      where: { creatorId: req.userId },
-    });
+//     const findChannel = await prismaClient.channel.findUnique({
+//       where: { creatorId: req.userId },
+//     });
 
-    if (!findChannel) {
-      res.status(404).json({ error: "Channel not found." });
-      return;
-    }
+//     if (!findChannel) {
+//       res.status(404).json({ error: "Channel not found." });
+//       return;
+//     }
 
-    const key = `${title}-${Date.now()}.mp4`;
+//     const key = `${title}-${Date.now()}.mp4`;
 
-    const uploadResult = await uploader.uploadVideoStream(req, key);
+//     const uploadResult = await uploader.uploadVideoStream(req, key);
 
-    res.status(200).json({
-      message: "Video uploaded successfully",
-      ...uploadResult,
-    });
-  } catch (error: any) {
-    console.error("Upload error:", error);
-    res.status(500).json({
-      error: "Upload failed",
-      details: error.message,
-    });
-  }
-});
+//     res.status(200).json({
+//       message: "Video uploaded successfully",
+//       ...uploadResult,
+//     });
+//   } catch (error: any) {
+//     console.error("Upload error:", error);
+//     res.status(500).json({
+//       error: "Upload failed",
+//       details: error.message,
+//     });
+//   }
+// });

@@ -18,6 +18,8 @@ const prismaClient_1 = __importDefault(require("../lib/prismaClient"));
 const schemas_1 = require("../schemas");
 const redisManager_1 = require("../lib/redisManager");
 const multer_1 = require("../lib/multer");
+const s3uploader_1 = require("../lib/s3uploader");
+const fs_1 = __importDefault(require("fs"));
 exports.videosRouter = (0, express_1.Router)();
 exports.videosRouter.get("/feed", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -99,17 +101,31 @@ exports.videosRouter.put("/:video_id/time", (req, res) => __awaiter(void 0, void
     }
 }));
 exports.videosRouter.post("/upload", multer_1.upload.single("file"), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("hertdd");
+    var _a, _b, _c;
     try {
         console.log(req.body);
         const videoUploadPayload = schemas_1.uploadVideoData.safeParse(req.body);
+        const filePath = (_a = req.file) === null || _a === void 0 ? void 0 : _a.path;
+        const key = `Originalvideos/${Date.now()}${(_b = req.file) === null || _b === void 0 ? void 0 : _b.originalname}`;
+        if (!filePath) {
+            res.status(400).json({ error: "Invalid file upload." });
+            return;
+        }
+        const fileType = (_c = req.file) === null || _c === void 0 ? void 0 : _c.mimetype;
+        if (!fileType) {
+            console.log("fileType Error", fileType);
+            return;
+        }
+        const response = yield s3uploader_1.s3Service.uploadDataToS3(filePath, fileType, key);
+        console.log("response", response);
+        fs_1.default.unlinkSync(filePath);
         if (!videoUploadPayload.success) {
             res.status(400).json({
-                error: videoUploadPayload.error.errors.map((error) => error.message),
+                error: "Invalid video upload data.",
             });
             return;
         }
-        const { title, description, category, file } = videoUploadPayload.data;
+        const { title, description, category } = videoUploadPayload.data;
         if (!req.userId) {
             res.status(401).json({ error: "Unauthorized." });
             return;
@@ -129,9 +145,9 @@ exports.videosRouter.post("/upload", multer_1.upload.single("file"), (req, res) 
                 creatorId: req.userId,
                 channelId: findChannel.id,
                 video_urls: {
-                    "240p": `https://example.com/${file}240p`,
-                    "480p": `https://example.com/${file}480p`,
-                    "720p": `https://example.com/${file}720p`,
+                    "240p": `https://example.com/${filePath}240p`,
+                    "480p": `https://example.com/${filePath}480p`,
+                    "720p": `https://example.com/${filePath}720p`,
                 },
             },
         });
@@ -171,3 +187,44 @@ exports.videosRouter.get("/:video_id", (req, res) => __awaiter(void 0, void 0, v
         console.log("Error fetching video:", error);
     }
 }));
+// videosRouter.post("/upload-video", async (req, res) => {
+//   const uploader = s3VideoUploader;
+//   const bucket = process.env.S3_BUCKET_NAME;
+//   try {
+//     if (!req.readable) {
+//       res.status(400).json({ error: "Invalid stream" });
+//       return;
+//     }
+//     const videoUploadPayload = uploadVideoData.safeParse(req.body);
+//     if (!videoUploadPayload.success) {
+//       res.status(400).json({
+//         error: "Invalid video upload data.",
+//       });
+//       return;
+//     }
+//     const { title, description, category } = videoUploadPayload.data;
+//     if (!req.userId) {
+//       res.status(401).json({ error: "Unauthorized." });
+//       return;
+//     }
+//     const findChannel = await prismaClient.channel.findUnique({
+//       where: { creatorId: req.userId },
+//     });
+//     if (!findChannel) {
+//       res.status(404).json({ error: "Channel not found." });
+//       return;
+//     }
+//     const key = `${title}-${Date.now()}.mp4`;
+//     const uploadResult = await uploader.uploadVideoStream(req, key);
+//     res.status(200).json({
+//       message: "Video uploaded successfully",
+//       ...uploadResult,
+//     });
+//   } catch (error: any) {
+//     console.error("Upload error:", error);
+//     res.status(500).json({
+//       error: "Upload failed",
+//       details: error.message,
+//     });
+//   }
+// });
