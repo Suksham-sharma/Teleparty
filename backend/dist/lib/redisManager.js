@@ -13,13 +13,28 @@ exports.redisManager = void 0;
 const redis_1 = require("redis");
 class RedisManager {
     constructor() {
+        this.generateRandomId = () => {
+            return Math.random().toString(36).substring(2, 15);
+        };
+        this.sendToWorkerAndSubscribe = (key) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                const id = this.generateRandomId();
+                yield this.subscribeClient.subscribe(id, (message) => { });
+                yield this.queueClient.lPush("video-transcode", JSON.stringify({ key: key, requestId: id }));
+            }
+            catch (error) {
+                console.log("Error sending data to worker", error);
+            }
+        });
         this.sendUpdatesToWs = (data) => __awaiter(this, void 0, void 0, function* () {
             console.log("Sending data to Redis", data);
-            this.publisherClient.lPush("video-Data", JSON.stringify(data));
+            this.queueClient.lPush("video-Data", JSON.stringify(data));
         });
         try {
-            this.publisherClient = (0, redis_1.createClient)();
-            this.publisherClient.connect();
+            this.queueClient = (0, redis_1.createClient)();
+            this.queueClient.connect();
+            this.subscribeClient = (0, redis_1.createClient)();
+            this.subscribeClient.connect();
             console.log("Connected to Redis Clients 🚀");
         }
         catch (error) {

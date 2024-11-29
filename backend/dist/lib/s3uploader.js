@@ -15,6 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.s3Service = exports.S3Service = void 0;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const fs_1 = __importDefault(require("fs"));
+const redisManager_1 = require("./redisManager");
 const s3ClientConfig = {
     region: "ap-south-1",
     credentials: {
@@ -44,6 +45,10 @@ class S3Service {
                 };
                 const command = new client_s3_1.PutObjectCommand(uploadParams);
                 const response = yield this.s3Client.send(command);
+                if (response.$metadata.httpStatusCode !== 200) {
+                    throw new Error("Error uploading to S3");
+                }
+                redisManager_1.redisManager.sendToWorkerAndSubscribe(key);
                 console.log(`Successfully uploaded data to ${bucket}/${key}`);
                 return { success: true, data: response };
             }
