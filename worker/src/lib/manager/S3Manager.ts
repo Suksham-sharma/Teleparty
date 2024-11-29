@@ -1,6 +1,10 @@
-import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import {
+  GetObjectCommand,
+  S3Client,
+  PutObjectCommand,
+} from "@aws-sdk/client-s3";
 import { createWriteStream } from "fs";
-import fs from "fs/promises";
+import fs from "fs";
 import { pipeline } from "stream/promises";
 import dotenv from "dotenv";
 import path from "path";
@@ -19,6 +23,7 @@ const s3ClientConfig = {
 class S3Manager {
   static instance: S3Manager;
   private S3Client: S3Client;
+  private bucketName = "easy-deploy";
 
   constructor() {
     this.S3Client = new S3Client(s3ClientConfig);
@@ -34,17 +39,16 @@ class S3Manager {
   }
 
   async getDataFromS3(key: string) {
-    const bucketName = "easy-deploy";
-
     const command = new GetObjectCommand({
-      Bucket: bucketName,
+      Bucket: this.bucketName,
       Key: key,
     });
 
     const response = await this.S3Client.send(command);
 
-    const originalPath = `./temp/${key}`;
-    await fs.mkdir("./temp/Originalvideos", { recursive: true });
+    const originalPath = `${key}`;
+    const saveDir = path.resolve(__dirname, "../Originalvideos");
+    fs.mkdirSync(saveDir, { recursive: true });
 
     if (!response.Body) throw new Error("No data found in S3");
 
@@ -62,7 +66,14 @@ class S3Manager {
     console.log("File downloaded successfully");
   }
 
-  async uploadTranscodedData() {}
+  async uploadTranscodeVideoToS3(key: string) {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: key,
+      Body: fs.createReadStream(`${key}`),
+    });
+    const response = await this.S3Client.send(command);
+  }
 }
 
 export const s3Manager = S3Manager.getInstance();
