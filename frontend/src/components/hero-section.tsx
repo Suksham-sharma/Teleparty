@@ -6,6 +6,7 @@ import { FloatingElement } from "./floating-element";
 import { FlipWords } from "./ui/flip-words";
 import { BackgroundAnimation } from "@/app/_components/background";
 import { motion } from "framer-motion";
+import RetroGrid from "./ui/retro-grid";
 
 export function HeroSection() {
   const [randomPositions, setRandomPositions] = useState<
@@ -33,7 +34,7 @@ export function HeroSection() {
       <div className="container px-4 md:px-6 relative">
         <div className="flex flex-col items-center text-center gap-8">
           <FloatingElement
-            className="absolute left-[5%] top-[-30%] md:block hidden z-5"
+            className="absolute left-[5%] top-[-30%] md:block hidden z-50"
             delay={0.2}
           >
             <div className="bg-yellow-100 p-6 rounded-lg shadow-lg rotate-[-16deg] max-w-[200px]">
@@ -48,7 +49,7 @@ export function HeroSection() {
           </FloatingElement>
 
           <FloatingElement
-            className="absolute right-[10%] top-[50%] md:block hidden"
+            className="absolute right-[10%] top-[50%] md:block hidden z-50"
             delay={0.2}
           >
             <div className="bg-purple-100 p-6 rounded-lg shadow-lg rotate-[12deg] max-w-[200px]">
@@ -103,6 +104,7 @@ export function HeroSection() {
           </FloatingElement>
         </div>
       </div>
+      <RetroGrid />
     </section>
   );
 }

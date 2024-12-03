@@ -210,6 +210,11 @@ videosRouter.get("/:video_id", async (req: Request, res: Response) => {
   }
 });
 
+videosRouter.get("/presigned-url", async (req: Request, res: Response) => {
+  try {
+  } catch (error: any) {}
+});
+
 // videosRouter.post("/upload-video", async (req, res) => {
 //   const uploader = s3VideoUploader;
 //   const bucket = process.env.S3_BUCKET_NAME;
