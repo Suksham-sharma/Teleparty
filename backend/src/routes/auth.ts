@@ -24,6 +24,7 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
 
     if (findUser) {
       res.status(409).json({ error: "User already exists" });
+      return;
     }
 
     const hashedPassword = await bcrypt.hash(password, 8);
@@ -80,7 +81,7 @@ authRouter.post("/login", async (req: Request, res: Response) => {
 
     res.cookie("Authentication", token, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "lax",
     });
 
     res.status(200).json({

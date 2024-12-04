@@ -22,6 +22,7 @@ const s3uploader_1 = require("../lib/s3uploader");
 const fs_1 = __importDefault(require("fs"));
 exports.videosRouter = (0, express_1.Router)();
 exports.videosRouter.get("/feed", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("1");
     try {
         const { page = 1, limit = 10 } = req.query;
         const whereClause = {};
@@ -55,7 +56,24 @@ exports.videosRouter.get("/feed", (req, res) => __awaiter(void 0, void 0, void 0
     }
     catch (error) { }
 }));
+exports.videosRouter.get("/presignedurl", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("req.query", req.query);
+    try {
+        const { fileName, type } = req.query;
+        if (!fileName) {
+            res.status(400).json({ error: "Invalid request." });
+            return;
+        }
+        const key = type === "video"
+            ? `Originalvideos/${fileName}`
+            : `Thumbnails/${fileName}`;
+        const presignedUrl = yield s3uploader_1.s3Service.generatePresignedUrl(key, type);
+        res.status(200).json({ presignedUrl });
+    }
+    catch (error) { }
+}));
 exports.videosRouter.put("/:video_id/time", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("3");
     const { video_id } = req.params;
     console.log("video_id", video_id);
     try {
@@ -159,6 +177,7 @@ exports.videosRouter.post("/upload", multer_1.upload.single("file"), (req, res) 
     }
 }));
 exports.videosRouter.get("/:video_id", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("5");
     try {
         const { video_id } = req.params;
         const video = yield prismaClient_1.default.video.findUnique({

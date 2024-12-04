@@ -9,6 +9,7 @@ import fs from "fs";
 export const videosRouter = Router();
 
 videosRouter.get("/feed", async (req: Request, res: Response) => {
+  console.log("1");
   try {
     const { page = 1, limit = 10 } = req.query;
 
@@ -47,7 +48,32 @@ videosRouter.get("/feed", async (req: Request, res: Response) => {
   } catch (error: any) {}
 });
 
+videosRouter.get("/presignedurl", async (req: Request, res: Response) => {
+  console.log("req.query", req.query);
+  try {
+    const { fileName, type } = req.query;
+
+    if (!fileName) {
+      res.status(400).json({ error: "Invalid request." });
+      return;
+    }
+
+    const key =
+      type === "video"
+        ? `Originalvideos/${fileName}`
+        : `Thumbnails/${fileName}`;
+
+    const presignedUrl = await s3Service.generatePresignedUrl(
+      key as string,
+      type as string
+    );
+
+    res.status(200).json({ presignedUrl });
+  } catch (error: any) {}
+});
+
 videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
+  console.log("3");
   const { video_id } = req.params;
 
   console.log("video_id", video_id);
@@ -178,6 +204,7 @@ videosRouter.post(
 );
 
 videosRouter.get("/:video_id", async (req: Request, res: Response) => {
+  console.log("5");
   try {
     const { video_id } = req.params;
 
@@ -208,11 +235,6 @@ videosRouter.get("/:video_id", async (req: Request, res: Response) => {
   } catch (error: any) {
     console.log("Error fetching video:", error);
   }
-});
-
-videosRouter.get("/presigned-url", async (req: Request, res: Response) => {
-  try {
-  } catch (error: any) {}
 });
 
 // videosRouter.post("/upload-video", async (req, res) => {

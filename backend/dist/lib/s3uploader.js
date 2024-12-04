@@ -16,6 +16,8 @@ exports.s3Service = exports.S3Service = void 0;
 const client_s3_1 = require("@aws-sdk/client-s3");
 const fs_1 = __importDefault(require("fs"));
 const redisManager_1 = require("./redisManager");
+const uuid_1 = require("uuid");
+const s3_request_presigner_1 = require("@aws-sdk/s3-request-presigner");
 const s3ClientConfig = {
     region: "ap-south-1",
     credentials: {
@@ -54,6 +56,26 @@ class S3Service {
             }
             catch (error) {
                 console.error("Error uploading to S3:", error);
+                throw error;
+            }
+        });
+    }
+    generatePresignedUrl(key, type) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const id = (0, uuid_1.v4)();
+                const command = new client_s3_1.PutObjectCommand({
+                    Bucket: "easy-deploy",
+                    Key: `${key}${id}`,
+                    ContentType: type,
+                });
+                const url = yield (0, s3_request_presigner_1.getSignedUrl)(this.s3Client, command, {
+                    expiresIn: 3600,
+                });
+                return url;
+            }
+            catch (error) {
+                console.error("Error generating presigned URL:", error);
                 throw error;
             }
         });

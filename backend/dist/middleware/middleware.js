@@ -18,6 +18,7 @@ const prismaClient_1 = __importDefault(require("../lib/prismaClient"));
 const protectRoute = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     try {
+        console.log("Inside protectRoute");
         var token = req.cookies.Authentication;
         if (!token)
             token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
@@ -36,6 +37,7 @@ const protectRoute = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             });
             return;
         }
+        console.log("Decoded", decoded);
         const findUser = yield prismaClient_1.default.user.findUnique({
             where: {
                 id: decoded.id,
@@ -45,6 +47,7 @@ const protectRoute = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
             throw new Error("User not found");
         }
         req.userId = findUser.id;
+        console.log("User found", findUser);
         next();
     }
     catch (error) {

@@ -34,6 +34,7 @@ exports.authRouter.post("/signup", (req, res) => __awaiter(void 0, void 0, void 
         });
         if (findUser) {
             res.status(409).json({ error: "User already exists" });
+            return;
         }
         const hashedPassword = yield bcryptjs_1.default.hash(password, 8);
         const user = yield prismaClient_1.default.user.create({
@@ -76,7 +77,7 @@ exports.authRouter.post("/login", (req, res) => __awaiter(void 0, void 0, void 0
         }, exports.JWT_SECRET);
         res.cookie("Authentication", token, {
             httpOnly: true,
-            sameSite: "strict",
+            sameSite: "lax",
         });
         res.status(200).json({
             access_token: token,

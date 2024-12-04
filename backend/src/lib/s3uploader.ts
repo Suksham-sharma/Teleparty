@@ -1,6 +1,8 @@
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import fs from "fs";
 import { redisManager } from "./redisManager";
+import { v4 as uuidv4 } from "uuid";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 interface S3Config {
   region: string;
@@ -67,6 +69,25 @@ export class S3Service {
       return { success: true, data: response };
     } catch (error) {
       console.error("Error uploading to S3:", error);
+      throw error;
+    }
+  }
+
+  async generatePresignedUrl(key: string, type: string) {
+    try {
+      const id = uuidv4();
+      const command = new PutObjectCommand({
+        Bucket: "easy-deploy",
+        Key: `${key}${id}`,
+        ContentType: type,
+      });
+
+      const url = await getSignedUrl(this.s3Client, command, {
+        expiresIn: 3600,
+      });
+      return url;
+    } catch (error) {
+      console.error("Error generating presigned URL:", error);
       throw error;
     }
   }

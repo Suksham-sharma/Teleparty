@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useDropzone } from "react-dropzone";
+import { generatePresignedUrl } from "@/services/api";
 
 interface FileInfo {
   name: string;
@@ -30,7 +31,7 @@ export function FileUploadDialog() {
   const [description, setDescription] = React.useState("");
   const [fileName, setFileName] = React.useState("2023 November Summary");
 
-  const onDropVideo = React.useCallback((acceptedFiles: File[]) => {
+  const onDropVideo = React.useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
       setVideoFile({
@@ -39,18 +40,32 @@ export function FileUploadDialog() {
         type: file.type.split("/")[1].toUpperCase(),
         file: file,
       });
+
+      const urlData = await generatePresignedUrl(
+        videoFile?.name,
+        `video/${videoFile?.type}`
+      );
+
+      console.log(urlData);
     }
   }, []);
 
   const onDropThumbnail = React.useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
+      const type = file.type.split("/")[1];
       setThumbnailFile({
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        type: file.type.split("/")[1].toUpperCase(),
+        type: type,
         file: file,
       });
+
+      console.log("Thumbnail File:", thumbnailFile);
+
+      const urlData = generatePresignedUrl(file?.name, `image/${type}`);
+
+      console.log(urlData);
     }
   }, []);
 
