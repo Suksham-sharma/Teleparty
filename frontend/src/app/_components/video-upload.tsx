@@ -1,7 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { Upload, FileIcon, ImageIcon } from "lucide-react";
+import {
+  Upload,
+  FileIcon,
+  ImageIcon,
+  CheckCircle2,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -15,12 +21,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useDropzone } from "react-dropzone";
 import { generatePresignedUrl } from "@/services/api";
+import { toast } from "sonner";
+import axios from "axios";
 
 interface FileInfo {
   name: string;
   size: string;
   type: string;
   file: File;
+  uploadStatus?: "idle" | "loading" | "success" | "error";
 }
 
 export function FileUploadDialog() {
@@ -30,42 +39,105 @@ export function FileUploadDialog() {
   );
   const [description, setDescription] = React.useState("");
   const [fileName, setFileName] = React.useState("2023 November Summary");
+  const [isUploading, setIsUploading] = React.useState(false);
+
+  const uploadFile = async (file: File, fileType: "video" | "image") => {
+    try {
+      const type = file.type.split("/")[1];
+      const urlData = await generatePresignedUrl(
+        file?.name,
+        `${fileType}/${type}`
+      );
+      const preSignedUrl = urlData?.presignedUrl;
+
+      if (!preSignedUrl) {
+        throw new Error(`Error generating presigned URL for ${fileType}`);
+      }
+
+      const uploadResponse = await axios.put(preSignedUrl, file, {
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
+
+      if (uploadResponse.status !== 200) {
+        throw new Error(`Error uploading the ${fileType}`);
+      }
+
+      console.log(`Upload ${fileType} success:`, uploadResponse);
+
+      return true;
+    } catch (error) {
+      console.error(`Upload ${fileType} error:`, error);
+      return false;
+    }
+  };
 
   const onDropVideo = React.useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
-      setVideoFile({
+      const updatedVideoFile: FileInfo = {
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
         type: file.type.split("/")[1].toUpperCase(),
         file: file,
-      });
+        uploadStatus: "loading",
+      };
+      setVideoFile(updatedVideoFile);
+      setIsUploading(true);
 
-      const urlData = await generatePresignedUrl(
-        videoFile?.name,
-        `video/${videoFile?.type}`
+      const uploadSuccess = await uploadFile(file, "video");
+
+      setVideoFile((prev) =>
+        prev
+          ? {
+              ...prev,
+              uploadStatus: uploadSuccess ? "success" : "error",
+            }
+          : null
       );
 
-      console.log(urlData);
+      if (uploadSuccess) {
+        toast.success("Video uploaded successfully");
+      } else {
+        toast.error("Error uploading the video");
+      }
+
+      setIsUploading(false);
     }
   }, []);
 
-  const onDropThumbnail = React.useCallback((acceptedFiles: File[]) => {
+  const onDropThumbnail = React.useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
-      const type = file.type.split("/")[1];
-      setThumbnailFile({
+      const updatedThumbnailFile: FileInfo = {
         name: file.name,
         size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
-        type: type,
+        type: file.type.split("/")[1].toUpperCase(),
         file: file,
-      });
+        uploadStatus: "loading",
+      };
+      setThumbnailFile(updatedThumbnailFile);
+      setIsUploading(true);
 
-      console.log("Thumbnail File:", thumbnailFile);
+      const uploadSuccess = await uploadFile(file, "image");
 
-      const urlData = generatePresignedUrl(file?.name, `image/${type}`);
+      setThumbnailFile((prev) =>
+        prev
+          ? {
+              ...prev,
+              uploadStatus: uploadSuccess ? "success" : "error",
+            }
+          : null
+      );
 
-      console.log(urlData);
+      if (uploadSuccess) {
+        toast.success("Thumbnail uploaded successfully");
+      } else {
+        toast.error("Error uploading the thumbnail");
+      }
+
+      setIsUploading(false);
     }
   }, []);
 
@@ -103,6 +175,21 @@ export function FileUploadDialog() {
     setThumbnailFile(null);
   };
 
+  const renderFileUploadStatus = (file: FileInfo | null) => {
+    if (!file) return null;
+
+    switch (file.uploadStatus) {
+      case "loading":
+        return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
+      case "success":
+        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+      case "error":
+        return <CheckCircle2 className="h-5 w-5 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -117,7 +204,6 @@ export function FileUploadDialog() {
 
         <div className="mt-3 space-y-4">
           {/* Video Upload */}
-
           <div className="space-y-2">
             <Label>
               Video File <span className="text-destructive">*</span>
@@ -161,10 +247,12 @@ export function FileUploadDialog() {
                     {videoFile.size} • {videoFile.type}
                   </p>
                 </div>
+                {renderFileUploadStatus(videoFile)}
                 <Button
                   variant="destructive"
                   size="sm"
                   onClick={removeVideoFile}
+                  disabled={isUploading}
                 >
                   Remove
                 </Button>
@@ -216,10 +304,12 @@ export function FileUploadDialog() {
                     {thumbnailFile.size} • {thumbnailFile.type}
                   </p>
                 </div>
+                {renderFileUploadStatus(thumbnailFile)}
                 <Button
                   variant="destructive"
                   size="sm"
                   onClick={removeThumbnailFile}
+                  disabled={isUploading}
                 >
                   Remove
                 </Button>
@@ -236,6 +326,7 @@ export function FileUploadDialog() {
                 id="filename"
                 value={fileName}
                 onChange={(e) => setFileName(e.target.value)}
+                disabled={isUploading}
               />
             </div>
 
@@ -249,19 +340,28 @@ export function FileUploadDialog() {
                 onChange={(e) => setDescription(e.target.value)}
                 className="min-h-[100px] resize-none"
                 placeholder="Add a description..."
+                disabled={isUploading}
               />
             </div>
           </div>
 
           <div className="flex justify-end gap-4 absolute bottom-0 pb-2 right-4">
             <SheetTrigger asChild>
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" disabled={isUploading}>
+                Cancel
+              </Button>
             </SheetTrigger>
             <Button
               className="bg-primary"
-              disabled={!videoFile || !thumbnailFile}
+              disabled={!videoFile || !thumbnailFile || isUploading}
             >
-              Confirm
+              {isUploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...
+                </>
+              ) : (
+                "Confirm"
+              )}
             </Button>
           </div>
         </div>

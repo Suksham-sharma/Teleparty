@@ -29,7 +29,7 @@ exports.authRouter.post("/signup", (req, res) => __awaiter(void 0, void 0, void 
         const { username, password, email } = signupPayload.data;
         const findUser = yield prismaClient_1.default.user.findFirst({
             where: {
-                OR: [{ email: email }, { username: username }],
+                OR: [{ email: email }],
             },
         });
         if (findUser) {
@@ -43,6 +43,18 @@ exports.authRouter.post("/signup", (req, res) => __awaiter(void 0, void 0, void 
                 password: hashedPassword,
                 email,
             },
+        });
+        console.log("User created", user);
+        console.log("User created", user.id);
+        console.log("User created", user.username);
+        const token = jsonwebtoken_1.default.sign({
+            id: user.id,
+            username: user.username,
+        }, exports.JWT_SECRET);
+        console.log("Token", token);
+        res.cookie("Authentication", token, {
+            httpOnly: true,
+            sameSite: "lax",
         });
         res.status(201).json({
             userId: user === null || user === void 0 ? void 0 : user.id,

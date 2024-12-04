@@ -14,7 +14,6 @@ export const signInData = z.object({
 export const createChannelData = z.object({
   name: z.string(),
   description: z.string(),
-  slug: z.string(),
 });
 
 export const updateVideoTimeData = z.object({

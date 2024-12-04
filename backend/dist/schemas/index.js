@@ -17,7 +17,6 @@ exports.signInData = zod_1.default.object({
 exports.createChannelData = zod_1.default.object({
     name: zod_1.default.string(),
     description: zod_1.default.string(),
-    slug: zod_1.default.string(),
 });
 exports.updateVideoTimeData = zod_1.default.object({
     timestamp: zod_1.default.number(),

@@ -5,10 +5,22 @@ import prismaClient from "../lib/prismaClient";
 export const channelRouter = Router();
 channelRouter.post("/", async (req: Request, res: Response) => {
   try {
+    console.log("Creating channel");
+    console.log(req.body);
     const createChannelPayload = createChannelData.safeParse(req.body);
 
     if (!createChannelPayload.success) {
       res.status(400).json({ error: "Invalid format, not valid" });
+      return;
+    }
+
+    const randomSlug =
+      Math.random().toString(36).substring(2, 6) +
+      "-" +
+      Math.random().toString(36).substring(2, 6);
+
+    if (!req.userId) {
+      res.status(401).json({ error: "Unauthorized" });
       return;
     }
 
@@ -23,27 +35,11 @@ channelRouter.post("/", async (req: Request, res: Response) => {
       return;
     }
 
-    const existingSlug = await prismaClient.channel.findUnique({
-      where: {
-        slug: createChannelPayload.data.slug,
-      },
-    });
-
-    if (existingSlug) {
-      res.status(409).json({ error: "Slug already exists" });
-      return;
-    }
-
-    if (!req.userId) {
-      res.status(401).json({ error: "Unauthorized" });
-      return;
-    }
-
     const createdChannel = await prismaClient.channel.create({
       data: {
         name: createChannelPayload.data.name,
         description: createChannelPayload.data.description,
-        slug: createChannelPayload.data.slug,
+        slug: randomSlug,
         creatorId: req.userId,
       },
     });

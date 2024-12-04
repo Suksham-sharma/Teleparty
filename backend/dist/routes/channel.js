@@ -19,9 +19,18 @@ const prismaClient_1 = __importDefault(require("../lib/prismaClient"));
 exports.channelRouter = (0, express_1.Router)();
 exports.channelRouter.post("/", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        console.log("Creating channel");
+        console.log(req.body);
         const createChannelPayload = schemas_1.createChannelData.safeParse(req.body);
         if (!createChannelPayload.success) {
             res.status(400).json({ error: "Invalid format, not valid" });
+            return;
+        }
+        const randomSlug = Math.random().toString(36).substring(2, 6) +
+            "-" +
+            Math.random().toString(36).substring(2, 6);
+        if (!req.userId) {
+            res.status(401).json({ error: "Unauthorized" });
             return;
         }
         const existingChannel = yield prismaClient_1.default.channel.findFirst({
@@ -33,24 +42,11 @@ exports.channelRouter.post("/", (req, res) => __awaiter(void 0, void 0, void 0, 
             res.status(411).json({ error: "User already has a channel" });
             return;
         }
-        const existingSlug = yield prismaClient_1.default.channel.findUnique({
-            where: {
-                slug: createChannelPayload.data.slug,
-            },
-        });
-        if (existingSlug) {
-            res.status(409).json({ error: "Slug already exists" });
-            return;
-        }
-        if (!req.userId) {
-            res.status(401).json({ error: "Unauthorized" });
-            return;
-        }
         const createdChannel = yield prismaClient_1.default.channel.create({
             data: {
                 name: createChannelPayload.data.name,
                 description: createChannelPayload.data.description,
-                slug: createChannelPayload.data.slug,
+                slug: randomSlug,
                 creatorId: req.userId,
             },
         });

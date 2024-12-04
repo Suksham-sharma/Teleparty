@@ -18,7 +18,7 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
     const { username, password, email } = signupPayload.data;
     const findUser = await prismaClient.user.findFirst({
       where: {
-        OR: [{ email: email }, { username: username }],
+        OR: [{ email: email }],
       },
     });
 
@@ -34,6 +34,24 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
         password: hashedPassword,
         email,
       },
+    });
+
+    console.log("User created", user);
+    console.log("User created", user.id);
+    console.log("User created", user.username);
+
+    const token = jwt.sign(
+      {
+        id: user.id,
+        username: user.username,
+      },
+      JWT_SECRET
+    );
+    console.log("Token", token);
+
+    res.cookie("Authentication", token, {
+      httpOnly: true,
+      sameSite: "lax",
     });
 
     res.status(201).json({

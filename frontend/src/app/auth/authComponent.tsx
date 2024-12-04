@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { userLogin, userSignup } from "@/services/api";
+import { createChannel, userLogin, userSignup } from "@/services/api";
 import { motion } from "framer-motion";
 import { CircleUser, Mail, EyeOff, Eye, Lock, Loader2 } from "lucide-react";
 import React, { useState } from "react";
@@ -36,12 +36,35 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
         return;
       }
 
-      console.log("Signed up successfully");
+      const channelCreated = await handleDefaultChannelCreation(name);
+
+      if (!channelCreated) {
+        toast.error("Error creating default channel");
+        return;
+      }
 
       toast.success("Signed up successfully");
     } catch (error: unknown) {
       console.log("Error signing up", error);
       toast.error("Error signing up");
+    }
+  };
+
+  const handleDefaultChannelCreation = async (name: string) => {
+    try {
+      const response = await createChannel(
+        `${name}'s Channel`,
+        `For Streaming and Creating everlasting memories`
+      );
+      if (!response) {
+        toast.error("Error creating default channel");
+        return false;
+      }
+      return true;
+    } catch (error: unknown) {
+      console.log("Error creating default channel", error);
+      toast.error("Error creating default channel");
+      return false;
     }
   };
 
