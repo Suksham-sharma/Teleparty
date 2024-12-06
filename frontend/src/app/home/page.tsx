@@ -25,7 +25,7 @@ export default function Home() {
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-4">
               <Link
-                href="/originals"
+                href="/channel"
                 className="text-sm text-white hover:text-gray-300"
               >
                 Your Channel
