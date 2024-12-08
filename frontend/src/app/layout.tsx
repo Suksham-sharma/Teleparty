@@ -2,6 +2,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import "./plyr.css";
 import { Inter } from "next/font/google";
+import Wrapper from "./_components/wrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        {children} <Toaster richColors />
+        <Wrapper>
+          {children} <Toaster richColors />
+        </Wrapper>
       </body>
     </html>
   );

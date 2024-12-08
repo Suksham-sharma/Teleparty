@@ -71,11 +71,7 @@ async function getChannelData() {
   return { channel, videos };
 }
 
-export default async function ChannelPage({
-  params,
-}: {
-  params: { slug: string };
-}) {
+export default async function ChannelPage({}: { params: { slug: string } }) {
   const { channel, videos } = await getChannelData();
 
   if (!channel) {

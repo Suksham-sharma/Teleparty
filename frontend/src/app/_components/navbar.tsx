@@ -1,9 +1,28 @@
+"use client";
 import Link from "next/link";
 import { FileUploadDialog } from "./video-upload";
-import { Bell } from "lucide-react";
+import { Bell, LogOut } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { isUserAuthenticated } from "@/lib/authHook";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 export default function Navbar({ isNotHome }: { isNotHome?: boolean }) {
+  const router = useRouter();
+  const data = isUserAuthenticated();
+
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    router.push("/login");
+  };
+
   return (
     <nav className="fixed top-0 flex justify-between w-full z-50 bg-gradient-to-b from-gray-900/80 to-transparent backdrop-blur-sm">
       <div className="w-full flex justify-between items-center px-4 py-4">
@@ -17,7 +36,7 @@ export default function Navbar({ isNotHome }: { isNotHome?: boolean }) {
           </div>
           Teleparty
         </Link>
-        {!isNotHome && (
+        {!isNotHome ? (
           <div className="flex items-center space-x-6">
             <div className="flex items-center space-x-4">
               <Link
@@ -33,12 +52,35 @@ export default function Navbar({ isNotHome }: { isNotHome?: boolean }) {
                 <Bell className="w-5 h-5 text-white" />
                 <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
               </button>
-              <Avatar>
-                <AvatarImage src="/placeholder.svg" />
-                <AvatarFallback>SJ</AvatarFallback>
-              </Avatar>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Avatar className="cursor-pointer">
+                    <AvatarImage
+                      src={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${data?.username}`}
+                    />
+                    <AvatarFallback>{data?.username}</AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-md shadow-lg">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      {data?.username}
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="h-px bg-gray-200" />
+                  <DropdownMenuItem
+                    className="flex items-center cursor-pointer hover:bg-gray-100 focus:bg-gray-100 text-red-600"
+                    onSelect={handleLogout}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Logout</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
+        ) : (
+          <div className="bg-white rounded-sm p-1">{data?.username}</div>
         )}
       </div>
     </nav>

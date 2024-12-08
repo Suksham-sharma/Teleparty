@@ -1,3 +1,4 @@
+import { useAuthStore } from "../store/authStore";
 import axios from "axios";
 
 const BASE_URL = "http://localhost:4000/api";
@@ -47,6 +48,8 @@ export const userSignup = async (
       throw new Error("No data returned from server");
     }
 
+    useAuthStore.getState().login(response.data);
+
     return response.data;
   } catch (error: unknown) {
     console.log("Error signing up", error);
@@ -54,6 +57,7 @@ export const userSignup = async (
 };
 
 export const userLogin = async (email: string, password: string) => {
+  console.log("Logging in herre");
   try {
     const response = await axios.post(
       `${BASE_URL}/auth/login`,
@@ -69,6 +73,9 @@ export const userLogin = async (email: string, password: string) => {
     if (!response) {
       throw new Error("No data returned from server");
     }
+
+    useAuthStore.getState().login(response.data.user);
+    console.log("Logged in", response.data.user);
 
     return response.data;
   } catch (error: unknown) {

@@ -80,6 +80,8 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
         return;
       }
 
+      console.log("sdf", email, password);
+
       const response = await userLogin(email, password);
       if (!response) {
         toast.error("Error signing in");
