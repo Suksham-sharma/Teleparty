@@ -1,19 +1,16 @@
+import axiosInstance from "@/lib/axios";
 import { useAuthStore } from "../store/authStore";
-import axios from "axios";
-
-const BASE_URL = "http://localhost:4000/api";
 
 export const generatePresignedUrl = async (
   fileName: string | undefined,
   type: string
 ) => {
   try {
-    const response = await axios.get(`${BASE_URL}/videos/presignedurl`, {
+    const response = await axiosInstance.get("/videos/presignedurl", {
       params: {
         fileName,
         type,
       },
-      withCredentials: true,
     });
 
     if (!response) {
@@ -32,17 +29,11 @@ export const userSignup = async (
   password: string
 ) => {
   try {
-    const response = await axios.post(
-      `${BASE_URL}/auth/signup`,
-      {
-        email,
-        username,
-        password,
-      },
-      {
-        withCredentials: true,
-      }
-    );
+    const response = await axiosInstance.post("/auth/signup", {
+      email,
+      username,
+      password,
+    });
 
     if (!response) {
       throw new Error("No data returned from server");
@@ -59,16 +50,10 @@ export const userSignup = async (
 export const userLogin = async (email: string, password: string) => {
   console.log("Logging in herre");
   try {
-    const response = await axios.post(
-      `${BASE_URL}/auth/login`,
-      {
-        email,
-        password,
-      },
-      {
-        withCredentials: true,
-      }
-    );
+    const response = await axiosInstance.post("/auth/login", {
+      email,
+      password,
+    });
 
     if (!response) {
       throw new Error("No data returned from server");
@@ -85,16 +70,14 @@ export const userLogin = async (email: string, password: string) => {
 
 export const createChannel = async (name: string, description: string) => {
   try {
-    const response = await axios.post(
-      `${BASE_URL}/channels`,
-      {
-        name,
-        description,
-      },
-      {
-        withCredentials: true,
-      }
-    );
+    const response = await axiosInstance.post("/channels", {
+      name,
+      description,
+    });
+
+    if (!response) {
+      throw new Error("No data returned from server");
+    }
 
     if (response.status !== 201) {
       throw new Error("Something went wrong");
@@ -103,6 +86,27 @@ export const createChannel = async (name: string, description: string) => {
     return response.data;
   } catch (error: unknown) {
     console.log("Error creating channel", error);
+    return false;
+  }
+};
+
+export const getChannelForUser = async (authHeader: string) => {
+  console.log("myauthHeader", authHeader);
+  try {
+    console.log("channels me");
+    const response = await axiosInstance.get("/channels/me", {
+      headers: {
+        Authorization: `Bearer ${authHeader}`,
+      },
+    });
+
+    if (!response) {
+      throw new Error("No data returned from server");
+    }
+
+    return;
+  } catch (error: unknown) {
+    console.log("Error getting channel for user", error);
     return false;
   }
 };

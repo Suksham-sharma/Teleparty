@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(req: NextRequest) {
-  const protectedRoutes = ["/home"];
+  const protectedRoutes = ["/home", "/channel"];
   const { pathname } = req.nextUrl;
 
   if (protectedRoutes.includes(pathname)) {
@@ -19,5 +19,5 @@ export function middleware(req: NextRequest) {
 
 // Specify the matcher to apply the middleware to specific routes
 export const config = {
-  matcher: ["/home"],
+  matcher: ["/home", "/channel"],
 };

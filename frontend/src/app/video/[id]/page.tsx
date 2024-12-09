@@ -1,5 +1,4 @@
 import Navbar from "@/app/_components/navbar";
-import VideoPlayer from "@/components/video-player";
 import VideoHero from "./hero";
 
 export default async function VideoPage({

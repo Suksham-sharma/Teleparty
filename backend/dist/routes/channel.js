@@ -63,21 +63,12 @@ exports.channelRouter.post("/", (req, res) => __awaiter(void 0, void 0, void 0, 
         return;
     }
 }));
-exports.channelRouter.get("/:slug", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+exports.channelRouter.get("/me", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("Getting channel for user");
     try {
-        const slug = req.params.slug;
         const channel = yield prismaClient_1.default.channel.findFirst({
             where: {
-                slug,
-            },
-            include: {
-                videos: {
-                    select: {
-                        id: true,
-                        title: true,
-                        thumbnail_url: true,
-                    },
-                },
+                creatorId: req.userId,
             },
         });
         res.status(200).json({

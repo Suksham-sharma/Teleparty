@@ -19,11 +19,17 @@ const protectRoute = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
     var _a;
     try {
         console.log("Inside protectRoute");
+        console.log("Cookies", req.cookies);
         var token = req.cookies.Authentication;
+        console.log("Token", token);
+        console.log("-----------------REQUEST-----------------");
+        console.log(req.cookies);
+        console.log("-----------------------------------------");
         if (!token)
             token = (_a = req.headers.authorization) === null || _a === void 0 ? void 0 : _a.split(" ")[1];
+        console.log("Token", token);
         if (!token) {
-            res.status(401).json({
+            res.status(409).json({
                 success: false,
                 message: "Not authorized - No Token",
             });

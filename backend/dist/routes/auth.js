@@ -54,6 +54,7 @@ exports.authRouter.post("/signup", (req, res) => __awaiter(void 0, void 0, void 
         console.log("Token", token);
         res.cookie("Authentication", token, {
             httpOnly: true,
+            secure: false,
             sameSite: "lax",
         });
         res.status(201).json({

@@ -14,13 +14,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 
-export default function Navbar({ isNotHome }: { isNotHome?: boolean }) {
+export default function Navbar({ isHome = false }: { isHome?: boolean }) {
   const router = useRouter();
   const data = isUserAuthenticated();
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    router.push("/login");
+    router.push("/");
   };
 
   return (
@@ -36,52 +36,50 @@ export default function Navbar({ isNotHome }: { isNotHome?: boolean }) {
           </div>
           Teleparty
         </Link>
-        {!isNotHome ? (
-          <div className="flex items-center space-x-6">
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/channel"
-                className="text-sm text-white hover:text-gray-300"
+        <div className="flex items-center space-x-6">
+          {isHome && (
+            <>
+              <div className="flex items-center space-x-4">
+                <Link
+                  href="/channel"
+                  className="text-sm text-white hover:text-gray-300"
+                >
+                  Your Channel
+                </Link>
+              </div>
+              <div className="flex items-center space-x-4">
+                <FileUploadDialog />
+                <button className="relative">
+                  <Bell className="w-5 h-5 text-white" />
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
+                </button>
+              </div>
+            </>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Avatar className="cursor-pointer">
+                <AvatarImage
+                  src={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${data?.username}`}
+                />
+                <AvatarFallback>{data?.username}</AvatarFallback>
+              </Avatar>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-md shadow-lg">
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">{data?.username}</div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="h-px bg-gray-200" />
+              <DropdownMenuItem
+                className="flex items-center cursor-pointer hover:bg-gray-100 focus:bg-gray-100 text-red-600"
+                onSelect={handleLogout}
               >
-                Your Channel
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
-              <FileUploadDialog />
-              <button className="relative">
-                <Bell className="w-5 h-5 text-white" />
-                <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
-              </button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Avatar className="cursor-pointer">
-                    <AvatarImage
-                      src={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${data?.username}`}
-                    />
-                    <AvatarFallback>{data?.username}</AvatarFallback>
-                  </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-md shadow-lg">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      {data?.username}
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator className="h-px bg-gray-200" />
-                  <DropdownMenuItem
-                    className="flex items-center cursor-pointer hover:bg-gray-100 focus:bg-gray-100 text-red-600"
-                    onSelect={handleLogout}
-                  >
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Logout</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        ) : (
-          <div className="bg-white rounded-sm p-1">{data?.username}</div>
-        )}
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Logout</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </nav>
   );

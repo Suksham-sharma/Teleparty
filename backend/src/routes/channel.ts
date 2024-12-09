@@ -57,22 +57,12 @@ channelRouter.post("/", async (req: Request, res: Response) => {
   }
 });
 
-channelRouter.get("/:slug", async (req: Request, res: Response) => {
+channelRouter.get("/me", async (req: Request, res: Response) => {
+  console.log("Getting channel for user");
   try {
-    const slug = req.params.slug;
-
     const channel = await prismaClient.channel.findFirst({
       where: {
-        slug,
-      },
-      include: {
-        videos: {
-          select: {
-            id: true,
-            title: true,
-            thumbnail_url: true,
-          },
-        },
+        creatorId: req.userId,
       },
     });
 

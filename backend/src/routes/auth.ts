@@ -51,6 +51,7 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
 
     res.cookie("Authentication", token, {
       httpOnly: true,
+      secure: false,
       sameSite: "lax",
     });
 
