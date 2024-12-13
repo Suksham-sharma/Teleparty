@@ -100,11 +100,13 @@ export const getChannelForUser = async (authHeader: string) => {
       },
     });
 
-    if (!response) {
+    if (!response.data) {
       throw new Error("No data returned from server");
     }
 
-    return;
+    console.log("response", response.data);
+
+    return response.data.channel;
   } catch (error: unknown) {
     console.log("Error getting channel for user", error);
     return false;

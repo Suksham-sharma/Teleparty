@@ -102,12 +102,6 @@ videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
     }
 
     const videoDuration = video.duration;
-    // if (timestamp > videoDuration) {
-    //   res.status(400).json({
-    //     error: `Timestamp cannot exceed video duration of ${videoDuration} seconds.`,
-    //   });
-    //   return;
-    // }
 
     const stringTimestamp = timestamp.toString();
 
@@ -236,55 +230,3 @@ videosRouter.get("/:video_id", async (req: Request, res: Response) => {
     console.log("Error fetching video:", error);
   }
 });
-
-// videosRouter.post("/upload-video", async (req, res) => {
-//   const uploader = s3VideoUploader;
-//   const bucket = process.env.S3_BUCKET_NAME;
-
-//   try {
-//     if (!req.readable) {
-//       res.status(400).json({ error: "Invalid stream" });
-//       return;
-//     }
-
-//     const videoUploadPayload = uploadVideoData.safeParse(req.body);
-
-//     if (!videoUploadPayload.success) {
-//       res.status(400).json({
-//         error: "Invalid video upload data.",
-//       });
-//       return;
-//     }
-
-//     const { title, description, category } = videoUploadPayload.data;
-
-//     if (!req.userId) {
-//       res.status(401).json({ error: "Unauthorized." });
-//       return;
-//     }
-
-//     const findChannel = await prismaClient.channel.findUnique({
-//       where: { creatorId: req.userId },
-//     });
-
-//     if (!findChannel) {
-//       res.status(404).json({ error: "Channel not found." });
-//       return;
-//     }
-
-//     const key = `${title}-${Date.now()}.mp4`;
-
-//     const uploadResult = await uploader.uploadVideoStream(req, key);
-
-//     res.status(200).json({
-//       message: "Video uploaded successfully",
-//       ...uploadResult,
-//     });
-//   } catch (error: any) {
-//     console.error("Upload error:", error);
-//     res.status(500).json({
-//       error: "Upload failed",
-//       details: error.message,
-//     });
-//   }
-// });

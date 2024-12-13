@@ -2,6 +2,7 @@ import { EnhancedChannel } from "./components/details";
 import Navbar from "../_components/navbar";
 import { cookies } from "next/headers";
 import { getChannelForUser } from "@/services/api";
+import { VideoGrid } from "./components/video";
 
 function getChannelData() {
   // This is a mock function. In a real application, you would fetch this data from your API or database.
@@ -71,8 +72,6 @@ function getChannelData() {
 }
 
 export default async function ChannelPage({}: { params: { slug: string } }) {
-  const { channel } = getChannelData();
-
   const cookieStore = await cookies();
   const authHeader = cookieStore.get("Authentication");
   console.log(authHeader);
@@ -80,18 +79,15 @@ export default async function ChannelPage({}: { params: { slug: string } }) {
   if (!authHeader?.value) return;
 
   const data = await getChannelForUser(authHeader?.value);
-  console.log("datadata", data);
 
   return (
     <div className="min-h-screen bg-indigo-50">
       <Navbar isHome />
-      <EnhancedChannel channel={channel} joinCode={channel.joinCode} />
+      <EnhancedChannel channel={data} joinCode={data.slug} />
       <main className="container mx-auto px-4 py-8">
-        <h2 className="text-3xl font-bold mb-6 text-indigo-800">
-          Latest Uploads
-        </h2>
-        {/* <VideoGrid videos={videos} /> */}
+        <h2 className="text-3xl font-bold mb-6 text-indigo-800">Your Videos</h2>
       </main>
+      <VideoGrid videos={data.videos} />
     </div>
   );
 }

@@ -64,10 +64,17 @@ channelRouter.get("/me", async (req: Request, res: Response) => {
       where: {
         creatorId: req.userId,
       },
+      include: {
+        videos: true,
+      },
     });
+
+    console.log("Channel", channel);
 
     res.status(200).json({
       channel,
     });
-  } catch (error: any) {}
+  } catch (error: any) {
+    res.json({ error: "Internal server error" });
+  }
 });

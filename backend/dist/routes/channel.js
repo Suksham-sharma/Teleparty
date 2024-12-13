@@ -70,10 +70,16 @@ exports.channelRouter.get("/me", (req, res) => __awaiter(void 0, void 0, void 0,
             where: {
                 creatorId: req.userId,
             },
+            include: {
+                videos: true,
+            },
         });
+        console.log("Channel", channel);
         res.status(200).json({
             channel,
         });
     }
-    catch (error) { }
+    catch (error) {
+        res.json({ error: "Internal server error" });
+    }
 }));

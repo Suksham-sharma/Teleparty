@@ -38,8 +38,10 @@ export function FileUploadDialog() {
     null
   );
   const [description, setDescription] = React.useState("");
-  const [fileName, setFileName] = React.useState("2023 November Summary");
+  const [fileName, setFileName] = React.useState("");
   const [isUploading, setIsUploading] = React.useState(false);
+
+  const handleVideoSubmit = async () => {};
 
   const uploadFile = async (file: File, fileType: "video" | "image") => {
     try {
@@ -353,7 +355,13 @@ export function FileUploadDialog() {
             </SheetTrigger>
             <Button
               className="bg-primary"
-              disabled={!videoFile || !thumbnailFile || isUploading}
+              disabled={
+                !videoFile ||
+                !thumbnailFile ||
+                isUploading ||
+                !fileName ||
+                !description
+              }
             >
               {isUploading ? (
                 <>
