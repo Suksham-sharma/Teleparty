@@ -26,10 +26,10 @@ model Video {
   id            String   @id @default(cuid())
   title         String
   thumbnail_url String?
-  video_urls    Json
+  video_urls    Json?
   view_count    Int      @default(value: 0)
   description   String
-  category      String
+  category      String?
   duration      String?
   timeStamp     String?
   created_at    DateTime @default(now())

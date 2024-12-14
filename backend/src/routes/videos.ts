@@ -9,7 +9,6 @@ import fs from "fs";
 export const videosRouter = Router();
 
 videosRouter.get("/feed", async (req: Request, res: Response) => {
-  console.log("1");
   try {
     const { page = 1, limit = 10 } = req.query;
 
@@ -73,7 +72,6 @@ videosRouter.get("/presignedurl", async (req: Request, res: Response) => {
 });
 
 videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
-  console.log("3");
   const { video_id } = req.params;
 
   console.log("video_id", video_id);
@@ -123,110 +121,44 @@ videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
   }
 });
 
-videosRouter.post(
-  "/upload",
-  upload.single("file"),
-  async (req: Request, res: Response) => {
-    try {
-      console.log(req.body);
-      const videoUploadPayload = uploadVideoData.safeParse(req.body);
-
-      const filePath = req.file?.path;
-      const key = `Originalvideos/${Date.now()}${req.file?.originalname}`;
-
-      if (!filePath) {
-        res.status(400).json({ error: "Invalid file upload." });
-        return;
-      }
-
-      const fileType = req.file?.mimetype;
-      if (!fileType) {
-        console.log("fileType Error", fileType);
-        return;
-      }
-
-      const response = await s3Service.uploadDataToS3(filePath, fileType, key);
-
-      console.log("response", response);
-
-      fs.unlinkSync(filePath);
-
-      if (!videoUploadPayload.success) {
-        res.status(400).json({
-          error: "Invalid video upload data.",
-        });
-        return;
-      }
-
-      const { title, description, category } = videoUploadPayload.data;
-
-      if (!req.userId) {
-        res.status(401).json({ error: "Unauthorized." });
-        return;
-      }
-
-      const findChannel = await prismaClient.channel.findUnique({
-        where: { creatorId: req.userId },
-      });
-
-      if (!findChannel) {
-        res.status(404).json({ error: "Channel not found." });
-        return;
-      }
-
-      const video = await prismaClient.video.create({
-        data: {
-          title,
-          description,
-          category,
-          creatorId: req.userId,
-          channelId: findChannel.id,
-          video_urls: {
-            "240p": `https://example.com/${filePath}240p`,
-            "480p": `https://example.com/${filePath}480p`,
-            "720p": `https://example.com/${filePath}720p`,
-          },
-        },
-      });
-
-      res.status(200).json({ ...video, processing_status: "PROCESSING" });
-    } catch (error: any) {
-      console.error("Error uploading video:", error);
-      res.status(500).json({ error: "Internal server error." });
-    }
-  }
-);
-
-videosRouter.get("/:video_id", async (req: Request, res: Response) => {
-  console.log("5");
+videosRouter.post("/upload", async (req: Request, res: Response) => {
   try {
-    const { video_id } = req.params;
+    const uploadVideoPayload = uploadVideoData.safeParse(req.body);
 
-    const video = await prismaClient.video.findUnique({
-      where: { id: video_id },
-      include: {
-        creator: {
-          select: {
-            username: true,
-            id: true,
-          },
-        },
-      },
-    });
-
-    if (!video) {
-      res.status(404).json({ error: "Video not found." });
+    if (!uploadVideoPayload.success) {
+      res.status(400).json({
+        error: uploadVideoPayload.error.errors.map((error) => error.message),
+      });
       return;
     }
 
-    video.video_urls = {
-      "240p": "<https://example.com/video_240p.mp4>",
-      "480p": "<https://example.com/video_480p.mp4>",
-      "720p": "<https://example.com/video_720p.mp4>",
-    };
+    if (!req.userId) {
+      res.status(401).json({ error: "Unauthorized." });
+      return;
+    }
 
-    res.status(200).json({ ...video, status: "TRANSCODED" });
-  } catch (error: any) {
-    console.log("Error fetching video:", error);
-  }
+    const findChannel = await prismaClient.channel.findFirst({
+      where: {
+        creatorId: req.userId,
+      },
+    });
+
+    if (!findChannel) {
+      res.status(404).json({ error: "Channel not found." });
+      return;
+    }
+
+    const { title, description, thumbnailUrl } = uploadVideoPayload.data;
+
+    const video = await prismaClient.video.create({
+      data: {
+        title,
+        description,
+        thumbnail_url: thumbnailUrl,
+        creatorId: req.userId,
+        channelId: findChannel.id,
+        video_urls: [],
+      },
+    });
+  } catch (error: any) {}
 });

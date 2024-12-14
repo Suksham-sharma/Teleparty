@@ -23,6 +23,7 @@ import { useDropzone } from "react-dropzone";
 import { generatePresignedUrl } from "@/services/api";
 import { toast } from "sonner";
 import axios from "axios";
+import axiosInstance from "@/lib/axios";
 
 interface FileInfo {
   name: string;
@@ -40,8 +41,56 @@ export function FileUploadDialog() {
   const [description, setDescription] = React.useState("");
   const [fileName, setFileName] = React.useState("");
   const [isUploading, setIsUploading] = React.useState(false);
+  //Add loader if want
 
-  const handleVideoSubmit = async () => {};
+  const handleClick = async () => {
+    try {
+      if (!videoFile || !thumbnailFile || !fileName || !description) {
+        toast.error("Please fill in all fields and upload the required files.");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", videoFile.file);
+      formData.append("thumbnail", thumbnailFile.file);
+      formData.append("title", fileName);
+      formData.append("description", description);
+
+      // Make API call
+      setIsUploading(true);
+      const response = await axiosInstance.post(
+        "http://localhost:4000/api/videos/upload",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      const data = response.data;
+      console.log("Upload response:", data);
+
+      if (!data) {
+        toast.error("Failed to upload.");
+      } else {
+        toast.success("Uploaded successfully.");
+        setVideoFile(null);
+        setThumbnailFile(null);
+        setFileName("");
+        setDescription("");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      if (axios.isAxiosError(error)) {
+        toast.error(error.message || "An error occurred while uploading.");
+      } else {
+        toast.error("Error while uploading.");
+      }
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const uploadFile = async (file: File, fileType: "video" | "image") => {
     try {
@@ -204,7 +253,7 @@ export function FileUploadDialog() {
           </div>
         </SheetHeader>
 
-        <div className="mt-3 space-y-4">
+        <div className="mt-3 space-y-2">
           {/* Video Upload */}
           <div className="space-y-2">
             <Label>
@@ -362,6 +411,7 @@ export function FileUploadDialog() {
                 !fileName ||
                 !description
               }
+              onClick={handleClick}
             >
               {isUploading ? (
                 <>
