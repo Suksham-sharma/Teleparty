@@ -112,3 +112,32 @@ export const getChannelForUser = async (authHeader: string) => {
     return false;
   }
 };
+
+type videoData = {
+  title: string | undefined;
+  description: string | undefined;
+  thumbnailId: string;
+  videoId: string;
+};
+
+export const uploadVideo = async (videoData: videoData) => {
+  console.log("uploading video");
+  try {
+    const response = await axiosInstance.post("/videos/upload", videoData);
+
+    if (!response) {
+      throw new Error("No data returned from server");
+    }
+
+    console.log("response hghghghg", response);
+
+    if (response.status !== 201) {
+      throw new Error("Something went wrong");
+    }
+
+    return response.data;
+  } catch (error: unknown) {
+    console.log("Error uploading video", error);
+    return false;
+  }
+};

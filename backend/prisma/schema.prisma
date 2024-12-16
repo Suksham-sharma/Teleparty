@@ -23,20 +23,20 @@ model User {
 }
 
 model Video {
-  id            String   @id @default(cuid())
-  title         String
-  thumbnail_url String?
-  video_urls    Json?
-  view_count    Int      @default(value: 0)
-  description   String
-  category      String?
-  duration      String?
-  timeStamp     String?
-  created_at    DateTime @default(now())
-  channelId     String
-  channel       Channel  @relation(fields: [channelId], references: [id])
-  creatorId     String
-  creator       User     @relation(fields: [creatorId], references: [id])
+  id          String   @id @default(cuid())
+  title       String
+  thumbnailId String?
+  video_urls  Json?
+  view_count  Int      @default(value: 0)
+  description String
+  category    String?
+  duration    String?
+  timeStamp   String?
+  created_at  DateTime @default(now())
+  channelId   String
+  channel     Channel  @relation(fields: [channelId], references: [id])
+  creatorId   String
+  creator     User     @relation(fields: [creatorId], references: [id])
 }
 
 model Channel {

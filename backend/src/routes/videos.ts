@@ -57,18 +57,17 @@ videosRouter.get("/presignedurl", async (req: Request, res: Response) => {
       return;
     }
 
-    const key =
-      type === "video"
-        ? `Originalvideos/${fileName}`
-        : `Thumbnails/${fileName}`;
+    const key = type === "video" ? `Originalvideos/` : `Thumbnails/`;
 
-    const presignedUrl = await s3Service.generatePresignedUrl(
+    const data = await s3Service.generatePresignedUrl(
       key as string,
       type as string
     );
 
-    res.status(200).json({ presignedUrl });
-  } catch (error: any) {}
+    res.status(200).json(data);
+  } catch (error: any) {
+    console.error("Error generating presigned URL:", error);
+  }
 });
 
 videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
@@ -122,6 +121,7 @@ videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
 });
 
 videosRouter.post("/upload", async (req: Request, res: Response) => {
+  console.log("req.body", req.body);
   try {
     const uploadVideoPayload = uploadVideoData.safeParse(req.body);
 
@@ -148,17 +148,19 @@ videosRouter.post("/upload", async (req: Request, res: Response) => {
       return;
     }
 
-    const { title, description, thumbnailUrl } = uploadVideoPayload.data;
+    const { title, description, thumbnailId, videoId } =
+      uploadVideoPayload.data;
 
     const video = await prismaClient.video.create({
       data: {
         title,
         description,
-        thumbnail_url: thumbnailUrl,
+        thumbnailId: thumbnailId,
         creatorId: req.userId,
         channelId: findChannel.id,
         video_urls: [],
       },
     });
+    res.status(201).json({ message: "Video uploaded successfully." });
   } catch (error: any) {}
 });

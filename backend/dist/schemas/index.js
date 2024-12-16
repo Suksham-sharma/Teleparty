@@ -24,6 +24,6 @@ exports.updateVideoTimeData = zod_1.default.object({
 exports.uploadVideoData = zod_1.default.object({
     title: zod_1.default.string(),
     description: zod_1.default.string(),
-    category: zod_1.default.string().optional(),
-    file: zod_1.default.any(),
+    videoId: zod_1.default.string(),
+    thumbnailId: zod_1.default.string(),
 });

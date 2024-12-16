@@ -17,12 +17,9 @@ const express_1 = require("express");
 const prismaClient_1 = __importDefault(require("../lib/prismaClient"));
 const schemas_1 = require("../schemas");
 const redisManager_1 = require("../lib/redisManager");
-const multer_1 = require("../lib/multer");
 const s3uploader_1 = require("../lib/s3uploader");
-const fs_1 = __importDefault(require("fs"));
 exports.videosRouter = (0, express_1.Router)();
 exports.videosRouter.get("/feed", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("1");
     try {
         const { page = 1, limit = 10 } = req.query;
         const whereClause = {};
@@ -64,16 +61,15 @@ exports.videosRouter.get("/presignedurl", (req, res) => __awaiter(void 0, void 0
             res.status(400).json({ error: "Invalid request." });
             return;
         }
-        const key = type === "video"
-            ? `Originalvideos/${fileName}`
-            : `Thumbnails/${fileName}`;
-        const presignedUrl = yield s3uploader_1.s3Service.generatePresignedUrl(key, type);
-        res.status(200).json({ presignedUrl });
+        const key = type === "video" ? `Originalvideos/` : `Thumbnails/`;
+        const data = yield s3uploader_1.s3Service.generatePresignedUrl(key, type);
+        res.status(200).json(data);
     }
-    catch (error) { }
+    catch (error) {
+        console.error("Error generating presigned URL:", error);
+    }
 }));
 exports.videosRouter.put("/:video_id/time", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("3");
     const { video_id } = req.params;
     console.log("video_id", video_id);
     try {
@@ -112,89 +108,41 @@ exports.videosRouter.put("/:video_id/time", (req, res) => __awaiter(void 0, void
         res.status(500).json({ error: "Internal server error." });
     }
 }));
-exports.videosRouter.post("/upload", multer_1.upload.any(), (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+exports.videosRouter.post("/upload", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("req.body", req.body);
     try {
-        const videoUploadPayload = schemas_1.uploadVideoData.safeParse(req.body);
-        const filePath = (_a = req.file) === null || _a === void 0 ? void 0 : _a.path;
-        const key = `Originalvideos/${Date.now()}${(_b = req.file) === null || _b === void 0 ? void 0 : _b.originalname}`;
-        if (!filePath) {
-            res.status(400).json({ error: "Invalid file upload." });
-            return;
-        }
-        const fileType = (_c = req.file) === null || _c === void 0 ? void 0 : _c.mimetype;
-        if (!fileType) {
-            console.log("fileType Error", fileType);
-            return;
-        }
-        const response = yield s3uploader_1.s3Service.uploadDataToS3(filePath, fileType, key);
-        console.log("response", response);
-        fs_1.default.unlinkSync(filePath);
-        if (!videoUploadPayload.success) {
+        const uploadVideoPayload = schemas_1.uploadVideoData.safeParse(req.body);
+        if (!uploadVideoPayload.success) {
             res.status(400).json({
-                error: "Invalid video upload data.",
+                error: uploadVideoPayload.error.errors.map((error) => error.message),
             });
             return;
         }
-        const { title, description, category } = videoUploadPayload.data;
         if (!req.userId) {
             res.status(401).json({ error: "Unauthorized." });
             return;
         }
-        const findChannel = yield prismaClient_1.default.channel.findUnique({
-            where: { creatorId: req.userId },
+        const findChannel = yield prismaClient_1.default.channel.findFirst({
+            where: {
+                creatorId: req.userId,
+            },
         });
         if (!findChannel) {
             res.status(404).json({ error: "Channel not found." });
             return;
         }
+        const { title, description, thumbnailId, videoId } = uploadVideoPayload.data;
         const video = yield prismaClient_1.default.video.create({
             data: {
                 title,
                 description,
+                thumbnailId: thumbnailId,
                 creatorId: req.userId,
                 channelId: findChannel.id,
-                video_urls: {
-                    "240p": `https://example.com/${filePath}240p`,
-                    "480p": `https://example.com/${filePath}480p`,
-                    "720p": `https://example.com/${filePath}720p`,
-                },
+                video_urls: [],
             },
         });
-        res.status(200).json(Object.assign(Object.assign({}, video), { processing_status: "PROCESSING" }));
+        res.status(201).json({ message: "Video uploaded successfully." });
     }
-    catch (error) {
-        console.error("Error uploading video:", error);
-        res.status(500).json({ error: "Internal server error." });
-    }
-}));
-exports.videosRouter.get("/:video_id", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("5");
-    try {
-        const { video_id } = req.params;
-        const video = yield prismaClient_1.default.video.findUnique({
-            where: { id: video_id },
-            include: {
-                creator: {
-                    select: {
-                        username: true,
-                        id: true,
-                    },
-                },
-            },
-        });
-        if (!video) {
-            res.status(404).json({ error: "Video not found." });
-            return;
-        }
-        video.video_urls = {
-            "240p": "<https://example.com/video_240p.mp4>",
-            "480p": "<https://example.com/video_480p.mp4>",
-            "720p": "<https://example.com/video_720p.mp4>",
-        };
-        res.status(200).json(Object.assign(Object.assign({}, video), { status: "TRANSCODED" }));
-    }
-    catch (error) {
-        console.log("Error fetching video:", error);
-    }
+    catch (error) { }
 }));

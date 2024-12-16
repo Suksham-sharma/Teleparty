@@ -20,10 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useDropzone } from "react-dropzone";
-import { generatePresignedUrl } from "@/services/api";
+import { generatePresignedUrl, uploadVideo } from "@/services/api";
 import { toast } from "sonner";
 import axios from "axios";
-import axiosInstance from "@/lib/axios";
 
 interface FileInfo {
   name: string;
@@ -31,6 +30,7 @@ interface FileInfo {
   type: string;
   file: File;
   uploadStatus?: "idle" | "loading" | "success" | "error";
+  uniqueId?: string;
 }
 
 export function FileUploadDialog() {
@@ -41,54 +41,26 @@ export function FileUploadDialog() {
   const [description, setDescription] = React.useState("");
   const [fileName, setFileName] = React.useState("");
   const [isUploading, setIsUploading] = React.useState(false);
-  //Add loader if want
 
-  const handleClick = async () => {
+  const handleVideoUploadSumbit = async () => {
     try {
-      if (!videoFile || !thumbnailFile || !fileName || !description) {
-        toast.error("Please fill in all fields and upload the required files.");
-        return;
+      const videoUploadData = {
+        title: fileName,
+        description: description,
+        thumbnailId: thumbnailFile?.uniqueId || "",
+        videoId: videoFile?.uniqueId || "",
+      };
+
+      const response = await uploadVideo(videoUploadData);
+
+      if (!response) {
+        throw new Error("Something Went Wrong");
       }
 
-      const formData = new FormData();
-      formData.append("file", videoFile.file);
-      formData.append("thumbnail", thumbnailFile.file);
-      formData.append("title", fileName);
-      formData.append("description", description);
-
-      // Make API call
-      setIsUploading(true);
-      const response = await axiosInstance.post(
-        "http://localhost:4000/api/videos/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      const data = response.data;
-      console.log("Upload response:", data);
-
-      if (!data) {
-        toast.error("Failed to upload.");
-      } else {
-        toast.success("Uploaded successfully.");
-        setVideoFile(null);
-        setThumbnailFile(null);
-        setFileName("");
-        setDescription("");
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      if (axios.isAxiosError(error)) {
-        toast.error(error.message || "An error occurred while uploading.");
-      } else {
-        toast.error("Error while uploading.");
-      }
-    } finally {
-      setIsUploading(false);
+      toast.success("Video Saved Successfully");
+    } catch (error: unknown) {
+      console.log("Error occured", error);
+      toast.error("Something Went Wrong");
     }
   };
 
@@ -99,13 +71,27 @@ export function FileUploadDialog() {
         file?.name,
         `${fileType}/${type}`
       );
-      const preSignedUrl = urlData?.presignedUrl;
 
-      if (!preSignedUrl) {
+      const { url, resourceId } = urlData;
+      console.log("urlData", urlData);
+
+      console.log("url and uniqueId", url, resourceId);
+
+      if (!url || !resourceId) {
         throw new Error(`Error generating presigned URL for ${fileType}`);
       }
 
-      const uploadResponse = await axios.put(preSignedUrl, file, {
+      if (fileType === "video") {
+        setVideoFile((prev) =>
+          prev ? { ...prev, uniqueId: resourceId } : null
+        );
+      } else {
+        setThumbnailFile((prev) =>
+          prev ? { ...prev, uniqueId: resourceId } : null
+        );
+      }
+
+      const uploadResponse = await axios.put(url, file, {
         headers: {
           "Content-Type": file.type,
         },
@@ -119,7 +105,7 @@ export function FileUploadDialog() {
 
       return true;
     } catch (error) {
-      console.error(`Upload ${fileType} error:`, error);
+      console.log(`Upload ${fileType} error:`, error);
       return false;
     }
   };
@@ -411,7 +397,7 @@ export function FileUploadDialog() {
                 !fileName ||
                 !description
               }
-              onClick={handleClick}
+              onClick={handleVideoUploadSumbit}
             >
               {isUploading ? (
                 <>

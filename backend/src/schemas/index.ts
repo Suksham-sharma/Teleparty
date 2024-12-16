@@ -23,6 +23,6 @@ export const updateVideoTimeData = z.object({
 export const uploadVideoData = z.object({
   title: z.string(),
   description: z.string(),
-  videoUrl: z.string(),
-  thumbnailUrl: z.string(),
+  videoId: z.string(),
+  thumbnailId: z.string(),
 });

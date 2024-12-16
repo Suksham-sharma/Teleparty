@@ -72,7 +72,7 @@ class S3Service {
                 const url = yield (0, s3_request_presigner_1.getSignedUrl)(this.s3Client, command, {
                     expiresIn: 3600,
                 });
-                return url;
+                return { url: url, resourceId: id };
             }
             catch (error) {
                 console.error("Error generating presigned URL:", error);
