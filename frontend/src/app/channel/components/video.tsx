@@ -8,7 +8,8 @@ import { Clock } from "lucide-react";
 interface Video {
   id: string;
   title: string;
-  thumbnailUrl: string;
+  description: string;
+  thumbnailId: string;
   uploadedAt: string;
 }
 
@@ -28,7 +29,7 @@ export function VideoGrid({ videos }: { videos: Video[] }) {
               <div className="hover:scale-[102%] transition-transform duration-300 ease-in-out">
                 <div className="relative h-48 overflow-hidden rounded-xl group-hover:shadow-lg">
                   <Image
-                    src={video.thumbnailUrl}
+                    src={video.thumbnailId}
                     alt={video.title}
                     fill
                     style={{ objectFit: "cover" }}

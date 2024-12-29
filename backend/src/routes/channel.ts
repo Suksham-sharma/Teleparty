@@ -69,6 +69,10 @@ channelRouter.get("/me", async (req: Request, res: Response) => {
       },
     });
 
+    channel?.videos.map((video) => {
+      video.thumbnailId = `https://d3uupbz3igyr5f.cloudfront.net/Thumbnails/${video.thumbnailId}`;
+    });
+
     console.log("Channel", channel);
 
     res.status(200).json({
