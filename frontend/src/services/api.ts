@@ -6,11 +6,9 @@ export const generatePresignedUrl = async (
   type: string
 ) => {
   try {
-    const response = await axiosInstance.get("/videos/presignedurl", {
-      params: {
-        fileName,
-        type,
-      },
+    const response = await axiosInstance.post("/videos/presignedurl", {
+      fileName,
+      type,
     });
 
     if (!response) {

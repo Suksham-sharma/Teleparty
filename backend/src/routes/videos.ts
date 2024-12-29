@@ -47,17 +47,23 @@ videosRouter.get("/feed", async (req: Request, res: Response) => {
   } catch (error: any) {}
 });
 
-videosRouter.get("/presignedurl", async (req: Request, res: Response) => {
-  console.log("req.query", req.query);
+videosRouter.post("/presignedurl", async (req: Request, res: Response) => {
+  console.log("Acfbx");
+  console.log("req.query", req.body);
   try {
-    const { fileName, type } = req.query;
+    const { fileName, type } = req.body;
 
     if (!fileName) {
       res.status(400).json({ error: "Invalid request." });
       return;
     }
 
-    const key = type === "video" ? `Originalvideos/` : `Thumbnails/`;
+    console.log("type", type);
+
+    const contentType = type.split("/")[0];
+    console.log("contentType", contentType);
+
+    const key = contentType === "video" ? `Originalvideos/` : `Thumbnails/`;
 
     const data = await s3Service.generatePresignedUrl(
       key as string,
@@ -161,6 +167,11 @@ videosRouter.post("/upload", async (req: Request, res: Response) => {
         video_urls: [],
       },
     });
+
+    console.log("here...");
+
+    redisManager.sendToWorkerAndSubscribe(videoId);
+
     res.status(201).json({ message: "Video uploaded successfully." });
   } catch (error: any) {}
 });

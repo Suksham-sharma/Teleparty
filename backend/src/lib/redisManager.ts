@@ -39,6 +39,8 @@ class RedisManager {
       const id = this.generateRandomId();
       await this.subscribeClient.subscribe(id, (message: any) => {});
 
+      console.log("Sending data to worker", { key: key, requestId: id });
+
       await this.queueClient.lPush(
         "video-transcode",
         JSON.stringify({ key: key, requestId: id })

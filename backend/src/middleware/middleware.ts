@@ -8,17 +8,9 @@ export const protectRoute = async (
   next: NextFunction
 ) => {
   try {
-    console.log("Inside protectRoute");
-    console.log("Cookies", req.cookies);
-
     var token = req.cookies.Authentication;
-    console.log("Token", token);
 
-    console.log("-----------------REQUEST-----------------");
-    console.log(req.cookies);
-    console.log("-----------------------------------------");
     if (!token) token = req.headers.authorization?.split(" ")[1];
-    console.log("Token", token);
 
     if (!token) {
       res.status(409).json({
@@ -39,8 +31,6 @@ export const protectRoute = async (
       });
       return;
     }
-
-    console.log("Decoded", decoded);
 
     const findUser = await prismaClient.user.findUnique({
       where: {

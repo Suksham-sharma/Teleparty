@@ -36,10 +36,6 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
       },
     });
 
-    console.log("User created", user);
-    console.log("User created", user.id);
-    console.log("User created", user.username);
-
     const token = jwt.sign(
       {
         id: user.id,

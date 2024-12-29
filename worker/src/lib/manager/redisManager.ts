@@ -9,6 +9,8 @@ class RedisManager {
   constructor() {
     this.queueClient = createClient();
     this.publisherClient = createClient();
+    this.queueClient.connect();
+    this.publisherClient.connect();
   }
 
   static getInstance() {
@@ -35,3 +37,5 @@ class RedisManager {
 
   async publishDataToServer() {}
 }
+
+export const redisManager = RedisManager.getInstance();
