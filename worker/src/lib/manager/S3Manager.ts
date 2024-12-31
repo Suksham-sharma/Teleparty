@@ -39,9 +39,11 @@ class S3Manager {
   }
 
   async getDataFromS3andProcess(key: string) {
+    const videoUniqueKey = `Originalvideos/${key}.mp4`;
+    console.log(videoUniqueKey);
     const command = new GetObjectCommand({
       Bucket: this.bucketName,
-      Key: key,
+      Key: videoUniqueKey,
     });
 
     const response = await this.S3Client.send(command);

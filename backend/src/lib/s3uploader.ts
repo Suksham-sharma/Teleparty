@@ -73,13 +73,20 @@ export class S3Service {
     }
   }
 
-  async generatePresignedUrl(key: string, type: string) {
+  async generatePresignedUrl(extension: string, contentType: string) {
     try {
       const id = uuidv4();
+      const uniqueObjectId =
+        contentType === "video"
+          ? `Originalvideos/${id}.mp4`
+          : `Thumbnails/${id}.jpeg`;
+
+      console.log("uniqueObjectId", uniqueObjectId);
+      console.log("contentType here", contentType);
       const command = new PutObjectCommand({
         Bucket: "easy-deploy",
-        Key: `${key}${id}`,
-        ContentType: type,
+        Key: uniqueObjectId,
+        ContentType: contentType,
       });
 
       const url = await getSignedUrl(this.s3Client, command, {

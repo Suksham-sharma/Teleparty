@@ -58,16 +58,13 @@ videosRouter.post("/presignedurl", async (req: Request, res: Response) => {
       return;
     }
 
-    console.log("type", type);
-
-    const contentType = type.split("/")[0];
+    const [contentType, extension] = type.split("/");
     console.log("contentType", contentType);
-
-    const key = contentType === "video" ? `Originalvideos/` : `Thumbnails/`;
+    console.log("extension", extension);
 
     const data = await s3Service.generatePresignedUrl(
-      key as string,
-      type as string
+      extension as string,
+      contentType as string
     );
 
     res.status(200).json(data);
