@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/lib/helper.ts","./src/lib/manager/s3manager.ts","./src/lib/manager/redismanager.ts"],"version":"5.6.3"}
+{"root":["./src/index.ts","./src/lib/helper.ts","./src/lib/transcode.ts","./src/lib/manager/s3manager.ts","./src/lib/manager/redismanager.ts"],"version":"5.6.3"}

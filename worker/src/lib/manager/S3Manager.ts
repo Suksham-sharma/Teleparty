@@ -8,7 +8,7 @@ import fs from "fs";
 import { pipeline } from "stream/promises";
 import dotenv from "dotenv";
 import path from "path";
-import { transcodeVideoWithFFmpeg } from "../helper";
+import { transcodeVideoWithFFmpeg } from "../transcode";
 
 dotenv.config();
 
@@ -38,7 +38,7 @@ class S3Manager {
     return this.instance;
   }
 
-  async getDataFromS3(key: string) {
+  async getDataFromS3andProcess(key: string) {
     const command = new GetObjectCommand({
       Bucket: this.bucketName,
       Key: key,

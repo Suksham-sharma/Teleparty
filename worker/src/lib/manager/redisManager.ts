@@ -1,5 +1,4 @@
 import { createClient, RedisClientType } from "redis";
-import { handleIncomingRequests } from "../..";
 
 class RedisManager {
   static instance: RedisManager;
@@ -29,7 +28,7 @@ class RedisManager {
 
       const IncomingData = JSON.parse(response.element);
 
-      handleIncomingRequests(IncomingData);
+      return IncomingData;
     } catch (error: any) {
       console.log("Error getting data from queue", error);
     }
