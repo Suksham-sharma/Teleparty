@@ -8,7 +8,11 @@ import fs from "fs";
 import { pipeline } from "stream/promises";
 import dotenv from "dotenv";
 import path from "path";
-import { transcodeVideoWithFFmpeg } from "../transcode";
+import {
+  transcodeVideoToHLS,
+  transcodeVideoToHLS2,
+  transcodeVideoWithFFmpeg,
+} from "../transcode";
 
 dotenv.config();
 
@@ -48,7 +52,7 @@ class S3Manager {
 
     const response = await this.S3Client.send(command);
 
-    const originalPath = `${key}`;
+    const originalPath = `Originalvideos/${key}.mp4`;
     const saveDir = path.resolve(__dirname, "../Originalvideos");
     fs.mkdirSync(saveDir, { recursive: true });
 
@@ -64,8 +68,8 @@ class S3Manager {
     }
 
     const originalVideoPath = path.resolve(originalPath);
-    await transcodeVideoWithFFmpeg(originalVideoPath, path.basename(key));
     console.log("File downloaded successfully");
+    await transcodeVideoToHLS2(originalVideoPath, path.basename(key));
   }
 
   async uploadTranscodeVideoToS3(key: string) {
@@ -74,6 +78,16 @@ class S3Manager {
       Key: key,
       Body: fs.createReadStream(`${key}`),
     });
+    const response = await this.S3Client.send(command);
+  }
+
+  async uploadHLSFileToS3(filePath: string, key: string) {
+    const command = new PutObjectCommand({
+      Bucket: this.bucketName,
+      Key: `transcoded/${key}`,
+      Body: fs.createReadStream(filePath),
+    });
+
     const response = await this.S3Client.send(command);
   }
 }
