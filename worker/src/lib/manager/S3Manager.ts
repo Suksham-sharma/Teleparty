@@ -8,11 +8,7 @@ import fs from "fs";
 import { pipeline } from "stream/promises";
 import dotenv from "dotenv";
 import path from "path";
-import {
-  transcodeVideoToHLS,
-  transcodeVideoToHLS2,
-  transcodeVideoWithFFmpeg,
-} from "../transcode";
+import { transcodeVideoToHLS2, transcodeVideoWithFFmpeg } from "../transcode";
 
 dotenv.config();
 
@@ -82,10 +78,18 @@ class S3Manager {
   }
 
   async uploadHLSFileToS3(filePath: string, key: string) {
+    let contentType = "application/octet-stream";
+    if (key.endsWith(".m3u8")) {
+      contentType = "application/vnd.apple.mpegurl";
+    } else if (key.endsWith(".ts")) {
+      contentType = "video/MP2T";
+    }
+
     const command = new PutObjectCommand({
       Bucket: this.bucketName,
       Key: `transcoded/${key}`,
       Body: fs.createReadStream(filePath),
+      ContentType: contentType,
     });
 
     const response = await this.S3Client.send(command);
