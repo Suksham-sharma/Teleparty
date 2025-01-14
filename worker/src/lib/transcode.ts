@@ -82,7 +82,7 @@ export const transcodeVideoToHLS2 = async (
       // Add this variant to master playlist
       const bandwidth = parseInt(resolution.bitrate) * 1000;
       masterPlaylist += `#EXT-X-STREAM-INF:BANDWIDTH=${bandwidth},RESOLUTION=${resolution.width}x${resolution.height}\n`;
-      masterPlaylist += `${resolution.name}/playlist.m3u8\n\n`;
+      masterPlaylist += `${resolution.name}/playlist_${resolution.name}.m3u8\n\n`;
 
       return new Promise((resolve, reject) => {
         ffmpeg(videoPath)
@@ -91,7 +91,7 @@ export const transcodeVideoToHLS2 = async (
             `-hls_time 10`,
             `-hls_playlist_type vod`,
             `-hls_segment_filename`,
-            `${variantDir}/segment%d.ts`,
+            `${variantDir}/segment_${resolution.name}_%d.ts`,
             `-hls_flags independent_segments`,
             `-hls_list_size 0`,
 
@@ -111,7 +111,7 @@ export const transcodeVideoToHLS2 = async (
             // Force key frames
             `-force_key_frames expr:gte(t,n_forced*2)`,
           ])
-          .output(`${variantDir}/playlist.m3u8`)
+          .output(`${variantDir}/playlist_${resolution.name}.m3u8`)
           .on("start", (command) => {
             console.log(
               `Starting transcoding for ${resolution.name}: ${command}`
@@ -161,10 +161,8 @@ export const transcodeVideoToHLS2 = async (
       });
     });
 
-    // Wait for all transcoding to complete
     await Promise.all(promises);
 
-    // Write and upload master playlist
     const masterPlaylistPath = path.join(outputDir, "master.m3u8");
     await fs.writeFile(masterPlaylistPath, masterPlaylist);
 
@@ -174,14 +172,13 @@ export const transcodeVideoToHLS2 = async (
       `${fileWithoutExtension}/master.m3u8`
     );
 
-    // Clean up
     await fs.rm(outputDir, { recursive: true, force: true });
     await fs.unlink(videoPath);
 
     return true;
   } catch (error) {
     console.error("HLS transcoding failed:", error);
-    // Clean up on error
+
     try {
       await fs.rm(outputDir, { recursive: true, force: true });
     } catch (cleanupError) {
