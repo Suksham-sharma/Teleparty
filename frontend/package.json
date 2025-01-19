@@ -17,6 +17,7 @@
     "@radix-ui/react-slot": "^1.1.0",
     "@tabler/icons-react": "^3.23.0",
     "@types/hls.js": "^1.0.0",
+    "@types/ws": "^8.5.13",
     "axios": "^1.7.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -36,6 +37,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "video.js": "^8.21.0",
+    "ws": "^8.18.0",
     "zustand": "^5.0.2"
   },
   "devDependencies": {

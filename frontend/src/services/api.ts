@@ -88,15 +88,10 @@ export const createChannel = async (name: string, description: string) => {
   }
 };
 
-export const getChannelForUser = async (authHeader: string) => {
-  console.log("myauthHeader", authHeader);
+export const getChannelForUser = async () => {
   try {
     console.log("channels me");
-    const response = await axiosInstance.get("/channels/me", {
-      headers: {
-        Authorization: `Bearer ${authHeader}`,
-      },
-    });
+    const response = await axiosInstance.get("/channels/me");
 
     if (!response.data) {
       throw new Error("No data returned from server");

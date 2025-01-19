@@ -17,7 +17,7 @@ interface ChannelProps {
   joinCode: string;
 }
 
-export function EnhancedChannel({ channel, joinCode }: ChannelProps) {
+export function Channel({ channel, joinCode }: ChannelProps) {
   const [copied, setCopied] = useState(false);
 
   const copyToClipboard = (text: string) => {

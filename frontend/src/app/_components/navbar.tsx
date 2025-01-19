@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { FileUploadDialog } from "./video-upload";
 import { Bell, LogOut } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { isUserAuthenticated } from "@/lib/authHook";
 import {
   DropdownMenu,
@@ -13,6 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const CustomAvatar = dynamic(() => import("./avatar"), { ssr: false });
 
 export default function Navbar({ isHome = false }: { isHome?: boolean }) {
   const router = useRouter();
@@ -23,6 +25,7 @@ export default function Navbar({ isHome = false }: { isHome?: boolean }) {
     router.push("/");
   };
 
+  const avatarSrc = `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${data?.username}`;
   return (
     <nav className="fixed top-0 flex justify-between w-full z-50 bg-gradient-to-b from-gray-900/80 to-transparent backdrop-blur-sm">
       <div className="w-full flex justify-between items-center px-4 py-4">
@@ -41,7 +44,7 @@ export default function Navbar({ isHome = false }: { isHome?: boolean }) {
             <>
               <div className="flex items-center space-x-4">
                 <Link
-                  href="/channel"
+                  href="/channel/${channelId}"
                   className="text-sm text-white hover:text-gray-300"
                 >
                   Your Channel
@@ -58,12 +61,9 @@ export default function Navbar({ isHome = false }: { isHome?: boolean }) {
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Avatar className="cursor-pointer">
-                <AvatarImage
-                  src={`https://api.dicebear.com/9.x/fun-emoji/svg?seed=${data?.username}`}
-                />
-                <AvatarFallback>{data?.username}</AvatarFallback>
-              </Avatar>
+              <div>
+                <CustomAvatar src={avatarSrc} fallback={data?.username ?? ""} />
+              </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-md shadow-lg">
               <DropdownMenuLabel className="font-normal">
