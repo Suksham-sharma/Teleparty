@@ -10,10 +10,11 @@ export const protectRoute = async (
   try {
     var token = req.cookies.Authentication;
 
-    if (!token) token = req.headers.authorization?.split(" ")[1];
+    // if (!token) token = req.headers.authorization?.split(" ")[1];
+    console.log("Token", token);
 
     if (!token) {
-      res.status(409).json({
+      res.status(403).json({
         success: false,
         message: "Not authorized - No Token",
       });

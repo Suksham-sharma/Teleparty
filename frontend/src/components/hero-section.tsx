@@ -1,19 +1,20 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { CheckSquare } from "lucide-react";
+import { Play, Users, Clock } from "lucide-react";
 import { FloatingElement } from "./floating-element";
 import { FlipWords } from "./ui/flip-words";
 import { BackgroundAnimation } from "@/app/_components/background";
 import { motion } from "framer-motion";
 import RetroGrid from "./ui/retro-grid";
+import { Button } from "./ui/button";
 
 export function HeroSection() {
   const [randomPositions, setRandomPositions] = useState<
     { left: number; top: number; duration: number; delay: number }[]
   >([]);
-  const words = ["classmates", "cuties", "friends", "pyaar"];
-  const floatingEmojis = ["💖", "🔥", "🥰", "😍", "🌟", "🎈", "🥳", "🤩", "💫"];
+  const words = ["friends", "family", "loved ones", "community"];
+  const floatingEmojis = ["🎬", "📺", "🍿", "❤️", "🎵", "🎮", "🌟", "🎪", "🎯"];
 
   useEffect(() => {
     const topPos = Math.random();
@@ -27,38 +28,43 @@ export function HeroSection() {
   }, []);
 
   return (
-    <section className="relative min-h-screen pt-16 pb-20 flex items-center justify-center overflow-hidden ">
+    <section className="relative min-h-screen pt-16 pb-20 flex items-center justify-center overflow-hidden bg-gradient-to-b from-white to-gray-50">
       <BackgroundAnimation />
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-25" />
 
       <div className="container px-4 md:px-6 relative">
         <div className="flex flex-col items-center text-center gap-8">
           <FloatingElement
-            className="absolute left-[5%] top-[-30%] md:block hidden z-50"
+            className="absolute left-[5%] top-[50%] md:block hidden z-50"
             delay={0.2}
           >
-            <div className="bg-yellow-100 p-6 rounded-lg shadow-lg rotate-[-16deg] max-w-[200px]">
-              <p className="text-sm font-handwriting">
-                Take notes to keep track of crucial details, and accomplish more
-                tasks with ease.
+            <div className="bg-blue-50 p-6 rounded-xl shadow-lg rotate-[-8deg] max-w-[220px] border border-blue-100">
+              <p className="text-sm font-medium text-blue-700">
+                Watch your favorite content in perfect sync with friends and
+                family
               </p>
-              <div className="mt-4 bg-white p-2 rounded-md shadow-sm">
-                <CheckSquare className="text-blue-600 h-6 w-6" />
+              <div className="mt-4 bg-white p-3 rounded-lg shadow-sm flex items-center gap-2">
+                <Users className="text-blue-600 h-5 w-5" />
+                <span className="text-sm font-medium text-blue-600">
+                  Real-time sync
+                </span>
               </div>
             </div>
           </FloatingElement>
 
           <FloatingElement
-            className="absolute right-[10%] top-[50%] md:block hidden z-50"
+            className="absolute right-[8%] top-[50%] md:block hidden z-50"
             delay={0.2}
           >
-            <div className="bg-purple-100 p-6 rounded-lg shadow-lg rotate-[12deg] max-w-[200px]">
-              <p className="text-sm font-handwriting">
-                Take notes to keep track of crucial details, and accomplish more
-                tasks with ease.
+            <div className="bg-purple-50 p-6 rounded-xl shadow-lg rotate-[8deg] max-w-[220px] border border-purple-100">
+              <p className="text-sm font-medium text-purple-700">
+                Chat, react, and share moments together while streaming
               </p>
-              <div className="mt-4 bg-white p-2 rounded-md shadow-sm">
-                <CheckSquare className="text-blue-600 h-6 w-6" />
+              <div className="mt-4 bg-white p-3 rounded-lg shadow-sm flex items-center gap-2">
+                <Clock className="text-purple-600 h-5 w-5" />
+                <span className="text-sm font-medium text-purple-600">
+                  Live interaction
+                </span>
               </div>
             </div>
           </FloatingElement>
@@ -71,7 +77,7 @@ export function HeroSection() {
                   className="absolute text-4xl"
                   initial={{ opacity: 0, y: 100 }}
                   animate={{
-                    opacity: [0, 0.3, 0.5, 0.7, 0.3, 0],
+                    opacity: [0, 0.5, 0.7, 0.5, 0],
                     y: [-100, -200 - Math.random() * 100],
                     x: Math.random() * 300 - 200,
                   }}
@@ -91,17 +97,29 @@ export function HeroSection() {
           )}
 
           {/* Main Content */}
-          <FloatingElement delay={0} className="">
-            <h1 className="text-3xl md:text-[48px] font-bold tracking-tighter mb-4 ">
-              Cherish and Make Memories
-              <span className="block text-gray-400 mt-5">
-                with your <FlipWords words={words} />
+          <FloatingElement delay={0} className="max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6 bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              Stream Together,{" "}
+              <span className="text-indigo-600">Create Memories</span>
+              <span className="block text-2xl md:text-3xl font-medium text-gray-600 mt-4">
+                with your{" "}
+                <FlipWords
+                  words={words}
+                  className="text-indigo-600 font-semibold"
+                />
               </span>
             </h1>
-            <p className="text-gray-600 max-w-[600px] mb-8">
-              Your Only Platform to connect !!
+            <p className="text-gray-600 text-lg md:text-xl max-w-[600px] mb-8 mx-auto">
+              Experience the joy of watching together, no matter where you are!
             </p>
           </FloatingElement>
+          <Button
+            variant={"default"}
+            className=" bg-indigo-600 text-white px-8 py-6 rounded-xl text-lg font-medium shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-3 z-50"
+          >
+            <Play className="h-6 w-6" />
+            <span>Watch Now</span>
+          </Button>
         </div>
       </div>
       <RetroGrid />

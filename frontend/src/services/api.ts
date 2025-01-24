@@ -88,10 +88,13 @@ export const createChannel = async (name: string, description: string) => {
   }
 };
 
-export const getChannelForUser = async () => {
+export const getChannelForUser = async (authToken: string) => {
   try {
-    console.log("channels me");
-    const response = await axiosInstance.get("/channels/me");
+    const response = await axiosInstance.get("/channels/me", {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
 
     if (!response.data) {
       throw new Error("No data returned from server");

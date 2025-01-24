@@ -16,8 +16,8 @@ export function VideoGrid({ videos }: { videos: Video[] }) {
   return (
     <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {videos.length > 0 ? (
-          videos.map((video) => (
+        {videos?.length > 0 ? (
+          videos?.map((video) => (
             <div
               key={video.id}
               className="group rounded-xl overflow-hidden bg-white hover:bg-gray-50 transition-all duration-300"
