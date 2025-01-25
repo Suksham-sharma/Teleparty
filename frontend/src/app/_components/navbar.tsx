@@ -44,7 +44,7 @@ export default function Navbar({ isHome = false }: { isHome?: boolean }) {
             <>
               <div className="flex items-center space-x-4">
                 <Link
-                  href="/channel/${channelId}"
+                  href="/channel"
                   className="text-sm text-white hover:text-gray-300"
                 >
                   Your Channel

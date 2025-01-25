@@ -70,7 +70,7 @@ channelRouter.get("/me", async (req: Request, res: Response) => {
     });
 
     channel?.videos.map((video) => {
-      video.thumbnailId = `https://d3uupbz3igyr5f.cloudfront.net/Thumbnails/${video.thumbnailId}`;
+      video.thumbnailId = `https://d3uupbz3igyr5f.cloudfront.net/Thumbnails/${video.thumbnailId}.jpeg`;
     });
 
     console.log("Channel", channel);

@@ -12,7 +12,7 @@ interface Video {
   view_count?: number;
 }
 
-export function VideoGrid({ videos }: { videos: Video[] }) {
+export function VideoGrid({ videos, slug }: { videos: Video[]; slug: string }) {
   return (
     <div className="px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -22,7 +22,7 @@ export function VideoGrid({ videos }: { videos: Video[] }) {
               key={video.id}
               className="group rounded-xl overflow-hidden bg-white hover:bg-gray-50 transition-all duration-300"
             >
-              <Link href={`/video/${video.id}`}>
+              <Link href={`/stream/${slug}?video=${video.id}`}>
                 <div className="relative aspect-video overflow-hidden rounded-xl">
                   <Image
                     src={video.thumbnailId}

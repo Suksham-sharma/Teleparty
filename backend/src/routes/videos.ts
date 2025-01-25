@@ -124,7 +124,7 @@ videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
 });
 
 videosRouter.post("/upload", async (req: Request, res: Response) => {
-  console.log("req.body", req.body);
+  console.log("Starting Video Upload");
   try {
     const uploadVideoPayload = uploadVideoData.safeParse(req.body);
 
@@ -154,8 +154,11 @@ videosRouter.post("/upload", async (req: Request, res: Response) => {
     const { title, description, thumbnailId, videoId } =
       uploadVideoPayload.data;
 
+    redisManager.sendToWorkerAndSubscribe(videoId);
+
     const video = await prismaClient.video.create({
       data: {
+        id: videoId,
         title,
         description,
         thumbnailId: thumbnailId,
@@ -167,8 +170,9 @@ videosRouter.post("/upload", async (req: Request, res: Response) => {
 
     console.log("here...");
 
-    redisManager.sendToWorkerAndSubscribe(videoId);
-
     res.status(201).json({ message: "Video uploaded successfully." });
-  } catch (error: any) {}
+  } catch (error: any) {
+    console.log("Errror", error);
+    res.status(500).json({ error: "Internal server error." });
+  }
 });

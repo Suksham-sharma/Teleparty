@@ -10,7 +10,7 @@ export const protectRoute = async (
   try {
     var token = req.cookies.Authentication;
 
-    // if (!token) token = req.headers.authorization?.split(" ")[1];
+    if (!token) token = req.headers.authorization?.split(" ")[1];
     console.log("Token", token);
 
     if (!token) {
