@@ -20,7 +20,7 @@ export function CategoryFilter() {
           key={category.id}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="inline-flex items-center px-4 py-2 space-x-2 text-sm text-white rounded-full bg-white/10 hover:bg-white/20"
+          className="inline-flex items-center px-4 py-2 space-x-2 text-sm  rounded-full  border-2 border-black text-black bg-gray-200 hover:bg-gray-100"
         >
           <category.icon className="w-4 h-4" />
           <span>{category.label}</span>

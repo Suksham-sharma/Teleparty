@@ -17,7 +17,10 @@ export function Navbar() {
         </Link>
         <div className="flex gap-4 items-center">
           <Button asChild variant={"outline"}>
-            <Link className="text-sm font-medium transition-colors" href="#">
+            <Link
+              className="text-sm font-medium transition-colors"
+              href="/auth"
+            >
               Sign in
             </Link>
           </Button>

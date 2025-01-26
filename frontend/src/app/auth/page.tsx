@@ -1,10 +1,26 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AuthComponent from "./authComponent";
+import { useRouter } from "next/navigation";
+import { isUserAuthenticated } from "@/lib/authHook";
+import { toast } from "sonner";
 
 export default function AuthPage() {
   const [isSignIn, setIsSignIn] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const isAuthenticated = isUserAuthenticated();
+      if (isAuthenticated) {
+        toast.success("You are already authenticated");
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        router.push("/home");
+      }
+    };
+    checkAuth();
+  }, [router]);
 
   const toggleAuthMode = () => {
     setIsSignIn(!isSignIn);

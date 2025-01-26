@@ -5,8 +5,10 @@ import { motion } from "framer-motion";
 import { CircleUser, Mail, EyeOff, Eye, Lock, Loader2 } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(true);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -15,6 +17,33 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
 
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
+  };
+
+  const handleSignin = async () => {
+    try {
+      if (!email || !password) {
+        toast.error("Please fill in all fields");
+        return;
+      }
+
+      if (!email.includes("@")) {
+        toast.warning("Invalid email");
+        return;
+      }
+
+      const response = await userLogin(email, password);
+      if (!response) {
+        toast.error("Error signing in");
+        return;
+      }
+
+      toast.success("Signed in successfully");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      router.push("/home");
+    } catch (error: unknown) {
+      console.log("Error signing in", error);
+      toast.error("Error signing in");
+    }
   };
 
   const handleSignup = async () => {
@@ -44,6 +73,8 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
       }
 
       toast.success("Signed up successfully");
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      router.push("/home");
     } catch (error: unknown) {
       console.log("Error signing up", error);
       toast.error("Error signing up");
@@ -65,33 +96,6 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
       console.log("Error creating default channel", error);
       toast.error("Error creating default channel");
       return false;
-    }
-  };
-
-  const handleSignin = async () => {
-    try {
-      if (!email || !password) {
-        toast.error("Please fill in all fields");
-        return;
-      }
-
-      if (!email.includes("@")) {
-        toast.warning("Invalid email");
-        return;
-      }
-
-      console.log("sdf", email, password);
-
-      const response = await userLogin(email, password);
-      if (!response) {
-        toast.error("Error signing in");
-        return;
-      }
-
-      toast.success("Signed in successfully");
-    } catch (error: unknown) {
-      console.log("Error signing in", error);
-      toast.error("Error signing in");
     }
   };
 

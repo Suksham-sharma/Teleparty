@@ -52,7 +52,36 @@ export function ChatCard({
   chatName = "Team Chat",
   membersCount = 3,
   onlineCount = 2,
-  initialMessages = [],
+  initialMessages = [
+    {
+      id: "1",
+      content: "Hey everyone! How's it going?",
+      sender: {
+        name: "Alice",
+        avatar:
+          "https://ferf1mheo22r9ira.public.blob.vercel-storage.com/avatar-01-n0x8HFv8EUetf9z6ht0wScJKoTHqf8.png",
+        isOnline: true,
+      },
+      timestamp: "10:30 AM",
+      status: "read",
+      reactions: [
+        { emoji: "👋", count: 2, reacted: true },
+        { emoji: "❤️", count: 1, reacted: false },
+      ],
+    },
+    {
+      id: "2",
+      content: "Just finished the new feature implementation!",
+      sender: {
+        name: "Bob",
+        avatar:
+          "https://ferf1mheo22r9ira.public.blob.vercel-storage.com/avatar-02-n0x8HFv8EUetf9z6ht0wScJKoTHqf8.png",
+        isOnline: false,
+      },
+      timestamp: "10:32 AM",
+      status: "delivered",
+    },
+  ],
   currentUser = {
     name: "You",
     avatar:
@@ -180,12 +209,14 @@ export function ChatCard({
         className
       )}
     >
-      <div className="flex flex-col h-[600px]">
+      <div className="flex flex-col h-[600px] relative">
         {/* Header */}
         <div
           className={cn(
-            "px-4 py-3 flex items-center justify-between border-b",
-            isLightTheme ? "border-zinc-200" : "border-zinc-800"
+            "sticky top-0 px-4 py-3 flex items-center justify-between border-b backdrop-blur-sm z-10",
+            isLightTheme
+              ? "border-zinc-200 bg-white/90"
+              : "border-zinc-800 bg-zinc-900/90"
           )}
         >
           <div className="flex items-center gap-3">
@@ -234,17 +265,28 @@ export function ChatCard({
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
           {messages.map((message) => (
-            <div key={message.id} className="flex items-start gap-3">
+            <div
+              key={message.id}
+              className={cn(
+                "group flex items-start gap-3 transition-opacity",
+                message.sender.isCurrentUser ? "flex-row-reverse" : "flex-row"
+              )}
+            >
               <Image
                 src={message.sender.avatar || "/placeholder.svg"}
                 alt={message.sender.name}
                 width={36}
                 height={36}
-                className="rounded-full"
+                className="rounded-full ring-2 ring-offset-2 transition-transform group-hover:scale-105"
               />
-              <div className="flex-1 min-w-0">
+              <div
+                className={cn(
+                  "flex-1 min-w-0",
+                  message.sender.isCurrentUser ? "items-end" : "items-start"
+                )}
+              >
                 <div className="flex items-center gap-2 mb-1">
                   <span
                     className={cn(
@@ -256,23 +298,36 @@ export function ChatCard({
                   </span>
                   <span
                     className={cn(
-                      "text-sm",
+                      "text-xs",
                       isLightTheme ? "text-zinc-500" : "text-zinc-500"
                     )}
                   >
                     {message.timestamp}
                   </span>
                 </div>
-                <p
+                <div
                   className={cn(
-                    "break-words",
-                    isLightTheme ? "text-zinc-700" : "text-zinc-300"
+                    "relative max-w-[80%] rounded-2xl px-4 py-2 shadow-sm transition-all",
+                    message.sender.isCurrentUser
+                      ? isLightTheme
+                        ? "bg-indigo-500 text-white ml-auto"
+                        : "bg-indigo-600 text-white ml-auto"
+                      : isLightTheme
+                      ? "bg-zinc-100 text-zinc-900"
+                      : "bg-zinc-800 text-zinc-100"
                   )}
                 >
-                  {message.content}
-                </p>
+                  <p className="break-words text-sm">{message.content}</p>
+                </div>
                 {message.reactions && message.reactions.length > 0 && (
-                  <div className="flex items-center gap-1 mt-2">
+                  <div
+                    className={cn(
+                      "flex items-center gap-1 mt-2",
+                      message.sender.isCurrentUser
+                        ? "justify-end"
+                        : "justify-start"
+                    )}
+                  >
                     {message.reactions.map((reaction) => (
                       <button
                         key={reaction.emoji}
@@ -280,33 +335,37 @@ export function ChatCard({
                           handleReaction(message.id, reaction.emoji)
                         }
                         className={cn(
-                          "px-2 py-1 rounded-lg text-sm flex items-center gap-1",
+                          "px-2 py-1 rounded-full text-sm flex items-center gap-1 transition-all",
                           reaction.reacted
                             ? isLightTheme
-                              ? "bg-violet-100 text-violet-600"
-                              : "bg-violet-500/20 text-violet-400"
+                              ? "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+                              : "bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30"
                             : isLightTheme
                             ? "bg-zinc-100 text-zinc-600 hover:bg-zinc-200"
                             : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                         )}
                       >
-                        <span>{reaction.emoji}</span>
-                        <span>{reaction.count}</span>
+                        <span className="transform hover:scale-110 transition-transform">
+                          {reaction.emoji}
+                        </span>
+                        <span className="text-xs font-medium">
+                          {reaction.count}
+                        </span>
                       </button>
                     ))}
                   </div>
                 )}
               </div>
-              <div className="flex items-center self-end mb-1">
+              <div className="flex items-center mt-1">
                 {message.status === "read" && (
                   <div className="flex">
-                    <CheckCheck className="w-4 h-4 text-blue-500" />
+                    <CheckCheck className="w-3 h-3 text-indigo-500" />
                   </div>
                 )}
                 {message.status === "delivered" && (
                   <Check
                     className={cn(
-                      "w-4 h-4",
+                      "w-3 h-3",
                       isLightTheme ? "text-zinc-400" : "text-zinc-500"
                     )}
                   />
@@ -317,7 +376,14 @@ export function ChatCard({
         </div>
 
         {/* Input */}
-        <div className={cn("p-4", isLightTheme ? "bg-white" : "bg-zinc-900")}>
+        <div
+          className={cn(
+            "sticky bottom-0 p-4 border-t backdrop-blur-sm",
+            isLightTheme
+              ? "bg-white/90 border-zinc-200"
+              : "bg-zinc-900/90 border-zinc-800"
+          )}
+        >
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <input
@@ -332,20 +398,20 @@ export function ChatCard({
                 }}
                 placeholder="Write a message..."
                 className={cn(
-                  "w-full px-4 py-2.5 rounded-lg border-none",
-                  "focus:outline-none focus:ring-1",
+                  "w-full px-4 py-2.5 rounded-xl border transition-all",
+                  "focus:outline-none focus:ring-2 focus:ring-offset-0",
                   isLightTheme
-                    ? "bg-zinc-100 text-zinc-900 placeholder-zinc-500 focus:ring-zinc-300"
-                    : "bg-zinc-800 text-zinc-100 placeholder-zinc-500 focus:ring-zinc-600"
+                    ? "bg-zinc-100 text-zinc-900 placeholder-zinc-500 border-zinc-200 focus:ring-indigo-500/20"
+                    : "bg-zinc-800 text-zinc-100 placeholder-zinc-500 border-zinc-700 focus:ring-indigo-500/20"
                 )}
               />
               <button
                 type="button"
                 className={cn(
-                  "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full",
+                  "absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all",
                   isLightTheme
-                    ? "hover:bg-zinc-200 text-zinc-500"
-                    : "hover:bg-zinc-700 text-zinc-400"
+                    ? "hover:bg-zinc-200 text-zinc-500 hover:text-zinc-600"
+                    : "hover:bg-zinc-700 text-zinc-400 hover:text-zinc-300"
                 )}
               >
                 <SmilePlus className="w-5 h-5" />
@@ -354,11 +420,14 @@ export function ChatCard({
             <button
               onClick={handleSendMessage}
               className={cn(
-                "p-2.5 rounded-lg transition-colors",
-                isLightTheme
-                  ? "bg-zinc-100 hover:bg-zinc-200 text-zinc-500 hover:text-zinc-600"
-                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-300"
+                "p-2.5 rounded-xl transition-all flex items-center justify-center",
+                inputValue.trim()
+                  ? "bg-indigo-500 text-white hover:bg-indigo-600"
+                  : isLightTheme
+                  ? "bg-zinc-100 text-zinc-400"
+                  : "bg-zinc-800 text-zinc-500"
               )}
+              disabled={!inputValue.trim()}
             >
               <Send className="w-5 h-5" />
             </button>

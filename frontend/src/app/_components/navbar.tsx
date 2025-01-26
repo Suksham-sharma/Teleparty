@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useAuthStore } from "@/store/authStore";
 
 const CustomAvatar = dynamic(() => import("./avatar"), { ssr: false });
 
@@ -21,7 +22,7 @@ export default function Navbar({ isHome = false }: { isHome?: boolean }) {
   const data = isUserAuthenticated();
 
   const handleLogout = () => {
-    localStorage.removeItem("authToken");
+    useAuthStore.getState().logout();
     router.push("/");
   };
 

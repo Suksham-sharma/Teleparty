@@ -28,7 +28,6 @@ export default function VideoHero({ videoId }: { videoId: string }) {
           ws={ws}
           theme="light"
           className="w-full h-full"
-          initialMessages={[]}
         />
       )}
     </div>

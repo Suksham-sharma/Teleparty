@@ -57,38 +57,37 @@ const movies = [
 
 export function MovieGrid() {
   return (
-    <div>
-      <h2 className="mb-6 text-2xl font-bold text-white">
+    <div className="container mx-auto px-4 py-8">
+      <h2 className="mb-8 text-3xl font-bold text-gray-800 tracking-tight">
         Trending in Animation
       </h2>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-        {movies.map((movie, index) => (
+      <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+        {movies.map((movie) => (
           <motion.div
             key={movie.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="group relative overflow-hidden rounded-lg"
+            className="group relative overflow-hidden rounded-xl bg-gray-900 shadow-lg hover:shadow-xl transition-all duration-300"
           >
-            <div className="aspect-[3/4]">
+            <div className="aspect-[3/4] relative">
               <Image
                 src={movie.image}
                 alt={movie.title}
                 width={300}
                 height={400}
-                className="object-cover w-full h-full"
+                className="object-cover w-full h-full rounded-t-xl transform transition-transform duration-300 group-hover:scale-105"
               />
             </div>
-            <div className="absolute inset-0 flex flex-col justify-end p-4 transition-opacity bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100">
-              <h3 className="text-sm font-semibold text-white">
+            <div className="absolute inset-0 flex flex-col justify-end p-4 transition-all duration-300 bg-gradient-to-t from-black/90 via-black/60 to-transparent opacity-0 group-hover:opacity-100">
+              <h3 className="text-base font-semibold text-white mb-1 line-clamp-2">
                 {movie.title}
               </h3>
-              <div className="flex items-center mt-1 space-x-2 text-xs text-white/80">
-                <div className="flex items-center">
-                  <Star className="w-4 h-4 mr-1 text-yellow-500 fill-yellow-500" />
-                  {movie.rating}
+              <div className="flex items-center justify-between text-sm text-white/90">
+                <div className="flex items-center space-x-1">
+                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                  <span className="font-medium">{movie.rating}</span>
                 </div>
-                <span>{movie.year}</span>
+                <span className="px-2 py-0.5 rounded-full bg-white/10 backdrop-blur-sm text-xs">
+                  {movie.year}
+                </span>
               </div>
             </div>
           </motion.div>
