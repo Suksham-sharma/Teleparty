@@ -82,3 +82,25 @@ channelRouter.get("/me", async (req: Request, res: Response) => {
     res.json({ error: "Internal server error" });
   }
 });
+
+channelRouter.get("/:slug", async (req: Request, res: Response) => {
+  console.log("Getting channel for user");
+  try {
+    const channel = await prismaClient.channel.findFirst({
+      where: {
+        slug: req.params.slug,
+      },
+    });
+
+    if (!channel) {
+      res.status(404).json({ error: "Channel not found" });
+      return;
+    }
+
+    res.status(200).json({
+      channel,
+    });
+  } catch (error: any) {
+    res.json({ error: "Internal server error" });
+  }
+});

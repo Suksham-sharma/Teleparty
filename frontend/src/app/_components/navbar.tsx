@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { FileUploadDialog } from "./video-upload";
 import { Bell, LogOut } from "lucide-react";
+import { JoinStreamDialog } from "./join-stream-dialog";
 import { isUserAuthenticated } from "@/lib/authHook";
 import {
   DropdownMenu,
@@ -52,6 +53,7 @@ export default function Navbar({ isHome = false }: { isHome?: boolean }) {
                 </Link>
               </div>
               <div className="flex items-center space-x-4">
+                <JoinStreamDialog />
                 <FileUploadDialog />
                 <button className="relative">
                   <Bell className="w-5 h-5 text-white" />

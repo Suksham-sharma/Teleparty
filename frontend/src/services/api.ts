@@ -137,3 +137,16 @@ export const uploadVideo = async (videoData: videoData) => {
     return false;
   }
 };
+
+export const getChannelBySlug = async (slug: string) => {
+  try {
+    const response = await axiosInstance.get(`/channels/${slug}`);
+    if (!response) {
+      throw new Error("No data returned from server");
+    }
+    return response.data;
+  } catch (error: unknown) {
+    console.log("Error getting channel info", error);
+    return false;
+  }
+};
