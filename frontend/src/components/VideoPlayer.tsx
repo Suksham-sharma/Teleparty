@@ -123,8 +123,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
               "--plyr-range-fill-background": "#a855f7",
               "--plyr-video-controls-background":
                 "linear-gradient(rgba(147, 51, 234, 0.5), rgba(0, 0, 0, 0.7))",
-              "--plyr-menu-background": "#9333ea",
-              "--plyr-menu-item-active-background": "#a855f7",
+              "--plyr-menu-background": "#1f1f1f",
+              "--plyr-menu-item-active-background": "#9333ea",
+              "--plyr-menu-color": "#ffffff",
+              "--plyr-menu-item-active-color": "#ffffff",
+              "--plyr-menu-border-color": "rgba(255, 255, 255, 0.15)",
+              "--plyr-menu-radius": "4px",
+              "--plyr-menu-shadow": "0 1px 3px rgba(0, 0, 0, 0.3)",
+              "--plyr-menu-arrow-color": "#1f1f1f",
             } as React.CSSProperties
           }
         />

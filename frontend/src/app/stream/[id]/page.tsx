@@ -2,6 +2,7 @@ import Navbar from "@/app/_components/navbar";
 import VideoHero from "./hero";
 
 export default function VideoPage({
+  params: { id },
   searchParams,
 }: {
   params: { id: string };
@@ -12,7 +13,7 @@ export default function VideoPage({
   return (
     <main>
       <Navbar />
-      <VideoHero videoId={videoId} />
+      <VideoHero videoId={videoId} roomId={id} />
     </main>
   );
 }

@@ -37,7 +37,8 @@ export const userSignup = async (
       throw new Error("No data returned from server");
     }
 
-    useAuthStore.getState().login(response.data);
+    useAuthStore.getState().login(response.data.user);
+    console.log("Signed up", response.data.user);
 
     return response.data;
   } catch (error: unknown) {

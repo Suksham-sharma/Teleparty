@@ -18,53 +18,26 @@ export interface Message {
 
 interface ChatCardProps {
   initialMessages?: Message[];
-  currentUser?: {
+  currentUser: {
     id: string;
     name: string;
   };
   onSendMessage?: (message: string) => void;
   className?: string;
   ws: WebSocket;
+  roomId: string;
 }
 
 export function ChatCard({
-  initialMessages = [
-    {
-      id: "1",
-      content: "Hey everyone! Ready to watch the movie?",
-      sender: {
-        id: "alice123",
-        name: "Alice",
-      },
-    },
-    {
-      id: "2",
-      content: "Yes, I've got my popcorn ready! 🍿",
-      sender: {
-        id: "bob123",
-        name: "Bob",
-      },
-    },
-    {
-      id: "3",
-      content: "Great! I'll start the video in 2 minutes.",
-      sender: {
-        id: "current123",
-        name: "Aloha",
-      },
-    },
-  ],
-  currentUser = {
-    id: "current123",
-    name: "Aloha",
-  },
-  onSendMessage,
+  initialMessages = [],
+  currentUser,
   className,
-
   ws,
+  roomId,
 }: ChatCardProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState("");
+  const [participantCount, setParticipantCount] = useState(1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -76,66 +49,85 @@ export function ChatCard({
   }, [messages]);
 
   useEffect(() => {
-    ws.onmessage = (event: MessageEvent) => {
-      const data = JSON.parse(event.data.toString());
+    if (!ws) return;
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
 
       switch (data.type) {
-        case "chat_message":
-          setMessages((prevMessages) => [...prevMessages, data.message]);
+        case "chat:message":
+          const newMessage: Message = {
+            id: Date.now().toString(),
+            content: data.message,
+            sender: {
+              id: data.userId,
+              name: data.userName || currentUser.name,
+            },
+          };
+          setMessages((prevMessages) => [...prevMessages, newMessage]);
           break;
-        case "user_joined":
-          const { name, count }: { name: string; count: number } = data;
-          console.log(`${name} joined. Total users: ${count}`);
+        case "room:join":
+          setParticipantCount((prev) => prev + 1);
+          console.log(data.message);
           break;
-        case "user_left":
-          const {
-            name: leftName,
-            count: leftCount,
-          }: { name: string; count: number } = data;
-          console.log(`${leftName} left. Total users: ${leftCount}`);
+        case "room:leave":
+          setParticipantCount((prev) => Math.max(1, prev - 1));
+          console.log(data.message);
+          break;
+        case "error":
+          console.error("WebSocket error:", data.message);
           break;
       }
     };
 
     return () => {
-      ws.close();
+      ws.onmessage = null;
     };
-  }, [ws]);
+  }, [ws, currentUser.name]);
 
   const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
-
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue,
-      sender: {
-        id: currentUser.id,
-        name: currentUser.name,
-      },
-    };
+    if (!inputValue.trim() || !ws) return;
 
     ws.send(
       JSON.stringify({
-        type: "chat_message",
-        message: newMessage,
+        type: "chat:message",
+        roomId: `stream-${roomId}`,
+        userId: currentUser.id,
+        userName: currentUser.name,
+        chatMessage: inputValue.trim(),
       })
     );
 
     setInputValue("");
-    onSendMessage?.(inputValue);
   };
+
+  console.log(messages);
 
   return (
     <div
       className={cn(
-        "w-full max-w-xl mx-auto rounded-2xl overflow-hidden",
-        "bg-white text-zinc-900 border border-zinc-200",
+        "w-full max-w-xl mx-auto rounded-2xl overflow-hidden shadow-lg transition-all duration-200 hover:shadow-xl",
+        "bg-white/95 text-zinc-900 border border-zinc-200/80 backdrop-blur-sm",
         className
       )}
     >
       <div className="flex flex-col h-[600px] relative">
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="px-6 py-4 border-b border-zinc-200/80 bg-gradient-to-r from-white via-zinc-50/80 to-white shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h3 className="font-bold text-lg tracking-tight text-zinc-900 bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-indigo-400">
+                Live Chat
+              </h3>
+              <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse ring-4 ring-green-500/20"></div>
+            </div>
+            <span className="text-sm font-medium bg-gradient-to-r from-zinc-100/80 to-zinc-50/80 px-3 py-1 rounded-full text-zinc-600 border border-zinc-200/60 shadow-sm">
+              {participantCount}{" "}
+              {participantCount === 1 ? "participant" : "participants"}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-zinc-50/50">
           {messages.map((message) => (
             <MessageBubble
               key={message.id}
@@ -146,7 +138,6 @@ export function ChatCard({
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input */}
         <ChatInput
           value={inputValue}
           onChange={setInputValue}

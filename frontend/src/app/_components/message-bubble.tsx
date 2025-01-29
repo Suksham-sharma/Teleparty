@@ -15,7 +15,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, currentUserId }: MessageBubbleProps) {
   const isCurrentUser = message.sender.id === currentUserId;
-  const avatarUrl = `https://api.dicebear.com/7.x/avataaars/svg?seed=${message.sender.name}`;
+  const avatarUrl = `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${message.sender.name}`;
 
   return (
     <div
@@ -33,13 +33,13 @@ export function MessageBubble({ message, currentUserId }: MessageBubbleProps) {
       />
       <div className={cn("flex-1 min-w-0 items-start")}>
         <div className="flex items-center gap-1 mb-0.5">
-          <span className="text-xs font-medium text-zinc-900">
-            {isCurrentUser ? "   " : message.sender.name}
+          <span className="text-xs font-medium text-zinc-600 tracking-wide">
+            {isCurrentUser ? "" : message.sender.name}
           </span>
         </div>
         <div
           className={cn(
-            "relative max-w-[80%] rounded-xl px-3 py-1.5 shadow-sm transition-all",
+            "relative max-w-[80%] rounded-xl px-3.5 py-2 shadow-sm transition-all hover:shadow-md",
             isCurrentUser
               ? "bg-indigo-500 text-white ml-auto"
               : "bg-zinc-100 text-zinc-900"

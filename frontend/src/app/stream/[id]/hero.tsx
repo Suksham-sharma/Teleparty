@@ -3,18 +3,48 @@ import VideoPlayer from "@/components/VideoPlayer";
 import { ChatCard } from "@/app/_components/chat-card";
 import { useEffect, useState } from "react";
 import { VideoNotStarted } from "@/components/video-not-started";
+import { useAuthStore } from "@/store/authStore";
 
-export default function VideoHero({ videoId }: { videoId: string }) {
+export default function VideoHero({
+  roomId,
+  videoId,
+}: {
+  roomId: string;
+  videoId: string;
+}) {
   const [ws, setWs] = useState<WebSocket | null>(null);
+  const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    const websocket = new WebSocket(`ws://your-backend-url/chat/${videoId}`);
+    if (!isAuthenticated || !user) return;
+
+    const websocket = new WebSocket(`ws://localhost:8080`);
+
+    websocket.onopen = () => {
+      console.log("Connected to WebSocket server");
+      websocket.send(
+        JSON.stringify({
+          type: "room:join",
+          roomId: `stream-${roomId}`,
+          userId: user.id,
+        })
+      );
+    };
+
     setWs(websocket);
 
     return () => {
-      websocket.close();
+      if (websocket) {
+        websocket.send(
+          JSON.stringify({
+            type: "room:leave",
+            roomId: `stream-${roomId}`,
+          })
+        );
+        websocket.close();
+      }
     };
-  }, [videoId]);
+  }, [roomId, user, isAuthenticated]);
 
   const videoUrl = videoId
     ? `https://d3uupbz3igyr5f.cloudfront.net/transcoded/${videoId}/master.m3u8`
@@ -25,7 +55,17 @@ export default function VideoHero({ videoId }: { videoId: string }) {
       <div className="col-span-3">
         {videoUrl ? <VideoPlayer src={videoUrl} /> : <VideoNotStarted />}
       </div>
-      {ws && <ChatCard ws={ws} className="w-full h-full" />}
+      {ws && user && (
+        <ChatCard
+          ws={ws}
+          roomId={roomId}
+          className="w-full h-full"
+          currentUser={{
+            id: user.id,
+            name: user.username,
+          }}
+        />
+      )}
     </div>
   );
 }

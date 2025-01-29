@@ -1,12 +1,5 @@
 import WebSocket from "ws";
-
-interface RoomData {
-  roomId: string;
-  ownerId?: string;
-  members: WebSocket[];
-  currentVideoId?: string;
-  currentVideoTime?: string;
-}
+import { RoomData, videoUpdateData, chatMessageData } from "../../types";
 
 class RoomManager {
   private static instance: RoomManager;
@@ -21,6 +14,30 @@ class RoomManager {
     return this.instance;
   }
 
+  private broadcastToRoom(
+    roomId: string,
+    message: string,
+    type: string,
+    userId?: string
+  ) {
+    const room = this.rooms.get(roomId);
+
+    const messageData: any = {
+      type,
+      message,
+    };
+
+    if (userId) messageData.userId = userId;
+
+    const formattedMessage = JSON.stringify(messageData);
+
+    if (room) {
+      room.members.forEach((member) => {
+        member.send(formattedMessage);
+      });
+    }
+  }
+
   public joinRoom(roomId: string, ws: WebSocket) {
     let room = this.rooms.get(roomId);
     if (!room) {
@@ -31,58 +48,28 @@ class RoomManager {
       this.rooms.set(roomId, room);
     }
     room.members.push(ws);
+    this.broadcastToRoom(roomId, "User Joined", "room:join");
   }
 
-  public leaveRoom(roomId: string, ws: WebSocket): void {
+  public leaveRoom(roomId: string, ws: WebSocket) {
     const room = this.rooms.get(roomId);
     if (room) {
       room.members = room.members.filter((member) => member !== ws);
+      this.broadcastToRoom(roomId, "A user has left the room", "room:leave");
       if (room.members.length === 0) {
         this.rooms.delete(roomId);
       }
     }
   }
 
-  public broadcastVideoUpdate(data: {
-    userId: string;
-    roomId: string;
-    videoId?: number;
-  }) {
+  public broadcastVideoUpdate(data: videoUpdateData) {
     const { userId, roomId, videoId } = data;
-    const room = this.rooms.get(roomId);
-
-    if (room) {
-      room.members.forEach((member) => {
-        member.send(
-          JSON.stringify({
-            type: "video:update",
-            userId,
-            videoId,
-          })
-        );
-      });
-    }
+    this.broadcastToRoom(roomId, videoId, "video:update", userId);
   }
 
-  public broadcastChatMessage(data: {
-    userId: string;
-    roomId: string;
-    message: string;
-  }): void {
+  public broadcastChatMessage(data: chatMessageData) {
     const { userId, roomId, message } = data;
-    const room = this.rooms.get(roomId);
-
-    if (room) {
-      room.members.forEach((member) => {
-        member.send(
-          JSON.stringify({
-            type: "chat:message",
-            userId,
-            message,
-          })
-        );
-      });
-    }
+    this.broadcastToRoom(roomId, message, "chat:message", userId);
   }
 
   public leaveAllRooms(ws: WebSocket): void {
