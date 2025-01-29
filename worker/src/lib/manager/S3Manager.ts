@@ -59,7 +59,7 @@ class S3Manager {
     try {
       await pipeline(response.Body as NodeJS.ReadableStream, writeStream);
     } catch (error) {
-      console.error("Error writing S3 stream to file:", error);
+      console.log("Error writing S3 stream to file:", error);
       throw error;
     }
 

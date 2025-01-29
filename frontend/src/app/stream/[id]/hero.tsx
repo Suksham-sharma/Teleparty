@@ -25,7 +25,7 @@ export default function VideoHero({ videoId }: { videoId: string }) {
       <div className="col-span-3">
         {videoUrl ? <VideoPlayer src={videoUrl} /> : <VideoNotStarted />}
       </div>
-      {ws && <ChatCard ws={ws} theme="light" className="w-full h-full" />}
+      {ws && <ChatCard ws={ws} className="w-full h-full" />}
     </div>
   );
 }

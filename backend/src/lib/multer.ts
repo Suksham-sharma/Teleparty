@@ -10,7 +10,7 @@ try {
   fs.mkdirSync(uploadsDir, { recursive: true });
   console.log(`Uploads directory created or already exists: ${uploadsDir}`);
 } catch (error) {
-  console.error("Failed to create uploads directory:", error);
+  console.log("Failed to create uploads directory:", error);
 }
 
 const storage = multer.diskStorage({

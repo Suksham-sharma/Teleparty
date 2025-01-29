@@ -150,7 +150,7 @@ export const transcodeVideoToHLS2 = async (
             }
           })
           .on("error", (err) => {
-            console.error(`Transcoding error for ${resolution.name}:`, err);
+            console.log(`Transcoding error for ${resolution.name}:`, err);
             reject(
               new Error(
                 `Transcoding error for ${resolution.name}: ${err.message}`
@@ -177,12 +177,12 @@ export const transcodeVideoToHLS2 = async (
 
     return true;
   } catch (error) {
-    console.error("HLS transcoding failed:", error);
+    console.log("HLS transcoding failed:", error);
 
     try {
       await fs.rm(outputDir, { recursive: true, force: true });
     } catch (cleanupError) {
-      console.error("Cleanup failed:", cleanupError);
+      console.log("Cleanup failed:", cleanupError);
     }
     throw error;
   }

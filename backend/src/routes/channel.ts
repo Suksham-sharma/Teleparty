@@ -51,7 +51,7 @@ channelRouter.post("/", async (req: Request, res: Response) => {
       slug: createdChannel.slug,
     });
   } catch (error: any) {
-    console.error("Error creating channel:", error);
+    console.log("Error creating channel:", error);
     res.status(500).json({ error: "Internal server error" });
     return;
   }

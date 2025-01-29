@@ -27,7 +27,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, type, className }) => {
   ) => {
     setError("Error loading video");
     if (event.target) {
-      console.error(
+      console.log(
         "Video load error:",
         (event.target as HTMLVideoElement).error
       );

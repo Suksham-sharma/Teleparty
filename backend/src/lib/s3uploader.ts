@@ -68,7 +68,7 @@ export class S3Service {
       console.log(`Successfully uploaded data to ${bucket}/${key}`);
       return { success: true, data: response };
     } catch (error) {
-      console.error("Error uploading to S3:", error);
+      console.log("Error uploading to S3:", error);
       throw error;
     }
   }
@@ -94,7 +94,7 @@ export class S3Service {
       });
       return { url: url, resourceId: id };
     } catch (error) {
-      console.error("Error generating presigned URL:", error);
+      console.log("Error generating presigned URL:", error);
       throw error;
     }
   }

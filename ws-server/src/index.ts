@@ -1,72 +1,26 @@
-import { createClient } from "redis";
-import WebSocket, { RawData, WebSocketServer } from "ws";
+import { WebSocketServer } from "ws";
 import http from "http";
-const server = http.createServer();
+import { handleIncomingRequests, handleConnectionClosed } from "./lib/handlers";
+import { webSocketHelper } from "./lib/helper";
+import { roomManager } from "./lib/managers/roomManager";
+import { redisManager } from "./lib/managers/redisManager";
 
-const redisClient = createClient();
+const server = http.createServer();
 const wss = new WebSocketServer({ server });
 
-interface data {
-  user_id: string;
-  videoId: string;
+interface RoomUpdateData {
+  userId: string;
+  roomId: string;
   timestamp?: number;
 }
 
-export const SubsriptionData: {
-  videoId: string;
-  subscribers: WebSocket[];
-}[] = [];
-
-function sendUpdatesToWs(data: data) {
-  const { user_id, videoId, timestamp } = data;
-  SubsriptionData.forEach((sub) => {
-    if (sub.videoId === videoId) {
-      sub.subscribers.forEach((subscriber) => {
-        subscriber.send(
-          JSON.stringify({
-            type: "video:timestamp_updated",
-            user_id,
-            timestamp,
-          })
-        );
-      });
-    }
-  });
-}
-
-async function handleIncomingRequests(message: RawData, ws: WebSocket) {
-  console.log("Received message", message.toString());
-  const { type, video_id } = JSON.parse(message.toString());
-
-  if (type === "video:subscribe") {
-    let subscription = SubsriptionData.find((sub) => sub.videoId === video_id);
-    if (!subscription) {
-      subscription = {
-        videoId: video_id,
-        subscribers: [],
-      };
-      SubsriptionData.push(subscription);
-    }
-    subscription.subscribers.push(ws);
-
-    console.log("SubsriptionData", SubsriptionData);
-  }
-  if (type === "video:unsubscribe") {
-    SubsriptionData.forEach((sub) => {
-      if (sub.videoId === video_id) {
-        sub.subscribers = sub.subscribers.filter(
-          (subscriber: any) => subscriber !== ws
-        );
-      }
-    });
-  }
-}
-
-async function handleConnectionClosed(ws: WebSocket) {}
-
 wss.on("connection", (ws) => {
   console.log(`${new Date().toISOString()} New client connected`);
-  ws.on("error", console.error);
+
+  ws.on("error", (error) => {
+    console.log("WebSocket error:", error);
+    webSocketHelper.sendErrorAndClose(ws, "An internal server error occurred");
+  });
 
   ws.on("message", (message) => {
     handleIncomingRequests(message, ws);
@@ -79,23 +33,14 @@ wss.on("connection", (ws) => {
 
 async function startServer() {
   try {
-    await redisClient.connect();
-    console.log("Connected to Redis");
+    await redisManager.connect();
 
-    server.listen(8080, function () {
-      console.log(" Server is listening on port 8080");
+    server.listen(8080, () => {
+      console.log("Server is listening on port 8080");
     });
-
-    while (true) {
-      const response = await redisClient.brPop("video-Data", 0);
-      if (response) {
-        console.log("Received message from Redis", response);
-        console.log("Data after stringifying", JSON.parse(response?.element));
-        sendUpdatesToWs(JSON.parse(response?.element));
-      }
-    }
-  } catch (err) {
-    console.error(err);
+    redisManager.listenForVideoUpdates();
+  } catch (error) {
+    console.log("Server error:", error);
   }
 }
 

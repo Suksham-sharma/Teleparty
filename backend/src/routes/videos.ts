@@ -69,7 +69,7 @@ videosRouter.post("/presignedurl", async (req: Request, res: Response) => {
 
     res.status(200).json(data);
   } catch (error: any) {
-    console.error("Error generating presigned URL:", error);
+    console.log("Error generating presigned URL:", error);
   }
 });
 
@@ -118,7 +118,7 @@ videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
         timestamp,
       });
   } catch (error: any) {
-    console.error("Error updating video timestamp:", error);
+    console.log("Error updating video timestamp:", error);
     res.status(500).json({ error: "Internal server error." });
   }
 });

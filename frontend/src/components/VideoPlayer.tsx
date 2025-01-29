@@ -32,10 +32,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
 
         hlsRef.current = hls;
 
-        // Error handling for HLS
         hls.on(Hls.Events.ERROR, (event, data) => {
-          console.log(event);
-
           if (data.fatal) {
             console.error("Fatal HLS error:", data);
             switch (data.type) {
@@ -55,7 +52,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
           }
         });
 
-        // Handle quality levels
         hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
           console.log(
             "HLS manifest parsed, qualities available:",
@@ -63,14 +59,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
             event
           );
 
-          // Create quality options for Plyr
-          // const qualities = data.levels.map((level, index) => ({
-          // 	src: videoUrl,
-          // 	size: level.height,
-          // 	default: level.height === 480, // Make 480p default
-          // }));
-
-          // Initialize Plyr with quality options
           if (videoRef.current) {
             plyrRef.current = new Plyr(videoRef.current, {
               controls: [
@@ -89,7 +77,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
                 options: [360, 480, 720],
                 forced: true,
                 onChange: (quality: number) => {
-                  // Find the index of the quality in levels
                   const levelIndex = data.levels.findIndex(
                     (level) => level.height === quality
                   );
@@ -100,10 +87,6 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
               },
             });
           }
-
-          video.play().catch((error) => {
-            console.error("Playback failed:", error);
-          });
         });
 
         hls.loadSource(src);
@@ -128,12 +111,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
   }, [src]);
 
   return (
-    <div className={` ${className}`}>
+    <div className={`${className}`}>
       <div className="video-container">
         <video
           ref={videoRef}
           className="plyr-react plyr"
           crossOrigin="anonymous"
+          style={
+            {
+              "--plyr-color-main": "#9333ea",
+              "--plyr-range-fill-background": "#a855f7",
+              "--plyr-video-controls-background":
+                "linear-gradient(rgba(147, 51, 234, 0.5), rgba(0, 0, 0, 0.7))",
+              "--plyr-menu-background": "#9333ea",
+              "--plyr-menu-item-active-background": "#a855f7",
+            } as React.CSSProperties
+          }
         />
       </div>
     </div>
