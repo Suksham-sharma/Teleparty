@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { FileUploadDialog } from "./video-upload";
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { JoinStreamDialog } from "./join-stream-dialog";
 import { isUserAuthenticated } from "@/lib/authHook";
 import {
@@ -29,25 +29,25 @@ export default function Navbar({ isHome = false }: { isHome?: boolean }) {
 
   const avatarSrc = `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${data?.username}`;
   return (
-    <nav className="fixed top-0 flex justify-between w-full z-50 bg-gradient-to-b from-gray-900/80 to-transparent backdrop-blur-sm">
-      <div className="w-full flex justify-between items-center px-4 py-4">
+    <nav className="fixed top-0 flex justify-between w-full z-50 bg-gradient-to-b from-gray-900/90 via-gray-900/70 to-transparent backdrop-blur-md shadow-lg">
+      <div className="w-full flex justify-between items-center px-6 py-4">
         <Link
           href="/"
-          className="text-2xl font-bold text-white flex items-center gap-2"
+          className="text-2xl font-bold text-white flex items-center gap-2 hover:opacity-90 transition-opacity duration-200"
         >
-          <div className="flex gap-1">
-            <div className="h-3 w-3 rounded-full bg-blue-600" />
-            <div className="h-3 w-3 rounded-full bg-blue-600" />
+          <div className="flex gap-1.5">
+            <div className="h-3.5 w-3.5 rounded-full bg-blue-500 shadow-glow-blue" />
+            <div className="h-3.5 w-3.5 rounded-full bg-blue-500 shadow-glow-blue" />
           </div>
           Teleparty
         </Link>
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-8">
           {isHome && (
             <>
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-6">
                 <Link
                   href="/channel"
-                  className="text-sm text-white hover:text-gray-300"
+                  className="text-sm font-medium text-white hover:text-blue-200 transition-colors duration-200"
                 >
                   Your Channel
                 </Link>
@@ -55,26 +55,27 @@ export default function Navbar({ isHome = false }: { isHome?: boolean }) {
               <div className="flex items-center space-x-4">
                 <JoinStreamDialog />
                 <FileUploadDialog />
-                <button className="relative">
-                  <Bell className="w-5 h-5 text-white" />
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full" />
-                </button>
               </div>
             </>
           )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <div>
+              <div className="hover:opacity-90 transition-opacity duration-200 cursor-pointer">
                 <CustomAvatar src={avatarSrc} fallback={data?.username ?? ""} />
               </div>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-white border border-gray-200 rounded-md shadow-lg">
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">{data?.username}</div>
+            <DropdownMenuContent className="w-56 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-lg shadow-xl mt-2 animate-in fade-in-80 zoom-in-95">
+              <DropdownMenuLabel className="font-medium px-3 py-2">
+                <div className="flex flex-col">
+                  <span className="text-gray-900">{data?.username}</span>
+                  <span className="text-sm text-gray-500 mt-0.5">
+                    Your Profile
+                  </span>
+                </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="h-px bg-gray-200" />
               <DropdownMenuItem
-                className="flex items-center cursor-pointer hover:bg-gray-100 focus:bg-gray-100 text-red-600"
+                className="flex items-center cursor-pointer hover:bg-red-50 focus:bg-red-50 text-red-600 px-3 py-2 transition-colors duration-200"
                 onSelect={handleLogout}
               >
                 <LogOut className="mr-2 h-4 w-4" />

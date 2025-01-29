@@ -37,7 +37,7 @@ export function ChatCard({
 }: ChatCardProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [inputValue, setInputValue] = useState("");
-  const [participantCount, setParticipantCount] = useState(1);
+  const [totalMembers, setTotalMembers] = useState(1);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -54,6 +54,8 @@ export function ChatCard({
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
 
+      if (data.totalMembers) setTotalMembers(data.totalMembers);
+
       switch (data.type) {
         case "chat:message":
           const newMessage: Message = {
@@ -61,17 +63,15 @@ export function ChatCard({
             content: data.message,
             sender: {
               id: data.userId,
-              name: data.userName || currentUser.name,
+              name: data.username || currentUser.name,
             },
           };
           setMessages((prevMessages) => [...prevMessages, newMessage]);
           break;
         case "room:join":
-          setParticipantCount((prev) => prev + 1);
           console.log(data.message);
           break;
         case "room:leave":
-          setParticipantCount((prev) => Math.max(1, prev - 1));
           console.log(data.message);
           break;
         case "error":
@@ -93,7 +93,7 @@ export function ChatCard({
         type: "chat:message",
         roomId: `stream-${roomId}`,
         userId: currentUser.id,
-        userName: currentUser.name,
+        username: currentUser.name,
         chatMessage: inputValue.trim(),
       })
     );
@@ -121,8 +121,8 @@ export function ChatCard({
               <div className="h-2.5 w-2.5 rounded-full bg-green-500 animate-pulse ring-4 ring-green-500/20"></div>
             </div>
             <span className="text-sm font-medium bg-gradient-to-r from-zinc-100/80 to-zinc-50/80 px-3 py-1 rounded-full text-zinc-600 border border-zinc-200/60 shadow-sm">
-              {participantCount}{" "}
-              {participantCount === 1 ? "participant" : "participants"}
+              {totalMembers}{" "}
+              {totalMembers === 1 ? "participant" : "participants"}
             </span>
           </div>
         </div>

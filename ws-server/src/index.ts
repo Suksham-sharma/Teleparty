@@ -4,6 +4,7 @@ import { handleIncomingRequests, handleConnectionClosed } from "./lib/handlers";
 import { webSocketHelper } from "./lib/helper";
 import { roomManager } from "./lib/managers/roomManager";
 import { redisManager } from "./lib/managers/redisManager";
+import { webSocketManager } from "./lib/managers/webSocketManager";
 
 const server = http.createServer();
 const wss = new WebSocketServer({ server });
@@ -27,7 +28,10 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
-    handleConnectionClosed(ws);
+    const userId = webSocketManager.removeConnection(ws);
+    if (userId) {
+      handleConnectionClosed(ws, userId);
+    }
   });
 });
 

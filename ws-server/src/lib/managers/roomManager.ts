@@ -14,49 +14,59 @@ class RoomManager {
     return this.instance;
   }
 
-  private broadcastToRoom(
-    roomId: string,
-    message: string,
-    type: string,
-    userId?: string
-  ) {
+  private broadcastToRoom(type: string, roomId: string, data: any) {
+    const { userId, username, message } = data;
     const room = this.rooms.get(roomId);
+    if (!room) return;
 
     const messageData: any = {
       type,
       message,
+      totalMembers: room.members.size,
     };
 
     if (userId) messageData.userId = userId;
+    if (username) messageData.username = username;
 
     const formattedMessage = JSON.stringify(messageData);
 
-    if (room) {
-      room.members.forEach((member) => {
-        member.send(formattedMessage);
-      });
-    }
+    room.connections.forEach((connection) => {
+      connection.send(formattedMessage);
+    });
   }
 
-  public joinRoom(roomId: string, ws: WebSocket) {
+  public joinRoom(roomId: string, ws: WebSocket, userId: string) {
     let room = this.rooms.get(roomId);
     if (!room) {
       room = {
         roomId,
-        members: [],
+        connections: [],
+        members: new Set(),
       };
       this.rooms.set(roomId, room);
     }
-    room.members.push(ws);
-    this.broadcastToRoom(roomId, "User Joined", "room:join");
+
+    room.connections.push(ws);
+    room.members.add(userId);
+
+    this.broadcastToRoom("room:join", roomId, {
+      message: "A user joined the room",
+      userId,
+    });
   }
 
-  public leaveRoom(roomId: string, ws: WebSocket) {
+  public leaveRoom(roomId: string, ws: WebSocket, userId: string) {
     const room = this.rooms.get(roomId);
     if (room) {
-      room.members = room.members.filter((member) => member !== ws);
-      this.broadcastToRoom(roomId, "A user has left the room", "room:leave");
-      if (room.members.length === 0) {
+      room.connections = room.connections.filter((conn) => conn !== ws);
+      room.members.delete(userId);
+
+      this.broadcastToRoom("room:leave", roomId, {
+        message: `A user left the room.`,
+        userId,
+      });
+
+      if (room.connections.length === 0) {
         this.rooms.delete(roomId);
       }
     }
@@ -64,21 +74,20 @@ class RoomManager {
 
   public broadcastVideoUpdate(data: videoUpdateData) {
     const { userId, roomId, videoId } = data;
-    this.broadcastToRoom(roomId, videoId, "video:update", userId);
+    this.broadcastToRoom("video:update", roomId, { message: videoId, userId });
   }
 
   public broadcastChatMessage(data: chatMessageData) {
-    const { userId, roomId, message } = data;
-    this.broadcastToRoom(roomId, message, "chat:message", userId);
+    const { userId, username, roomId, message } = data;
+    this.broadcastToRoom("chat:message", roomId, { message, userId, username });
   }
 
-  public leaveAllRooms(ws: WebSocket): void {
-    for (const [roomId, room] of this.rooms) {
-      room.members = room.members.filter((member) => member !== ws);
-      if (room.members.length === 0) {
-        this.rooms.delete(roomId);
+  public leaveAllRooms(ws: WebSocket, userId: string): void {
+    this.rooms.forEach((room, roomId) => {
+      if (room.connections.includes(ws)) {
+        this.leaveRoom(roomId, ws, userId);
       }
-    }
+    });
   }
 }
 

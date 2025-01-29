@@ -15,7 +15,7 @@ interface MessageBubbleProps {
 
 export function MessageBubble({ message, currentUserId }: MessageBubbleProps) {
   const isCurrentUser = message.sender.id === currentUserId;
-  const avatarUrl = `https://api.dicebear.com/7.x/fun-emoji/svg?seed=${message.sender.name}`;
+  const avatarUrl = `https://api.dicebear.com/9.x/fun-emoji/svg?seed=${message.sender.name}`;
 
   return (
     <div

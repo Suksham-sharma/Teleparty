@@ -23,7 +23,7 @@ class WebSocketHelper {
 
     if (
       message.type === "chat:message" &&
-      (!message.chatMessage || !message.userId)
+      (!message.chatMessage || !message.userId || !message.username)
     ) {
       return {
         isValid: false,

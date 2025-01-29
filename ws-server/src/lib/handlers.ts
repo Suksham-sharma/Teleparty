@@ -1,12 +1,13 @@
 import WebSocket, { RawData } from "ws";
 import { roomManager } from "./managers/roomManager";
 import { webSocketHelper } from "./helper";
+import { webSocketManager } from "./managers/webSocketManager";
 
 export async function handleIncomingRequests(message: RawData, ws: WebSocket) {
   try {
     console.log("Received message", message.toString());
     const parsedMessage = JSON.parse(message.toString());
-    const { type, roomId, userId, chatMessage } = parsedMessage;
+    const { type, roomId, userId, username, chatMessage } = parsedMessage;
 
     const validation = webSocketHelper.validateMessage(parsedMessage);
     if (!validation.isValid) {
@@ -16,14 +17,17 @@ export async function handleIncomingRequests(message: RawData, ws: WebSocket) {
 
     switch (type) {
       case "room:join":
-        roomManager.joinRoom(roomId, ws);
+        webSocketManager.setUserId(ws, userId);
+        roomManager.joinRoom(roomId, ws, userId);
         break;
       case "room:leave":
-        roomManager.leaveRoom(roomId, ws);
+        webSocketManager.removeConnection(ws);
+        roomManager.leaveRoom(roomId, ws, userId);
         break;
       case "chat:message":
         roomManager.broadcastChatMessage({
           userId,
+          username,
           roomId,
           message: chatMessage,
         });
@@ -37,6 +41,6 @@ export async function handleIncomingRequests(message: RawData, ws: WebSocket) {
   }
 }
 
-export async function handleConnectionClosed(ws: WebSocket) {
-  roomManager.leaveAllRooms(ws);
+export async function handleConnectionClosed(ws: WebSocket, userId: string) {
+  roomManager.leaveAllRooms(ws, userId);
 }
