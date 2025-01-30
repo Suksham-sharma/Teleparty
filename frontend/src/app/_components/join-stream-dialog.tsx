@@ -13,8 +13,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PlayCircle } from "lucide-react";
-import { getChannelBySlug } from "@/services/api";
 import { toast } from "sonner";
+import { getChannelBySlug } from "@/services/channel";
 
 export function JoinStreamDialog() {
   const [streamCode, setStreamCode] = React.useState("");

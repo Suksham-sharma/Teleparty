@@ -1,10 +1,22 @@
 import { createClient, type RedisClientType } from "redis";
 
-interface data {
-  user_id: string;
+interface BaseMessage {
+  userId: string;
+  roomId: string;
   videoId: string;
-  timestamp?: number;
 }
+
+interface VideoUpdateMessage extends BaseMessage {
+  type: "video:action";
+  action: "play" | "pause" | "change";
+}
+
+interface TimestampUpdateMessage extends BaseMessage {
+  type: "timestamp:update";
+  currentTime: number;
+}
+
+type RedisMessage = VideoUpdateMessage | TimestampUpdateMessage;
 
 class RedisManager {
   static instance: RedisManager;
@@ -50,7 +62,7 @@ class RedisManager {
     }
   };
 
-  sendUpdatesToWs = async (data: data) => {
+  sendUpdatesToWs = async (data: RedisMessage) => {
     console.log("Sending data to Redis", data);
     this.queueClient.lPush("video-Data", JSON.stringify(data));
   };

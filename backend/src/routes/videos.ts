@@ -2,9 +2,7 @@ import { Router, Request, Response } from "express";
 import prismaClient from "../lib/prismaClient";
 import { updateVideoTimeData, uploadVideoData } from "../schemas";
 import { redisManager } from "../lib/redisManager";
-import { upload } from "../lib/multer";
 import { s3Service } from "../lib/s3uploader";
-import fs from "fs";
 
 export const videosRouter = Router();
 
@@ -73,53 +71,34 @@ videosRouter.post("/presignedurl", async (req: Request, res: Response) => {
   }
 });
 
-videosRouter.put("/:video_id/time", async (req: Request, res: Response) => {
-  const { video_id } = req.params;
-
-  console.log("video_id", video_id);
+videosRouter.post("/current/:videoId", async (req: Request, res: Response) => {
+  const { videoId } = req.params;
 
   try {
-    console.log("req.body", req.body);
-    const updateTimeStampPayload = updateVideoTimeData.safeParse(req.body);
-
-    if (!updateTimeStampPayload.success) {
-      res.status(408).json({
-        error: updateTimeStampPayload.error.errors.map(
-          (error) => error.message
-        ),
-      });
-      return;
-    }
-
-    const { timestamp } = updateTimeStampPayload.data;
     const video = await prismaClient.video.findUnique({
-      where: { id: video_id },
+      where: { id: videoId },
     });
 
-    if (!video) {
-      res.status(404).json({ error: "Video not found." });
-      return;
-    }
+    if (!video) throw new Error("Video not found.");
 
-    const videoDuration = video.duration;
-
-    const stringTimestamp = timestamp.toString();
-
-    await prismaClient.video.update({
-      where: { id: video_id },
-      data: { timeStamp: stringTimestamp },
+    const channel = await prismaClient.channel.findUnique({
+      where: { id: video.channelId },
     });
 
-    res.status(201).json({ message: "Timestamp updated successfully." });
-    if (req.userId)
-      redisManager.sendUpdatesToWs({
-        user_id: req.userId,
-        videoId: video_id,
-        timestamp,
-      });
+    if (!channel) throw new Error("Channel not found.");
+
+    if (req.userId === channel.creatorId) throw new Error("Unauthorized.");
+
+    res.status(201).json({ message: "Video Update Broadcasted" });
+    redisManager.sendUpdatesToWs({
+      userId: req.userId!,
+      videoId: videoId,
+      roomId: channel.slug,
+      type: "video:action",
+      action: "change",
+    });
   } catch (error: any) {
-    console.log("Error updating video timestamp:", error);
-    res.status(500).json({ error: "Internal server error." });
+    res.status(500).json({ error: error.message || "Internal Server Error" });
   }
 });
 

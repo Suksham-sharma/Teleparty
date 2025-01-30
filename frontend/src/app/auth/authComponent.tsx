@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createChannel, userLogin, userSignup } from "@/services/api";
 import { motion } from "framer-motion";
 import { CircleUser, Mail, EyeOff, Eye, Lock, Loader2 } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { userLogin, userSignup } from "@/services/auth";
+import { createChannel } from "@/services/channel";
 
 function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
   const router = useRouter();

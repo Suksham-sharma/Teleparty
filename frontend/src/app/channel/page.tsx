@@ -1,12 +1,14 @@
 import { Channel } from "./components/details";
 import Navbar from "../_components/navbar";
-import { getChannelForUser } from "@/services/api";
+
 import { VideoGrid } from "./components/video";
 import { cookies } from "next/headers";
+import { getChannelForUser } from "@/services/channel";
 
 export default async function ChannelPage() {
   const cookieStore = await cookies();
   const authToken = cookieStore.get("Authentication");
+
   if (!authToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-blue-50">

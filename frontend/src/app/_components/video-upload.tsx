@@ -20,9 +20,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useDropzone } from "react-dropzone";
-import { generatePresignedUrl, uploadVideo } from "@/services/api";
 import { toast } from "sonner";
 import axios from "axios";
+import { uploadVideo, generatePresignedUrl } from "@/services/video";
 
 interface FileInfo {
   name: string;
