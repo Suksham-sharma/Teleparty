@@ -46,8 +46,6 @@ videosRouter.get("/feed", async (req: Request, res: Response) => {
 });
 
 videosRouter.post("/presignedurl", async (req: Request, res: Response) => {
-  console.log("Acfbx");
-  console.log("req.query", req.body);
   try {
     const { fileName, type } = req.body;
 
@@ -72,7 +70,9 @@ videosRouter.post("/presignedurl", async (req: Request, res: Response) => {
 });
 
 videosRouter.post("/current/:videoId", async (req: Request, res: Response) => {
+  console.log("Sending Video Update");
   const { videoId } = req.params;
+  const { roomId } = req.body;
 
   try {
     const video = await prismaClient.video.findUnique({
@@ -82,23 +82,23 @@ videosRouter.post("/current/:videoId", async (req: Request, res: Response) => {
     if (!video) throw new Error("Video not found.");
 
     const channel = await prismaClient.channel.findUnique({
-      where: { id: video.channelId },
+      where: { slug: roomId },
     });
 
     if (!channel) throw new Error("Channel not found.");
 
-    if (req.userId === channel.creatorId) throw new Error("Unauthorized.");
+    if (req.userId !== channel.creatorId) throw new Error("Unauthorized.");
 
     res.status(201).json({ message: "Video Update Broadcasted" });
     redisManager.sendUpdatesToWs({
       userId: req.userId!,
       videoId: videoId,
-      roomId: channel.slug,
-      type: "video:action",
-      action: "change",
+      roomId: roomId,
+      action: "update",
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Internal Server Error" });
+    console.log("Error Occured", error);
   }
 });
 
@@ -146,8 +146,6 @@ videosRouter.post("/upload", async (req: Request, res: Response) => {
         video_urls: [],
       },
     });
-
-    console.log("here...");
 
     res.status(201).json({ message: "Video uploaded successfully." });
   } catch (error: any) {

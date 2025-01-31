@@ -40,12 +40,12 @@ model Video {
 }
 
 model Channel {
-  id               String  @id @default(cuid())
-  name             String
-  description      String
-  subscriber_count Int     @default(value: 0)
-  slug             String  @unique
-  videos           Video[]
-  creatorId        String  @unique
-  creator          User    @relation(fields: [creatorId], references: [id])
+  id           String  @id @default(cuid())
+  name         String
+  description  String
+  currentVideo String?
+  slug         String  @unique
+  videos       Video[]
+  creatorId    String  @unique
+  creator      User    @relation(fields: [creatorId], references: [id])
 }

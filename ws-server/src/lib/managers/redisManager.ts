@@ -32,10 +32,12 @@ class RedisManager {
         if (response) {
           const data = JSON.parse(response.element);
           console.log("Received video update:", data);
-          roomManager.broadcastVideoUpdate({
+          roomManager.handleVideoUpdate({
             userId: data.userId,
             roomId: data.roomId,
             videoId: data.videoId,
+            action: data.action,
+            currentTime: data.currentTime,
           });
         }
       }

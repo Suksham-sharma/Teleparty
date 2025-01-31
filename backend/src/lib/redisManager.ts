@@ -1,22 +1,24 @@
 import { createClient, type RedisClientType } from "redis";
 
-interface BaseMessage {
+type VideoAction = "play" | "pause" | "update" | "timestamp";
+
+interface BaseRedisMessage {
   userId: string;
   roomId: string;
   videoId: string;
+  action: VideoAction;
 }
 
-interface VideoUpdateMessage extends BaseMessage {
-  type: "video:action";
-  action: "play" | "pause" | "change";
+interface TimestampMessage extends BaseRedisMessage {
+  action: "timestamp";
+  currentTime: string;
 }
 
-interface TimestampUpdateMessage extends BaseMessage {
-  type: "timestamp:update";
-  currentTime: number;
+interface VideoControlMessage extends BaseRedisMessage {
+  action: "play" | "pause" | "update";
 }
 
-type RedisMessage = VideoUpdateMessage | TimestampUpdateMessage;
+type RedisMessage = TimestampMessage | VideoControlMessage;
 
 class RedisManager {
   static instance: RedisManager;

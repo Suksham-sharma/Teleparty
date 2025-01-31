@@ -42,11 +42,13 @@ export const uploadVideo = async (videoData: VideoUploadData) => {
   }
 };
 
-export const notifyVideoChange = async (videoId: string) => {
+export const notifyVideoChange = async (videoId: string, roomId: string) => {
   try {
     const response = await axiosInstance.post(
       `/videos/current/${videoId}`,
-      {},
+      {
+        roomId,
+      },
       {
         headers: {
           "Content-Type": "application/json",

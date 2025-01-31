@@ -42,7 +42,7 @@ async function startServer() {
     server.listen(8080, () => {
       console.log("Server is listening on port 8080");
     });
-    redisManager.listenForVideoUpdates();
+    await redisManager.listenForVideoUpdates();
   } catch (error) {
     console.log("Server error:", error);
   }

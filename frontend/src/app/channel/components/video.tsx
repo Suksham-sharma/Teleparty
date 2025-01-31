@@ -15,7 +15,7 @@ interface Video {
 
 export function VideoGrid({ videos, slug }: { videos: Video[]; slug: string }) {
   const handleVideoClick = async (videoId: string) => {
-    await notifyVideoChange(videoId);
+    await notifyVideoChange(videoId, slug);
   };
 
   if (!videos?.length) {
