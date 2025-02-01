@@ -11,11 +11,12 @@ export default function VideoHero({
   videoId,
 }: {
   roomId: string;
-  videoId: string;
+  videoId?: string;
 }) {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
@@ -33,12 +34,25 @@ export default function VideoHero({
       websocket.send(
         JSON.stringify({
           type: "room:join",
-          roomId: `stream-${roomId}`,
+          roomId: `${roomId}`,
           userId: user.id,
         })
       );
       setWs(websocket);
     };
+
+    websocket.addEventListener("message", (event) => {
+      const data = JSON.parse(event.data);
+      const { type, videoId: receivedVideoId } = data;
+      if (type === "chat:message") return;
+
+      if (!videoId && receivedVideoId) {
+        console.log("Setting video url");
+        setVideoUrl(
+          `https://d3uupbz3igyr5f.cloudfront.net/transcoded/${receivedVideoId}/master.m3u8`
+        );
+      }
+    });
 
     websocket.onerror = (error) => {
       console.log("WebSocket error:", error);
@@ -65,7 +79,7 @@ export default function VideoHero({
           websocket.send(
             JSON.stringify({
               type: "room:leave",
-              roomId: `stream-${roomId}`,
+              roomId: `${roomId}`,
             })
           );
         } catch (error) {
@@ -76,9 +90,13 @@ export default function VideoHero({
     };
   }, [roomId, user, isAuthenticated]);
 
-  const videoUrl = videoId
-    ? `https://d3uupbz3igyr5f.cloudfront.net/transcoded/${videoId}/master.m3u8`
-    : null;
+  useEffect(() => {
+    if (videoId) {
+      setVideoUrl(
+        `https://d3uupbz3igyr5f.cloudfront.net/transcoded/${videoId}/master.m3u8`
+      );
+    }
+  }, [videoId]);
 
   return (
     <div className="grid grid-cols-4 gap-10 mt-20 min-h-[50vh] py-10 max-w-7xl mx-auto">

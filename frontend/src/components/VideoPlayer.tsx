@@ -11,107 +11,90 @@ interface VideoPlayerProps {
   className?: string;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className }) => {
+const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, type, className }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const plyrRef = useRef<Plyr>();
   const hlsRef = useRef<Hls | null>(null);
+
+  const isHLS =
+    type === "application/vnd.apple.mpegurl" || src.includes(".m3u8");
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const initPlayer = () => {
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          debug: true,
-          startLevel: 1,
-          xhrSetup: (xhr, url) => {
-            console.log("Attempting to load:", url, xhr);
-          },
-        });
+    let hls: Hls | null = null;
 
-        hlsRef.current = hls;
-
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            console.error("Fatal HLS error:", data);
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.log("Network error occurred, attempting to recover...");
-                hls?.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.log("Media error occurred, attempting to recover...");
-                hls?.recoverMediaError();
-                break;
-              default:
-                console.log("Unrecoverable error");
-                hls?.destroy();
-                break;
-            }
-          }
-        });
-
-        hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-          console.log(
-            "HLS manifest parsed, qualities available:",
-            data.levels,
-            event
-          );
-
-          if (videoRef.current) {
-            plyrRef.current = new Plyr(videoRef.current, {
-              controls: [
-                "play-large",
-                "play",
-                "progress",
-                "current-time",
-                "mute",
-                "volume",
-                "settings",
-                "fullscreen",
-              ],
+    const initPlyr = (qualityOptions?: number[]) => {
+      plyrRef.current?.destroy();
+      plyrRef.current = new Plyr(video, {
+        controls: [
+          "play-large",
+          "play",
+          "progress",
+          "current-time",
+          "mute",
+          "volume",
+          "settings",
+          "fullscreen",
+        ],
+        ...(isHLS && qualityOptions
+          ? {
               settings: ["quality", "speed"],
               quality: {
-                default: 480,
-                options: [360, 480, 720],
+                default: qualityOptions[0],
+                options: qualityOptions,
                 forced: true,
                 onChange: (quality: number) => {
-                  const levelIndex = data.levels.findIndex(
-                    (level) => level.height === quality
+                  const level = hlsRef.current?.levels.findIndex(
+                    (l) => l.height === quality
                   );
-                  if (levelIndex !== -1) {
-                    hls.currentLevel = levelIndex;
+                  if (level !== undefined && level !== -1 && hlsRef.current) {
+                    hlsRef.current.currentLevel = level;
                   }
                 },
               },
-            });
-          }
-        });
-
-        hls.loadSource(src);
-        hls.attachMedia(video);
-
-        return hls;
-      }
-      return null;
+            }
+          : {}),
+        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+      });
     };
 
-    const hls = initPlayer();
+    if (isHLS && Hls.isSupported()) {
+      hls = new Hls({ debug: false });
+      hlsRef.current = hls;
 
-    // Cleanup
+      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
+        const qualityOptions = data.levels
+          .map((level) => level.height)
+          .filter((h): h is number => h !== undefined);
+        initPlyr(qualityOptions);
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data.fatal) {
+          console.error("Fatal HLS error:", data);
+          hls?.destroy();
+          hlsRef.current = null;
+        }
+      });
+
+      hls.loadSource(src);
+      hls.attachMedia(video);
+    } else {
+      video.src = src;
+      if (type) video.setAttribute("type", type);
+      initPlyr();
+    }
+
     return () => {
-      if (hls) {
-        hls.destroy();
-      }
-      if (plyrRef.current) {
-        plyrRef.current.destroy();
-      }
+      hls?.destroy();
+      plyrRef.current?.destroy();
     };
-  }, [src]);
+  }, [src, type, isHLS]);
 
   return (
-    <div className={`${className}`}>
+    <div className={className}>
       <div className="video-container">
         <video
           ref={videoRef}

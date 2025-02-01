@@ -51,7 +51,7 @@ export function ChatCard({
   useEffect(() => {
     if (!ws) return;
 
-    ws.onmessage = (event) => {
+    const haneleEvent = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
 
       if (data.totalMembers) setTotalMembers(data.totalMembers);
@@ -80,9 +80,8 @@ export function ChatCard({
       }
     };
 
-    return () => {
-      ws.onmessage = null;
-    };
+    ws.addEventListener("message", haneleEvent);
+    return () => ws.removeEventListener("message", haneleEvent);
   }, [ws, currentUser.name]);
 
   const handleSendMessage = () => {
@@ -91,7 +90,7 @@ export function ChatCard({
     ws.send(
       JSON.stringify({
         type: "chat:message",
-        roomId: `stream-${roomId}`,
+        roomId: `${roomId}`,
         userId: currentUser.id,
         username: currentUser.name,
         chatMessage: inputValue.trim(),
