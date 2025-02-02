@@ -26,3 +26,9 @@ export const uploadVideoData = z.object({
   videoId: z.string(),
   thumbnailId: z.string(),
 });
+
+export const videoInteractionData = z.object({
+  roomId: z.string(),
+  action: z.enum(["play", "pause", "timestamp"]),
+  currentTime: z.string().optional(),
+});

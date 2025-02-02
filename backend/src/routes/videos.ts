@@ -1,6 +1,10 @@
 import { Router, Request, Response } from "express";
 import prismaClient from "../lib/prismaClient";
-import { updateVideoTimeData, uploadVideoData } from "../schemas";
+import {
+  updateVideoTimeData,
+  uploadVideoData,
+  videoInteractionData,
+} from "../schemas";
 import { redisManager } from "../lib/redisManager";
 import { s3Service } from "../lib/s3uploader";
 
@@ -101,6 +105,55 @@ videosRouter.post("/current/:videoId", async (req: Request, res: Response) => {
     console.log("Error Occured", error);
   }
 });
+
+videosRouter.post(
+  "/interaction/:videoId",
+  async (req: Request, res: Response) => {
+    console.log("Starting Video Interaction");
+    const { videoId } = req.params;
+    try {
+      const videoInteractionPayload = videoInteractionData.safeParse(req.body);
+      if (!videoInteractionPayload.success) throw new Error("Invalid request.");
+
+      const { roomId, action, currentTime } = videoInteractionPayload.data;
+
+      if (action === "timestamp" && !currentTime)
+        throw new Error("Invalid request.");
+
+      const video = await prismaClient.video.findUnique({
+        where: { id: videoId },
+      });
+      if (!video) throw new Error("Video not found.");
+      const channel = await prismaClient.channel.findUnique({
+        where: { slug: roomId },
+      });
+      if (!channel) throw new Error("Channel not found.");
+      if (req.userId !== channel.creatorId) throw new Error("Unauthorized.");
+
+      if (action === "timestamp") {
+        redisManager.sendUpdatesToWs({
+          userId: req.userId!,
+          videoId: videoId,
+          roomId: roomId,
+          action: "timestamp",
+          currentTime: currentTime!,
+        });
+      } else {
+        redisManager.sendUpdatesToWs({
+          userId: req.userId!,
+          videoId: videoId,
+          roomId: roomId,
+          action: action,
+        });
+      }
+
+      res.status(201).json({ message: "Video Interaction Broadcasted" });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Internal Server Error" });
+      console.log("Error Occured", error);
+    }
+  }
+);
 
 videosRouter.post("/upload", async (req: Request, res: Response) => {
   console.log("Starting Video Upload");

@@ -1,101 +1,128 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import Plyr from "plyr";
-import Hls from "hls.js";
+import React from "react";
+import { useVideoPlayer } from "@/hooks/use-video-player";
 import "plyr/dist/plyr.css";
+import { videoInteractionService } from "@/services/video-interaction";
 
 interface VideoPlayerProps {
   src: string;
   type?: string;
   className?: string;
+  isPlaying?: boolean;
+  roomId: string;
+  videoId: string;
+  isChannelOwner?: boolean;
 }
 
-const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, type, className }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const plyrRef = useRef<Plyr>();
-  const hlsRef = useRef<Hls | null>(null);
+const VideoPlayer: React.FC<VideoPlayerProps> = ({
+  src,
+  type,
+  className,
+  isPlaying,
+  roomId,
+  videoId,
+  isChannelOwner,
+}) => {
+  const { videoRef, controls } = useVideoPlayer({ src, type });
+  const [showOverlay, setShowOverlay] = React.useState(true);
+  const seekTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const lastSeekTime = React.useRef<number>(0);
 
-  const isHLS =
-    type === "application/vnd.apple.mpegurl" || src.includes(".m3u8");
+  React.useEffect(() => {
+    if (!videoRef.current || !isChannelOwner) return;
 
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    let hls: Hls | null = null;
-
-    const initPlyr = (qualityOptions?: number[]) => {
-      plyrRef.current?.destroy();
-      plyrRef.current = new Plyr(video, {
-        controls: [
-          "play-large",
-          "play",
-          "progress",
-          "current-time",
-          "mute",
-          "volume",
-          "settings",
-          "fullscreen",
-        ],
-        ...(isHLS && qualityOptions
-          ? {
-              settings: ["quality", "speed"],
-              quality: {
-                default: qualityOptions[0],
-                options: qualityOptions,
-                forced: true,
-                onChange: (quality: number) => {
-                  const level = hlsRef.current?.levels.findIndex(
-                    (l) => l.height === quality
-                  );
-                  if (level !== undefined && level !== -1 && hlsRef.current) {
-                    hlsRef.current.currentLevel = level;
-                  }
-                },
-              },
-            }
-          : {}),
-        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+    const handlePlay = () => {
+      videoInteractionService.handleInteraction(videoId, {
+        roomId,
+        action: "play",
       });
     };
 
-    if (isHLS && Hls.isSupported()) {
-      hls = new Hls({ debug: false });
-      hlsRef.current = hls;
-
-      hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-        const qualityOptions = data.levels
-          .map((level) => level.height)
-          .filter((h): h is number => h !== undefined);
-        initPlyr(qualityOptions);
+    const handlePause = () => {
+      videoInteractionService.handleInteraction(videoId, {
+        roomId,
+        action: "pause",
       });
+    };
 
-      hls.on(Hls.Events.ERROR, (event, data) => {
-        if (data.fatal) {
-          console.error("Fatal HLS error:", data);
-          hls?.destroy();
-          hlsRef.current = null;
+    const handleTimeUpdate = () => {
+      const currentTime = videoRef.current?.currentTime || 0;
+      if (Math.abs(currentTime - lastSeekTime.current) > 1) {
+        console.log("Seeking", currentTime);
+        lastSeekTime.current = currentTime;
+
+        // Clear any existing timeout
+        console.log("the seekTImeoutRef is", seekTimeoutRef.current);
+        if (seekTimeoutRef.current) {
+          clearTimeout(seekTimeoutRef.current);
+          console.log("Cleared existing timeout");
         }
-      });
 
-      hls.loadSource(src);
-      hls.attachMedia(video);
-    } else {
-      video.src = src;
-      if (type) video.setAttribute("type", type);
-      initPlyr();
-    }
+        // Set new timeout
+        console.log("Setting timeout");
+
+        const timeoutId = setTimeout(() => {
+          console.log("Inside timeout callback");
+          try {
+            videoInteractionService.handleInteraction(videoId, {
+              roomId,
+              action: "timestamp",
+              currentTime: currentTime.toString(),
+            });
+
+            console.log("Actual Data Sent", {
+              videoId,
+              roomId,
+              currentTime: currentTime.toString(),
+            });
+            seekTimeoutRef.current = undefined;
+          } catch (error) {
+            console.error("Error sending data:", error);
+          }
+        }, 500);
+
+        seekTimeoutRef.current = timeoutId;
+        console.log("sdfv", seekTimeoutRef.current);
+      }
+    };
+
+    const video = videoRef.current;
+    video.addEventListener("play", handlePlay);
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("timeupdate", handleTimeUpdate);
 
     return () => {
-      hls?.destroy();
-      plyrRef.current?.destroy();
+      video.removeEventListener("play", handlePlay);
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
+      if (seekTimeoutRef.current) {
+        clearTimeout(seekTimeoutRef.current);
+      }
     };
-  }, [src, type, isHLS]);
+  }, [videoRef, controls, isChannelOwner, roomId, videoId, lastSeekTime]);
+
+  React.useEffect(() => {
+    if (!videoRef.current) return;
+
+    if (isPlaying && !showOverlay) {
+      console.log("Attempting to play video");
+      controls.play();
+    } else {
+      controls.pause();
+    }
+  }, [isPlaying, controls, videoRef, showOverlay]);
+
+  const handleOverlayClick = () => {
+    setShowOverlay(false);
+    if (isPlaying) {
+      controls.play();
+    }
+  };
 
   return (
     <div className={className}>
-      <div className="video-container">
+      <div className="video-container relative">
         <video
           ref={videoRef}
           className="plyr-react plyr"
@@ -117,6 +144,25 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, type, className }) => {
             } as React.CSSProperties
           }
         />
+        {showOverlay && (
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center cursor-pointer hover:bg-black/50 transition-all duration-300 ease-in-out"
+            onClick={handleOverlayClick}
+          >
+            <div className="transform hover:scale-110 transition-transform duration-300 bg-white/20 p-6 rounded-full backdrop-blur-md shadow-xl hover:bg-white/30 group">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="64"
+                height="64"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                className="text-white/90 group-hover:text-white transition-colors duration-300"
+              >
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

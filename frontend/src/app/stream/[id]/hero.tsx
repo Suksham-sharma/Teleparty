@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { VideoNotStarted } from "@/components/video-not-started";
 import { useAuthStore } from "@/store/authStore";
 import { Loader2 } from "lucide-react";
+import { useChannelOwnership } from "@/hooks/use-channel-ownership";
 
 export default function VideoHero({
   roomId,
@@ -17,6 +18,8 @@ export default function VideoHero({
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const { isChannelOwner } = useChannelOwnership(roomId);
   const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
@@ -43,8 +46,12 @@ export default function VideoHero({
 
     websocket.addEventListener("message", (event) => {
       const data = JSON.parse(event.data);
-      const { type, videoId: receivedVideoId } = data;
+      console.log("Data recieved", data);
+      const { type, videoId: receivedVideoId, isCurrentlyPlaying } = data;
       if (type === "chat:message") return;
+
+      setIsPlaying(isCurrentlyPlaying);
+      console.log("Is currently playing", isCurrentlyPlaying);
 
       if (!videoId && receivedVideoId) {
         console.log("Setting video url");
@@ -101,7 +108,17 @@ export default function VideoHero({
   return (
     <div className="grid grid-cols-4 gap-10 mt-20 min-h-[50vh] py-10 max-w-7xl mx-auto">
       <div className="col-span-3">
-        {videoUrl ? <VideoPlayer src={videoUrl} /> : <VideoNotStarted />}
+        {videoUrl ? (
+          <VideoPlayer
+            src={videoUrl}
+            isPlaying={isPlaying}
+            roomId={roomId}
+            videoId={videoId || ""}
+            isChannelOwner={isChannelOwner}
+          />
+        ) : (
+          <VideoNotStarted />
+        )}
       </div>
       <div className="relative">
         {isConnecting ? (
