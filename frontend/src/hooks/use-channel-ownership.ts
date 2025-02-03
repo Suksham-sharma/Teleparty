@@ -13,10 +13,12 @@ export function useChannelOwnership(roomId: string) {
 
     const checkChannelOwnership = async () => {
       try {
-        const channelData = await getChannelBySlug(roomId);
-        if (channelData && channelData.owner.id === user.id) {
+        console.log("RoomID", roomId);
+        const { channel } = await getChannelBySlug(roomId);
+        if (channel && channel.creatorId === user.id) {
           setIsChannelOwner(true);
         }
+        console.log("Is Channel Owner", isChannelOwner);
       } catch (error) {
         if (error instanceof Error)
           console.log("Error checking channel ownership:", error.message);
@@ -24,7 +26,7 @@ export function useChannelOwnership(roomId: string) {
     };
 
     checkChannelOwnership();
-  }, [roomId, user]);
+  }, [isChannelOwner, roomId, user]);
 
   return { isChannelOwner };
 }

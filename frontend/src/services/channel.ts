@@ -47,6 +47,7 @@ export const getChannelBySlug = async (slug: string) => {
     if (!response) {
       throw new Error("No data returned from server");
     }
+    console.log("Channel Info", response.data);
     return response.data;
   } catch (error: unknown) {
     console.error("Error getting channel info:", error);

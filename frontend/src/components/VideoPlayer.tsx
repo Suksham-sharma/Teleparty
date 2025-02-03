@@ -5,15 +5,15 @@ import { useVideoPlayer } from "@/hooks/use-video-player";
 import "plyr/dist/plyr.css";
 import { videoInteractionService } from "@/services/video-interaction";
 
-interface VideoPlayerProps {
+type VideoPlayerProps = {
   src: string;
   type?: string;
-  className?: string;
   isPlaying?: boolean;
   roomId: string;
   videoId: string;
   isChannelOwner?: boolean;
-}
+  currentTime?: number | null;
+} & React.HTMLAttributes<HTMLDivElement>;
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   src,
@@ -23,11 +23,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   roomId,
   videoId,
   isChannelOwner,
+  currentTime,
 }) => {
   const { videoRef, controls } = useVideoPlayer({ src, type });
   const [showOverlay, setShowOverlay] = React.useState(true);
   const seekTimeoutRef = React.useRef<NodeJS.Timeout>();
   const lastSeekTime = React.useRef<number>(0);
+
+  React.useEffect(() => {
+    if (!videoRef.current || isChannelOwner) return;
+    if (!currentTime) return;
+
+    const currentPlayerTime = controls.getCurrentTime();
+    if (Math.abs(currentPlayerTime - currentTime) > 1) {
+      controls.seek(currentTime);
+    }
+  }, [currentTime, controls, videoRef, isChannelOwner]);
 
   React.useEffect(() => {
     if (!videoRef.current || !isChannelOwner) return;
@@ -122,7 +133,7 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   return (
     <div className={className}>
-      <div className="video-container relative">
+      <div className="video-container relative rounded-xl overflow-clip shadow-lg">
         <video
           ref={videoRef}
           className="plyr-react plyr"

@@ -19,8 +19,9 @@ export default function VideoHero({
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const { isAuthenticated, user } = useAuthStore();
+  const [currentTime, setCurrentTime] = useState<number | null>(null);
   const { isChannelOwner } = useChannelOwnership(roomId);
-  const { user, isAuthenticated } = useAuthStore();
 
   useEffect(() => {
     if (!isAuthenticated || !user) return;
@@ -47,11 +48,20 @@ export default function VideoHero({
     websocket.addEventListener("message", (event) => {
       const data = JSON.parse(event.data);
       console.log("Data recieved", data);
-      const { type, videoId: receivedVideoId, isCurrentlyPlaying } = data;
+      const {
+        type,
+        videoId: receivedVideoId,
+        isCurrentlyPlaying,
+        currentTime: receivedTime,
+      } = data;
       if (type === "chat:message") return;
 
       setIsPlaying(isCurrentlyPlaying);
       console.log("Is currently playing", isCurrentlyPlaying);
+
+      if (receivedTime) {
+        setCurrentTime(parseFloat(receivedTime));
+      }
 
       if (!videoId && receivedVideoId) {
         console.log("Setting video url");
@@ -106,8 +116,8 @@ export default function VideoHero({
   }, [videoId]);
 
   return (
-    <div className="grid grid-cols-4 gap-10 mt-20 min-h-[50vh] py-10 max-w-7xl mx-auto">
-      <div className="col-span-3">
+    <div className="gap-10 flex flex-col lg:flex-row justify-between mt-20 min-h-[50vh] py-10 max-w-7xl mx-auto px-10 lg:px-0">
+      <div className="flex-1">
         {videoUrl ? (
           <VideoPlayer
             src={videoUrl}
@@ -115,21 +125,23 @@ export default function VideoHero({
             roomId={roomId}
             videoId={videoId || ""}
             isChannelOwner={isChannelOwner}
+            currentTime={currentTime}
+            className="h-max aspect-video"
           />
         ) : (
           <VideoNotStarted />
         )}
       </div>
-      <div className="relative">
+      <div className="relative lg:min-w-[300px] lg:max-w-[300px] max-h-[530px] w-full">
         {isConnecting ? (
-          <div className="w-full h-[600px] rounded-2xl bg-white/95 border border-zinc-200/80 backdrop-blur-sm flex items-center justify-center">
+          <div className="w-full h-full rounded-2xl bg-white/95 border border-zinc-200/80 backdrop-blur-sm flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
               <p className="text-zinc-600 font-medium">Connecting to chat...</p>
             </div>
           </div>
         ) : connectionError ? (
-          <div className="w-full h-[600px] rounded-2xl bg-white/95 border border-red-200/80 backdrop-blur-sm flex items-center justify-center p-6">
+          <div className="w-full h-full rounded-2xl bg-white/95 border border-red-200/80 backdrop-blur-sm flex items-center justify-center p-6">
             <div className="flex flex-col items-center gap-4 text-center">
               <div className="h-12 w-12 rounded-full bg-red-100 flex items-center justify-center">
                 <span className="text-2xl">⚠️</span>
@@ -143,7 +155,7 @@ export default function VideoHero({
             <ChatCard
               ws={ws}
               roomId={roomId}
-              className="w-full h-full"
+              className="w-full"
               currentUser={{
                 id: user.id,
                 name: user.username,

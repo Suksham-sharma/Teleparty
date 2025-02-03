@@ -105,12 +105,12 @@ export function ChatCard({
   return (
     <div
       className={cn(
-        "w-full max-w-xl mx-auto rounded-2xl overflow-hidden shadow-lg transition-all duration-200 hover:shadow-xl",
+        " mx-auto rounded-2xl h-full overflow-hidden shadow-lg transition-all duration-200 hover:shadow-xl",
         "bg-white/95 text-zinc-900 border border-zinc-200/80 backdrop-blur-sm",
         className
       )}
     >
-      <div className="flex flex-col h-[600px] relative">
+      <div className="flex flex-col h-full relative">
         <div className="px-6 py-4 border-b border-zinc-200/80 bg-gradient-to-r from-white via-zinc-50/80 to-white shadow-sm">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
