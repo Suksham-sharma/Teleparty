@@ -116,8 +116,9 @@ export default function VideoHero({
   }, [videoId]);
 
   return (
-    <div className="gap-10 flex flex-col lg:flex-row justify-between mt-20 min-h-[50vh] py-10 max-w-7xl mx-auto px-10 lg:px-0">
-      <div className="flex-1">
+    <div className="gap-10 flex flex-col lg:flex-row justify-between mt-20 min-h-[50vh] py-10 max-w-7xl mx-auto px-10 lg:px-0 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-20 pointer-events-none" />
+      <div className="flex-1 relative z-10">
         {videoUrl ? (
           <VideoPlayer
             src={videoUrl}
@@ -132,7 +133,7 @@ export default function VideoHero({
           <VideoNotStarted />
         )}
       </div>
-      <div className="relative lg:min-w-[300px] lg:max-w-[300px] max-h-[530px] w-full">
+      <div className="relative lg:min-w-[300px] lg:max-w-[300px] max-h-[530px] w-full z-10">
         {isConnecting ? (
           <div className="w-full h-full rounded-2xl bg-white/95 border border-zinc-200/80 backdrop-blur-sm flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">

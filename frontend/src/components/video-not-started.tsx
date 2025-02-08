@@ -9,7 +9,7 @@ export function VideoNotStarted() {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="w-full h-full min-h-[400px] bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 rounded-xl shadow-lg flex items-center justify-center p-8 border border-gray-200/50"
+      className="w-full h-full min-h-[530px] items-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 rounded-xl shadow-lg flex  justify-center p-8 border border-gray-200/50"
     >
       <div className="text-center space-y-6">
         <motion.div
