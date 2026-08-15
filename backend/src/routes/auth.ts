@@ -3,8 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { signInData, signUpData } from "../schemas";
 import prismaClient from "../lib/prismaClient";
-
-export const JWT_SECRET = "secret";
+import { JWT_SECRET } from "../lib/config";
 
 export const authRouter = Router();
 
@@ -51,8 +50,14 @@ authRouter.post("/signup", async (req: Request, res: Response) => {
       sameSite: "lax",
     });
 
+    // Same shape as /login — the client stores `data.user` after either call.
     res.status(201).json({
-      userId: user?.id,
+      access_token: token,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+      },
     });
   } catch (error: any) {
     res.status(400).json({ error: error.message });

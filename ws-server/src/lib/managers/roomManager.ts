@@ -1,12 +1,23 @@
 import WebSocket from "ws";
-import {
+import { randomUUID } from "crypto";
+import type {
+  ChatMessage,
+  Participant,
+  QueueMessage,
   RoomData,
-  videoUpdateData,
-  chatMessageData,
-  BroadcastData,
-  ResponseMessageData,
 } from "../../types";
 
+const RECENT_MESSAGE_LIMIT = 50;
+
+/**
+ * Rooms are keyed by the human room code (WOLF-42), the same identifier that
+ * appears in the /r/{code} URL and in every API call. A room here is pure
+ * fanout state; the durable record lives in Postgres.
+ *
+ * Membership is a Map<socket, Participant> rather than a parallel array + Set,
+ * so a disconnect removes the identity and the socket in one step and the
+ * member list can never drift out of sync with the connection list.
+ */
 class RoomManager {
   private static instance: RoomManager;
   private rooms: Map<string, RoomData> = new Map();
@@ -14,135 +25,222 @@ class RoomManager {
   private constructor() {}
 
   public static getInstance() {
-    if (!this.instance) {
-      this.instance = new RoomManager();
-    }
+    if (!this.instance) this.instance = new RoomManager();
     return this.instance;
   }
 
-  private broadcastToRoom(type: string, roomId: string, data: BroadcastData) {
-    const { userId, username, message } = data;
-    const room = this.rooms.get(roomId);
-    if (!message) return;
-    if (!room) return;
-
-    const messageData: ResponseMessageData = {
-      type,
-      message,
-      totalMembers: room.members.size,
-    };
-
-    if (userId) messageData.userId = userId;
-    if (username) messageData.username = username;
-
-    if (type != "chat:message") {
-      messageData.videoId = room.currentVideoId;
-      messageData.currentTime = room.currentVideoTime;
-      messageData.isCurrentlyPlaying = room.isCurrentlyPlaying;
-    }
-
-    const formattedMessage = JSON.stringify(messageData);
-
-    room.connections.forEach((connection) => {
-      connection.send(formattedMessage);
-    });
-
-    console.log(
-      `[${type}] Broadcasting to room ${roomId}: ${formattedMessage}`
-    );
-  }
-
-  public joinRoom(roomId: string, ws: WebSocket, userId: string) {
-    let room = this.rooms.get(roomId);
+  private getOrCreate(code: string): RoomData {
+    let room = this.rooms.get(code);
     if (!room) {
       room = {
-        roomId,
-        connections: [],
-        members: new Set(),
+        code,
+        connections: new Map(),
+        currentVideoTime: "0",
+        isCurrentlyPlaying: false,
+        recentMessages: [],
       };
-      this.rooms.set(roomId, room);
+      this.rooms.set(code, room);
     }
-
-    room.connections.push(ws);
-    room.members.add(userId);
-
-    this.broadcastToRoom("room:join", roomId, {
-      message: "A user joined the room",
-      userId,
-    });
-  }
-
-  public leaveRoom(roomId: string, ws: WebSocket, userId: string) {
-    const room = this.rooms.get(roomId);
-    if (room) {
-      room.connections = room.connections.filter((conn) => conn !== ws);
-      room.members.delete(userId);
-
-      this.broadcastToRoom("room:leave", roomId, {
-        message: `A user left the room.`,
-        userId,
-      });
-
-      if (room.connections.length === 0) {
-        this.rooms.delete(roomId);
-      }
-    }
-  }
-
-  private initializeRoom(roomId: string) {
-    const room = {
-      roomId,
-      connections: [],
-      members: new Set<string>(),
-      currentVideoTime: "0:00",
-      isCurrentlyPlaying: false,
-    };
-    this.rooms.set(roomId, room);
     return room;
   }
 
-  public handleVideoUpdate(data: videoUpdateData) {
-    const { userId, roomId, videoId, action, currentTime } = data;
-    let room = this.rooms.get(roomId);
-
-    if (!room && action !== "update") return;
-    if (!room) room = this.initializeRoom(roomId);
-
-    switch (action) {
-      case "update": {
-        room.currentVideoId = videoId;
-        room.currentVideoTime = "0:00";
-        room.isCurrentlyPlaying = false;
-        room.ownerId = userId;
-        break;
-      }
-      case "timestamp": {
-        if (currentTime) room.currentVideoTime = currentTime;
-        break;
-      }
-      default:
-        room.isCurrentlyPlaying = action === "play";
+  private send(ws: WebSocket, payload: unknown) {
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify(payload));
     }
-
-    this.broadcastVideoUpdate(roomId);
   }
 
-  private broadcastVideoUpdate(roomId: string) {
-    this.broadcastToRoom("video:update", roomId, {
-      message: "video stats updated",
+  private broadcast(code: string, payload: unknown, except?: WebSocket) {
+    const room = this.rooms.get(code);
+    if (!room) return;
+
+    const message = JSON.stringify(payload);
+    room.connections.forEach((_participant, socket) => {
+      if (socket !== except && socket.readyState === WebSocket.OPEN) {
+        socket.send(message);
+      }
     });
   }
 
-  public broadcastChatMessage(data: chatMessageData) {
-    const { userId, username, roomId, message } = data;
-    this.broadcastToRoom("chat:message", roomId, { message, userId, username });
+  /**
+   * One entry per *person*, not per socket. Someone with the room open in two
+   * tabs is still one participant — without this the roster reports them twice
+   * and duplicate ids break list rendering on the client.
+   */
+  private roster(room: RoomData): Participant[] {
+    const byMember = new Map<string, Participant>();
+    room.connections.forEach((participant) => {
+      byMember.set(participant.memberId, participant);
+    });
+    return Array.from(byMember.values());
   }
 
-  public leaveAllRooms(ws: WebSocket, userId: string): void {
-    this.rooms.forEach((room, roomId) => {
-      if (room.connections.includes(ws)) {
-        this.leaveRoom(roomId, ws, userId);
-      }
+  private presence(code: string) {
+    const room = this.rooms.get(code);
+    if (!room) return;
+    const members = this.roster(room);
+    this.broadcast(code, {
+      type: "room:presence",
+      members,
+      totalMembers: members.length,
+    });
+  }
+
+  /** Does this person still have any other socket open in the room? */
+  private stillPresent(room: RoomData, memberId: string) {
+    return Array.from(room.connections.values()).some(
+      (p) => p.memberId === memberId
+    );
+  }
+
+  /**
+   * Join, then immediately hand the newcomer everything they need to be in
+   * sync: current video, position, play state, roster and recent chat. Without
+   * this a late joiner sees a blank player until the host happens to act.
+   */
+  public joinRoom(code: string, ws: WebSocket, participant: Participant) {
+    const room = this.getOrCreate(code);
+    const isReconnect = this.stillPresent(room, participant.memberId);
+    room.connections.set(ws, participant);
+
+    const members = this.roster(room);
+
+    this.send(ws, {
+      type: "room:snapshot",
+      roomId: code,
+      videoId: room.currentVideoId,
+      currentTime: room.currentVideoTime,
+      isCurrentlyPlaying: room.isCurrentlyPlaying,
+      members,
+      totalMembers: members.length,
+      messages: room.recentMessages,
+    });
+
+    // A second tab from someone already here is not a new arrival.
+    if (!isReconnect) {
+      this.broadcast(
+        code,
+        {
+          type: "room:join",
+          memberId: participant.memberId,
+          name: participant.name,
+          totalMembers: members.length,
+        },
+        ws
+      );
+      this.presence(code);
+    }
+  }
+
+  public leaveRoom(code: string, ws: WebSocket) {
+    const room = this.rooms.get(code);
+    if (!room) return;
+
+    const participant = room.connections.get(ws);
+    if (!participant) return;
+
+    room.connections.delete(ws);
+
+    if (room.connections.size === 0) {
+      // Nobody left to fan out to. Postgres holds the durable state, so the
+      // room rehydrates from the API snapshot when someone returns.
+      this.rooms.delete(code);
+      return;
+    }
+
+    // Closing one of several tabs is not leaving the room.
+    if (this.stillPresent(room, participant.memberId)) return;
+
+    this.broadcast(code, {
+      type: "room:leave",
+      memberId: participant.memberId,
+      name: participant.name,
+      totalMembers: this.roster(room).length,
+    });
+
+    this.presence(code);
+  }
+
+  public leaveAllRooms(ws: WebSocket) {
+    Array.from(this.rooms.keys()).forEach((code) => {
+      if (this.rooms.get(code)?.connections.has(ws)) this.leaveRoom(code, ws);
+    });
+  }
+
+  public broadcastChatMessage(code: string, ws: WebSocket, body: string) {
+    const room = this.rooms.get(code);
+    const participant = room?.connections.get(ws);
+    if (!room || !participant) return;
+
+    const message: ChatMessage = {
+      id: randomUUID(),
+      memberId: participant.memberId,
+      name: participant.name,
+      body,
+      sentAt: new Date().toISOString(),
+    };
+
+    room.recentMessages.push(message);
+    if (room.recentMessages.length > RECENT_MESSAGE_LIMIT) {
+      room.recentMessages.shift();
+    }
+
+    this.broadcast(code, { type: "chat:message", ...message });
+  }
+
+  public broadcastReaction(code: string, ws: WebSocket, emoji: string) {
+    const participant = this.rooms.get(code)?.connections.get(ws);
+    if (!participant) return;
+
+    this.broadcast(code, {
+      type: "reaction:send",
+      memberId: participant.memberId,
+      name: participant.name,
+      emoji,
+      videoTime: this.rooms.get(code)?.currentVideoTime,
+    });
+  }
+
+  /** Playback and room events relayed from the API via Redis. */
+  public handleQueueMessage(message: QueueMessage) {
+    const code = message.roomId;
+
+    if (message.kind === "room") {
+      // Only meaningful if someone is actually connected.
+      if (!this.rooms.has(code)) return;
+      this.broadcast(code, { type: message.type, roomId: code });
+      if (message.type === "room:ended") this.rooms.delete(code);
+      return;
+    }
+
+    // A video change may arrive before anyone has connected (the host picks a
+    // film, then shares the link), so create the room to hold that state.
+    const room =
+      message.action === "update"
+        ? this.getOrCreate(code)
+        : this.rooms.get(code);
+    if (!room) return;
+
+    switch (message.action) {
+      case "update":
+        room.currentVideoId = message.videoId;
+        room.currentVideoTime = "0";
+        room.isCurrentlyPlaying = false;
+        break;
+      case "timestamp":
+        if (message.currentTime) room.currentVideoTime = message.currentTime;
+        break;
+      default:
+        room.isCurrentlyPlaying = message.action === "play";
+    }
+
+    this.broadcast(code, {
+      type: "video:update",
+      roomId: code,
+      videoId: room.currentVideoId,
+      currentTime: room.currentVideoTime,
+      isCurrentlyPlaying: room.isCurrentlyPlaying,
+      totalMembers: this.roster(room).length,
     });
   }
 }

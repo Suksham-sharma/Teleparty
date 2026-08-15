@@ -217,11 +217,11 @@ export function FileUploadDialog() {
 
     switch (file.uploadStatus) {
       case "loading":
-        return <Loader2 className="h-5 w-5 animate-spin text-blue-500" />;
+        return <Loader2 className="h-5 w-5 animate-spin text-grey" />;
       case "success":
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-butter" />;
       case "error":
-        return <CheckCircle2 className="h-5 w-5 text-red-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-destructive" />;
       default:
         return null;
     }
@@ -248,7 +248,7 @@ export function FileUploadDialog() {
             {!videoFile && (
               <div
                 {...getVideoRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center space-y-4 hover:bg-accent transition-colors 
+                className={`border-2 border-dashed border-hair-strong rounded-lg p-8 text-center space-y-4 hover:border-butter-mute hover:bg-card-2 transition-colors 
             ${isVideoDragActive ? "bg-accent" : ""}`}
               >
                 <input {...getVideoInputProps()} />
@@ -304,7 +304,7 @@ export function FileUploadDialog() {
             {!thumbnailFile && (
               <div
                 {...getThumbnailRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center space-y-4 hover:bg-accent transition-colors 
+                className={`border-2 border-dashed border-hair-strong rounded-lg p-8 text-center space-y-4 hover:border-butter-mute hover:bg-card-2 transition-colors 
                 ${isThumbnailDragActive ? "bg-accent" : ""}`}
               >
                 <input {...getThumbnailInputProps()} />

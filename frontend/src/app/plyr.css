@@ -1403,3 +1403,55 @@ a.plyr__control:before {
 .plyr [hidden] {
   display: none !important;
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   watchparty theme — see docs/DESIGN.md
+   Plyr ships with #00b2ff as --plyr-color-main; everything below re-points
+   its variables at the one accent and the dark surfaces.
+   ───────────────────────────────────────────────────────────────────── */
+.plyr {
+  --plyr-color-main: #fef297;
+  --plyr-font-family: var(--font-display), system-ui, sans-serif;
+
+  --plyr-video-background: #0d0d0d;
+  --plyr-video-controls-background: linear-gradient(
+    transparent,
+    rgba(0, 0, 0, 0.88)
+  );
+  --plyr-video-control-color: #ffffff;
+  --plyr-video-control-color-hover: #000000;
+  --plyr-video-control-background-hover: #fef297;
+
+  --plyr-range-fill-background: #fef297;
+  --plyr-range-thumb-background: #fef297;
+  --plyr-range-thumb-shadow: none;
+  --plyr-video-progress-buffered-background: hsla(0, 0%, 100%, 0.22);
+  --plyr-video-range-track-background: hsla(0, 0%, 100%, 0.22);
+
+  --plyr-menu-background: #1b1b1b;
+  --plyr-menu-color: #ededed;
+  --plyr-menu-back-border-color: #2e2e2e;
+  --plyr-menu-arrow-color: #a3a3a3;
+  --plyr-menu-shadow: none;
+  --plyr-menu-radius: 12px;
+
+  --plyr-tooltip-background: #1b1b1b;
+  --plyr-tooltip-color: #ededed;
+  --plyr-tooltip-shadow: none;
+  --plyr-tooltip-radius: 999px;
+
+  --plyr-control-radius: 999px;
+  --plyr-focus-visible-color: #fef297;
+}
+
+/* The overlaid play button fills with butter, so its glyph must be black
+   (18.4:1) rather than Plyr's default white. */
+.plyr__control--overlaid {
+  color: #000;
+}
+
+/* The player has to take the frame's corner radius or it squares off. */
+.plyr--video,
+.plyr__video-wrapper {
+  border-radius: inherit;
+}

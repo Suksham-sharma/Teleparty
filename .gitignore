@@ -1,0 +1,6 @@
+
+# gstack browser tooling scratch state
+.gstack/
+
+# curl cookie jars from local testing
+*.jar

@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { NextFunction, Request, Response } from "express";
 import prismaClient from "../lib/prismaClient";
+import { JWT_SECRET } from "../lib/config";
 
 export const protectRoute = async (
   req: Request,
@@ -21,7 +22,7 @@ export const protectRoute = async (
       return;
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret") as {
+    const decoded = jwt.verify(token, JWT_SECRET) as {
       id: string;
     };
 

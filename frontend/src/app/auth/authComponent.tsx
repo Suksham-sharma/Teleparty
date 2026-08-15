@@ -1,7 +1,8 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { motion } from "framer-motion";
-import { CircleUser, Mail, EyeOff, Eye, Lock, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import React, { useState } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -10,15 +11,11 @@ import { createChannel } from "@/services/channel";
 
 function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
   const router = useRouter();
-  const [showPassword, setShowPassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
 
   const handleSignin = async () => {
     try {
@@ -38,9 +35,8 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
         return;
       }
 
-      toast.success("Signed in successfully");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      router.push("/home");
+      toast.success("Signed in");
+      router.push("/library");
     } catch (error: unknown) {
       console.log("Error signing in", error);
       toast.error("Error signing in");
@@ -48,7 +44,6 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
   };
 
   const handleSignup = async () => {
-    console.log("Signing up...");
     try {
       if (!name || !email || !password) {
         toast.error("Please fill in all fields");
@@ -66,16 +61,12 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
         return;
       }
 
-      const channelCreated = await handleDefaultChannelCreation(name);
+      // Best-effort: the library needs a channel to hang uploads off, but a
+      // failure here must not strand a signed-in user with no way forward.
+      await handleDefaultChannelCreation(name);
 
-      if (!channelCreated) {
-        toast.error("Error creating default channel");
-        return;
-      }
-
-      toast.success("Signed up successfully");
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      router.push("/home");
+      toast.success("Account created");
+      router.push("/library");
     } catch (error: unknown) {
       console.log("Error signing up", error);
       toast.error("Error signing up");
@@ -85,17 +76,12 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
   const handleDefaultChannelCreation = async (name: string) => {
     try {
       const response = await createChannel(
-        `${name}'s Channel`,
-        `For Streaming and Creating everlasting memories`
+        `${name}'s library`,
+        "Uploads for watch parties"
       );
-      if (!response) {
-        toast.error("Error creating default channel");
-        return false;
-      }
-      return true;
+      return Boolean(response);
     } catch (error: unknown) {
-      console.log("Error creating default channel", error);
-      toast.error("Error creating default channel");
+      console.error("Could not create default channel", error);
       return false;
     }
   };
@@ -104,101 +90,86 @@ function AuthComponent({ isSignIn }: { isSignIn: boolean }) {
     setIsLoading(true);
     if (isSignIn) await handleSignin();
     else await handleSignup();
-
-    console.log("Auth clicked");
     setIsLoading(false);
   };
 
   return (
-    <motion.form
-      key={isSignIn ? "signin" : "signup"}
-      initial={{ opacity: 0, x: -50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 50 }}
-      transition={{ duration: 0.3 }}
+    <form
       className="space-y-4"
       onSubmit={(e) => {
-        console.log("Submitting form...");
         e.preventDefault();
         handleAuthClick();
       }}
     >
       {!isSignIn && (
-        <div className="space-y-2 items-center">
-          <label htmlFor="name" className="text-sm font-medium">
-            Name
-          </label>
-          <div className="relative items-center">
-            <Input
-              id="name"
-              placeholder="Enter your name"
-              className="pl-10"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <CircleUser className="absolute left-3 top-2 h-5 w-5 text-muted-foreground" />
-          </div>
-        </div>
+        <Field id="name" label="Name">
+          <Input
+            id="name"
+            placeholder="Your name"
+            autoComplete="name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </Field>
       )}
 
-      <div className="space-y-2">
-        <label htmlFor="email" className="text-sm font-medium">
-          Email
-        </label>
-        <div className="relative">
-          <Input
-            id="email"
-            placeholder="Enter your email"
-            className="pl-10"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <Mail className="absolute left-3 top-2 h-5 w-5 text-muted-foreground" />
-        </div>
-      </div>
+      <Field id="email" label="Email">
+        <Input
+          id="email"
+          type="email"
+          placeholder="you@example.com"
+          autoComplete="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+      </Field>
 
-      <div className="space-y-2">
-        <label htmlFor="password" className="text-sm font-medium">
-          Password
-        </label>
+      <Field id="password" label="Password">
         <div className="relative">
           <Input
             id="password"
             type={showPassword ? "text" : "password"}
-            placeholder="Enter your password"
+            placeholder="Your password"
+            autoComplete={isSignIn ? "current-password" : "new-password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="pl-10 pr-10"
+            className="pr-12"
           />
-          <Lock className="absolute left-3 top-2 h-5 w-5 text-muted-foreground" />
-          <Button
+          <button
             type="button"
-            onClick={togglePasswordVisibility}
-            className="absolute right-3 top-2 h-5 w-5 text-muted-foreground bg-white hover:bg-gray-100"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-grey transition-colors hover:text-ash"
           >
-            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-          </Button>
+            {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+          </button>
         </div>
-      </div>
+      </Field>
 
-      <div>
-        <Button
-          type="submit"
-          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Please wait
-            </>
-          ) : isSignIn ? (
-            "Sign in"
-          ) : (
-            "Sign up"
-          )}
-        </Button>
-      </div>
-    </motion.form>
+      <Button type="submit" disabled={isLoading} className="!mt-6 h-12 w-full">
+        {isLoading && <Loader2 className="animate-spin" />}
+        {isLoading ? "Please wait" : isSignIn ? "Sign in" : "Create account"}
+      </Button>
+    </form>
+  );
+}
+
+function Field({
+  id,
+  label,
+  children,
+}: {
+  id: string;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="block text-base text-grey">
+        {label}
+      </label>
+      {children}
+    </div>
   );
 }
 

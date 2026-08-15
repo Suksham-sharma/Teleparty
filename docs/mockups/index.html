@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Watch party — visual direction "Bulb"</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DIRECTION "BULB"
+   True black surround, one butter-yellow accent, geometric sans.
+   Palette + type adapted from the CineStream reference.
+   ============================================================ */
+:root{
+  --black:#000000;
+  --coal:#0D0D0D;
+  --card:#1B1B1B;
+  --card-2:#262626;
+  --hair:#2E2E2E;
+  --hair-strong:#3D3D3D;
+
+  --butter:#FEF297;
+  --butter-deep:#E8D96F;
+  --butter-mute:#8A8050;
+
+  --white:#FFFFFF;
+  --ash:#EDEDED;
+  --grey:#A3A3A3;
+  --grey-dim:#8A8A8A;
+
+  --r-pill:999px;
+  --r-card:16px;
+  --r-frame:20px;
+  --r-input:12px;
+
+  --shell:1320px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{
+  background:var(--black);
+  color:var(--ash);
+  font-family:"Outfit",system-ui,sans-serif;
+  font-size:16px;
+  line-height:1.55;
+}
+.mono{font-family:"JetBrains Mono",ui-monospace,monospace;font-variant-ligatures:none}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input{font:inherit;color:inherit}
+
+/* ---------- mockup page scaffolding (not part of the design) ---------- */
+.sheet{border-bottom:1px solid var(--hair)}
+.sheet-label{
+  max-width:var(--shell);margin:0 auto;padding:28px 40px 0;
+  font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--butter-mute);
+}
+
+/* ============================================================
+   SHARED COMPONENTS
+   ============================================================ */
+
+/* --- top bar --- */
+.bar{
+  max-width:var(--shell);margin:0 auto;
+  display:flex;align-items:center;justify-content:space-between;gap:24px;
+  padding:20px 40px;
+}
+/* the mark is a lit filament next to the name — the accent's whole rationale */
+.wordmark{
+  display:inline-flex;align-items:center;gap:9px;
+  font-size:19px;font-weight:600;letter-spacing:-.005em;color:var(--white);
+}
+.wordmark i{
+  width:8px;height:8px;border-radius:50%;background:var(--butter);flex:none;
+}
+
+.bar-right{display:flex;align-items:center;gap:14px}
+
+/* --- buttons --- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  border-radius:var(--r-pill);font-weight:500;
+  transition:background .12s ease,color .12s ease,border-color .12s ease;
+}
+.btn-primary{
+  background:var(--butter);color:#000;
+  padding:14px 30px;font-size:16px;font-weight:600;letter-spacing:-.01em;
+}
+.btn-primary:hover{background:var(--butter-deep)}
+.btn-ghost{
+  border:1px solid var(--hair-strong);color:var(--ash);
+  padding:13px 26px;font-size:15px;
+}
+.btn-ghost:hover{border-color:var(--grey);background:var(--card)}
+.btn-sm{padding:9px 18px;font-size:14px}
+.btn-icon{
+  width:38px;height:38px;border-radius:var(--r-pill);
+  background:var(--card);display:inline-flex;align-items:center;justify-content:center;
+}
+.btn-icon:hover{background:var(--card-2)}
+
+/* --- input --- */
+.field{
+  background:var(--card);border:1px solid var(--hair);
+  border-radius:var(--r-pill);padding:13px 22px;font-size:15px;
+  color:var(--white);outline:none;min-width:0;
+}
+.field::placeholder{color:#6B6B6B}
+.field:focus{border-color:var(--butter);background:var(--card-2)}
+
+/* --- room code chip --- */
+.code-chip{
+  display:inline-flex;align-items:center;gap:10px;
+  border:1px solid var(--butter-mute);border-radius:var(--r-pill);
+  padding:7px 8px 7px 16px;
+}
+.code-chip .mono{font-size:14px;letter-spacing:.1em;color:var(--butter);font-weight:500}
+.code-chip .copy{
+  width:26px;height:26px;border-radius:var(--r-pill);background:var(--card);
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.code-chip:hover .copy{background:var(--butter);color:#000}
+
+/* --- live dot: the accent is the only signal colour --- */
+.live{
+  display:inline-flex;align-items:center;gap:8px;
+  font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--butter);font-weight:500;
+}
+.live i{
+  width:7px;height:7px;border-radius:50%;background:var(--butter);
+  animation:bulb 2.4s ease-in-out infinite;
+}
+@keyframes bulb{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* --- avatars --- */
+.face{
+  width:36px;height:36px;border-radius:50%;overflow:hidden;
+  display:inline-flex;align-items:center;justify-content:center;
+  border:2px solid var(--black);flex:none;background:var(--card-2);
+}
+.face img{width:100%;height:100%;display:block}
+.face.host{border-color:var(--butter)}
+.rail{display:flex;align-items:center;gap:14px}
+.rail .stack{display:flex}
+.rail .stack .face+.face{margin-left:-11px}
+.rail .count{font-size:14px;color:var(--grey)}
+
+/* ============================================================
+   THE FILM FRAME — the brightest, most saturated thing on screen
+   ============================================================ */
+.frame{
+  position:relative;aspect-ratio:16/9;width:100%;
+  border-radius:var(--r-frame);overflow:hidden;background:#05070A;
+}
+/* Drop a real still at docs/mockups/still.jpg and it takes over from the CSS
+   drawing below. Missing file removes itself, so the mockup never breaks. */
+.plate{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+/* grade and chrome must sit above the plate, not under it */
+.vignette,.grain{z-index:2}
+.controls,.reacts,.nowplaying{z-index:3}
+/* ---- the still: hard-edged geometry so it reads as a place, not a gradient ----
+   A night interior. Lit window right of frame is the brightest pixel on the page. */
+.still{position:absolute;inset:0;background:linear-gradient(200deg,#0E2733 0%,#081620 52%,#03080C 100%)}
+
+/* cool ambient falloff from the left */
+.still::before{
+  content:"";position:absolute;inset:0;
+  background:radial-gradient(120% 100% at 4% 96%, rgba(20,58,74,.85), transparent 62%);
+}
+
+/* warm wall plane, right of frame */
+.wall{
+  position:absolute;inset:0 0 0 46%;
+  background:linear-gradient(255deg, rgba(120,62,20,.62), rgba(40,22,10,0) 72%);
+}
+
+/* the window — hard rectangle, mullion bars, brightest element */
+.window{
+  position:absolute;right:9.5%;top:11%;width:31%;height:56%;
+  background:linear-gradient(168deg,#FFE9B8 0%,#FFC169 46%,#E8873A 100%);
+  box-shadow:0 0 0 3px rgba(20,10,4,.55);
+}
+.window::before{ /* mullions */
+  content:"";position:absolute;inset:0;
+  background:
+    linear-gradient(90deg,transparent calc(50% - 2.5px),rgba(24,12,4,.82) calc(50% - 2.5px),rgba(24,12,4,.82) calc(50% + 2.5px),transparent calc(50% + 2.5px)),
+    linear-gradient(180deg,transparent calc(38% - 2.5px),rgba(24,12,4,.82) calc(38% - 2.5px),rgba(24,12,4,.82) calc(38% + 2.5px),transparent calc(38% + 2.5px));
+}
+.window::after{ /* sill */
+  content:"";position:absolute;left:-5%;right:-5%;bottom:-4.5%;height:4.5%;
+  background:linear-gradient(180deg,#3A2410,#160D05);
+}
+/* bloom spilling off the window */
+.bloom{
+  position:absolute;right:-4%;top:2%;width:56%;height:80%;
+  background:radial-gradient(50% 50% at 50% 50%, rgba(255,192,110,.55), transparent 70%);
+}
+/* light thrown across the floor */
+.spill{
+  position:absolute;right:4%;bottom:0;width:48%;height:30%;
+  background:linear-gradient(200deg, rgba(255,182,96,.30), transparent 68%);
+  clip-path:polygon(24% 0,100% 0,100% 100%,0 100%);
+}
+/* floor plane */
+.floor{
+  position:absolute;left:0;right:0;bottom:0;height:23%;
+  background:linear-gradient(180deg,rgba(3,9,13,.55),rgba(2,5,8,.96));
+  border-top:1px solid rgba(120,150,165,.13);
+}
+
+/* foreground mass — we're looking through a doorway. Gives the frame depth. */
+.doorframe{
+  position:absolute;left:0;top:0;bottom:0;width:9%;
+  background:#01050A;
+  box-shadow:14px 0 22px -8px rgba(0,0,0,.9);
+}
+
+/* one figure, head sitting on shoulders — flex column so they never detach */
+.person{
+  position:absolute;bottom:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+}
+.person .head{
+  flex:none;width:47%;height:29%;
+  border-radius:50% 50% 42% 42%;background:#01050A;
+}
+.person .body{
+  flex:1;width:100%;margin-top:-3.5%;
+  background:#01050A;border-radius:46% 46% 0 0;
+}
+.person.near{left:15%;width:17.5%;height:57%}
+.person.far{
+  right:24.5%;width:10%;height:33%;
+  filter:blur(.7px);opacity:.92;
+}
+.person.far .head,.person.far .body{background:#071319}
+
+.vignette{
+  position:absolute;inset:0;
+  background:radial-gradient(78% 82% at 62% 40%,transparent 34%,rgba(0,0,0,.78) 100%);
+}
+.grain{
+  position:absolute;inset:0;opacity:.13;mix-blend-mode:overlay;pointer-events:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='140' height='140' filter='url(%23n)' opacity='.55'/></svg>");
+}
+
+/* --- player controls: solid scrim, no blur --- */
+.controls{
+  position:absolute;left:0;right:0;bottom:0;padding:44px 22px 16px;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.55) 34%,rgba(0,0,0,.88));
+}
+.scrub{
+  height:4px;border-radius:2px;background:rgba(255,255,255,.22);
+  position:relative;margin-bottom:14px;
+}
+.scrub .done{
+  position:absolute;inset:0 auto 0 0;width:41%;
+  background:var(--butter);border-radius:2px;
+}
+.scrub .head{
+  position:absolute;left:41%;top:50%;width:13px;height:13px;
+  border-radius:50%;background:var(--butter);transform:translate(-50%,-50%);
+}
+.ctl-row{display:flex;align-items:center;gap:18px}
+.ctl-row .t{font-size:12.5px;color:rgba(255,255,255,.82);letter-spacing:.04em}
+.ctl-row .sp{flex:1}
+.ctl{color:rgba(255,255,255,.92);display:inline-flex;line-height:0}
+.ctl:hover{color:var(--butter)}
+
+/* --- reactions: product feature, rendered as restrained chips --- */
+.reacts{
+  position:absolute;left:18px;bottom:92px;
+  display:flex;flex-direction:column;align-items:flex-start;gap:7px;pointer-events:none;
+}
+.react{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.72);border:1px solid rgba(255,255,255,.14);
+  border-radius:var(--r-pill);padding:5px 13px 5px 9px;font-size:13px;color:#fff;
+}
+.react .e{font-size:15px;line-height:1}
+.react.a1{opacity:.35}.react.a2{opacity:.65}
+
+/* --- title card sitting over the frame (landing only) --- */
+.nowplaying{
+  position:absolute;top:20px;left:20px;
+  display:flex;align-items:center;gap:12px;
+}
+.np-pill{
+  background:rgba(0,0,0,.62);border:1px solid rgba(255,255,255,.16);
+  border-radius:var(--r-pill);padding:6px 15px;font-size:13px;color:#fff;
+}
+
+/* ============================================================
+   CHAT
+   ============================================================ */
+.chat{
+  background:var(--card);border-radius:var(--r-card);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.chat-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 18px;border-bottom:1px solid var(--hair);
+}
+.chat-head h3{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.chat-head .n{font-size:13px;color:var(--grey)}
+/* bottom-anchored: newest message sits on the input, older ones scroll off the top */
+.chat-body{
+  flex:1;min-height:0;overflow:hidden;padding:16px 18px;
+  display:flex;flex-direction:column;justify-content:flex-end;gap:13px;
+}
+.msg{font-size:14.5px;line-height:1.45}
+.msg .who{font-weight:600;font-size:13.5px;color:var(--grey)}
+.msg .who.you{color:var(--butter)}
+.msg .who.host{color:var(--butter)}
+.msg .who.host::after{
+  content:"host";margin-left:7px;font-size:10px;font-weight:500;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--butter-mute);
+}
+.msg p{color:var(--ash)}
+.msg.sys{font-size:13px;color:var(--grey-dim)}
+.msg.sys b{color:var(--grey);font-weight:500}
+.chat-foot{padding:14px 16px;border-top:1px solid var(--hair);display:flex;gap:9px}
+.chat-foot .field{flex:1;padding:11px 18px;font-size:14.5px;background:var(--card-2);border-color:transparent}
+.chat-foot .send{
+  width:42px;height:42px;border-radius:var(--r-pill);background:var(--butter);
+  color:#000;display:inline-flex;align-items:center;justify-content:center;flex:none;
+}
+
+/* --- reaction bar --- */
+.reactbar{display:flex;gap:7px}
+.reactbar button{
+  width:40px;height:40px;border-radius:var(--r-pill);background:var(--card);
+  font-size:17px;display:inline-flex;align-items:center;justify-content:center;
+  border:1px solid transparent;transition:border-color .12s,background .12s;
+}
+.reactbar button:hover{background:var(--card-2);border-color:var(--butter-mute)}
+
+/* ============================================================
+   SCREEN 1 — LANDING
+   ============================================================ */
+.hero{max-width:var(--shell);margin:0 auto;padding:52px 40px 0;text-align:center}
+.eyebrow{
+  display:inline-flex;align-items:center;gap:9px;
+  border:1px solid var(--hair-strong);border-radius:var(--r-pill);
+  padding:6px 16px 6px 12px;font-size:13px;color:var(--grey);margin-bottom:26px;
+}
+.eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--butter);animation:bulb 2.4s ease-in-out infinite}
+h1{
+  font-size:66px;line-height:1.02;font-weight:200;letter-spacing:-.035em;
+  color:var(--white);margin:0 auto;
+}
+h1 b{font-weight:700;color:var(--butter)}
+
+/* rotating word: every option stacks in one grid cell, so the line never reflows */
+.rotate{display:inline-grid;vertical-align:top;text-align:left}
+.rotate b{
+  grid-area:1/1;opacity:0;transform:translateY(12px);
+  animation:swap 10.5s cubic-bezier(.22,.61,.36,1) infinite;
+  white-space:nowrap;
+}
+.rotate b:nth-child(1){animation-delay:0s}
+.rotate b:nth-child(2){animation-delay:3.5s}
+.rotate b:nth-child(3){animation-delay:7s}
+@keyframes swap{
+  0%  {opacity:0;transform:translateY(12px)}
+  4%  {opacity:1;transform:translateY(0)}
+  29% {opacity:1;transform:translateY(0)}
+  33% {opacity:0;transform:translateY(-12px)}
+  100%{opacity:0;transform:translateY(-12px)}
+}
+@media (prefers-reduced-motion:reduce){
+  .rotate b{animation:none;opacity:0}
+  .rotate b:nth-child(1){opacity:1;transform:none}
+}
+.sub{
+  margin:22px auto 0;max-width:52ch;font-size:17.5px;color:var(--grey);font-weight:300;
+}
+.cta{
+  display:flex;justify-content:center;align-items:center;gap:10px;
+  margin:34px auto 0;max-width:600px;
+}
+.cta .field{flex:1}
+.cta-note{margin-top:16px;font-size:14px;color:var(--grey-dim)}
+.cta-note a{color:var(--butter);border-bottom:1px solid var(--butter-mute);padding-bottom:1px}
+
+/* join-by-code lives in the bar: it is a primary path, not a footnote */
+.joincode{display:flex;align-items:center;gap:8px}
+.joincode .field{
+  width:158px;padding:10px 18px;font-size:13.5px;
+  font-family:"JetBrains Mono",monospace;letter-spacing:.12em;text-transform:uppercase;
+}
+
+/* the product, shown running — no container chrome, it *is* the page */
+.demo{max-width:var(--shell);margin:54px auto 0;padding:0 40px}
+.demo-inner{display:grid;grid-template-columns:1fr 330px;gap:16px}
+.demo-left{display:flex;flex-direction:column;gap:14px}
+.demo-underframe{display:flex;align-items:center;justify-content:space-between}
+
+
+/* ============================================================
+   SCREEN 2 — ROOM
+   ============================================================ */
+.roombar{
+  border-bottom:1px solid var(--hair);
+}
+.roombar .bar{padding:16px 40px}
+.room-title{display:flex;align-items:baseline;gap:16px;min-width:0}
+.room-title .t{font-size:15px;color:var(--grey);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.stage{
+  max-width:var(--shell);margin:0 auto;padding:22px 40px 48px;
+  display:grid;grid-template-columns:1fr 352px;gap:22px;
+  align-items:stretch;
+}
+.stage-left{display:flex;flex-direction:column;gap:16px}
+.under{display:flex;align-items:center;justify-content:space-between;gap:20px}
+/* the film's identity line: title in the UI face, machine facts in mono */
+.meta{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.meta .film{font-size:15px;font-weight:500;color:var(--white);letter-spacing:-.01em}
+.meta .dot{width:3px;height:3px;border-radius:50%;background:var(--hair-strong)}
+.meta .mono{
+  font-size:12px;color:var(--grey-dim);letter-spacing:.06em;
+  border:1px solid var(--hair);border-radius:var(--r-pill);padding:4px 11px;
+}
+.meta .mono.ok{color:var(--butter);border-color:var(--butter-mute)}
+
+/* ============================================================
+   SPEC SHEET
+   ============================================================ */
+.spec{max-width:var(--shell);margin:0 auto;padding:44px 40px 80px}
+.spec h2{font-size:26px;font-weight:300;letter-spacing:-.02em;color:var(--white);margin-bottom:6px}
+.spec h2 b{font-weight:700;color:var(--butter)}
+.spec .lede{color:var(--grey);font-size:15px;max-width:70ch;margin-bottom:34px;font-weight:300}
+.spec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(178px,1fr));gap:12px;margin-bottom:40px}
+.sw{border:1px solid var(--hair);border-radius:var(--r-card);overflow:hidden}
+.sw .chip{height:78px}
+.sw .info{padding:11px 13px;background:var(--card)}
+.sw .nm{font-size:13.5px;font-weight:500;color:var(--white)}
+.sw .hx{font-size:11.5px;color:var(--grey);letter-spacing:.04em}
+.sw .cr{font-size:11px;color:var(--butter-mute);margin-top:3px}
+
+.type-rows{border-top:1px solid var(--hair)}
+.type-row{
+  display:grid;grid-template-columns:170px 1fr;gap:24px;
+  padding:20px 0;border-bottom:1px solid var(--hair);align-items:baseline;
+}
+.type-row .k{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--butter-mute)}
+.type-row .k em{display:block;font-style:normal;text-transform:none;letter-spacing:0;color:var(--grey-dim);font-size:12.5px;margin-top:5px}
+.rules{margin-top:38px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rule{background:var(--card);border-radius:var(--r-card);padding:18px 20px}
+.rule h4{font-size:14px;font-weight:600;color:var(--butter);margin-bottom:6px}
+.rule p{font-size:14px;color:var(--grey);font-weight:300;line-height:1.5}
+
+@media(max-width:1100px){
+  .demo-inner,.stage{grid-template-columns:1fr}
+  h1{font-size:46px}
+  .rules{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     SCREEN 1 — LANDING
+     ============================================================ -->
+<section class="sheet" id="landing">
+<div class="sheet-label">Screen 1 — Landing</div>
+
+<header class="bar">
+  <div class="wordmark"><i></i>watchparty</div>
+  <div class="bar-right">
+    <div class="joincode">
+      <input class="field" placeholder="WOLF-42">
+      <button class="btn btn-ghost btn-sm">Join</button>
+    </div>
+    <a href="#" style="font-size:15px;color:var(--grey)">Sign in</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="eyebrow"><i></i> 41 rooms lit right now</div>
+  <h1>Best nights in,<br>with <span class="rotate"><b>friends.</b><b>family.</b><b>everyone.</b></span></h1>
+  <p class="sub">
+    One link and you're all watching the same frame, to the second, all night.
+    No app, no account — they open the link and sit down.
+  </p>
+
+  <div class="cta">
+    <input class="field" placeholder="Your name" value="Suksham">
+    <button class="btn btn-primary">Open a room</button>
+  </div>
+  <p class="cta-note">No account needed · your room is ready in one click</p>
+</div>
+
+<!-- The product, running. Not a description of it. -->
+<div class="demo">
+  <div class="demo-inner">
+    <div class="demo-left">
+      <div class="frame">
+        <img class="plate" src="still.jpg" alt="" onerror="this.remove()">
+        <div class="still">
+          <div class="wall"></div>
+          <div class="doorframe"></div>
+          <div class="bloom"></div>
+          <div class="window"></div>
+          <div class="spill"></div>
+          <div class="floor"></div>
+          <div class="person far"><span class="head"></span><span class="body"></span></div>
+          <div class="person near"><span class="head"></span><span class="body"></span></div>
+        </div>
+        <div class="vignette"></div>
+        <div class="grain"></div>
+
+        <div class="nowplaying">
+          <span class="np-pill">In <b style="color:var(--butter);font-weight:600">WOLF-42</b> · 6 watching</span>
+        </div>
+
+        <div class="reacts">
+          <span class="react a1"><span class="e">🔥</span> Mei</span>
+          <span class="react a2"><span class="e">😮</span> Dev</span>
+          <span class="react"><span class="e">❤️</span> Priya</span>
+        </div>
+
+        <div class="controls">
+          <div class="scrub"><div class="done"></div><div class="head"></div></div>
+          <div class="ctl-row">
+            <button class="ctl" aria-label="Pause">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4.2" height="16" rx="1.4"/><rect x="13.8" y="4" width="4.2" height="16" rx="1.4"/></svg>
+            </button>
+            <button class="ctl" aria-label="Volume">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+            </button>
+            <span class="t mono">48:12 / 1:57:04</span>
+            <span class="sp"></span>
+            <span class="t mono" style="color:var(--butter)">● in sync</span>
+            <button class="ctl" aria-label="Fullscreen">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="demo-underframe">
+        <div class="rail">
+          <div class="stack">
+          <span class="face host" title="Suksham · host"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Suksham&backgroundColor=f2e3c8&radius=50" alt="Suksham"></span>
+          <span class="face" title="Priya"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Priya&backgroundColor=cfe0e8&radius=50" alt="Priya"></span>
+          <span class="face" title="Dev"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Dev&backgroundColor=f0d4d4&radius=50" alt="Dev"></span>
+          <span class="face" title="Ana"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Ana&backgroundColor=d9e5cd&radius=50" alt="Ana"></span>
+          <span class="face" title="Kabir"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Kabir&backgroundColor=e3d8ec&radius=50" alt="Kabir"></span>
+          <span class="face" title="Mei"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Mei&backgroundColor=f0e6c4&radius=50" alt="Mei"></span>
+        </div>
+          <span class="count">6 watching</span>
+        </div>
+        <div class="reactbar">
+          <button>😂</button><button>😮</button><button>❤️</button><button>🔥</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat">
+      <div class="chat-head"><h3>Chat</h3><span class="n">6 here</span></div>
+      <div class="chat-body">
+        <div class="msg sys"><b>Ana</b> joined · caught up to 46:58</div>
+        <div class="msg"><span class="who">Priya</span><p>wait go back, what did the note actually say</p></div>
+        <div class="msg"><span class="who host">Suksham</span><p>rewinding 20s, hold on</p></div>
+        <div class="msg"><span class="who">Dev</span><p>lmaooo the way he just walked off</p></div>
+        <div class="msg"><span class="who">Ana</span><p>he is SO not going to open that door</p></div>
+        <div class="msg"><span class="who you">You</span><p>he's opening the door</p></div>
+        <div class="msg"><span class="who">Kabir</span><p>called it 💀</p></div>
+        <div class="msg"><span class="who">Mei</span><p>the score in this scene is unreal</p></div>
+      </div>
+      <div class="chat-foot">
+        <input class="field" placeholder="Message the room">
+        <button class="send" aria-label="Send">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</section>
+
+
+<!-- ============================================================
+     SCREEN 2 — ROOM, MID-FILM
+     ============================================================ -->
+<section class="sheet" id="room">
+<div class="sheet-label">Screen 2 — Room, mid-film (host view)</div>
+
+<header class="roombar">
+  <div class="bar">
+    <div class="room-title">
+      <div class="wordmark"><i></i>watchparty</div>
+      <span class="t">Friday night · Wong Kar-wai marathon</span>
+    </div>
+    <div class="bar-right">
+      <span class="live"><i></i> Live</span>
+      <span class="code-chip">
+        <span class="mono">WOLF-42</span>
+        <span class="copy">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        </span>
+      </span>
+      <button class="btn btn-ghost btn-sm">End party</button>
+      <span class="face host" title="Suksham · host" style="width:34px;height:34px"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Suksham&backgroundColor=f2e3c8&radius=50" alt="Suksham"></span>
+    </div>
+  </div>
+</header>
+
+<div class="stage">
+  <div class="stage-left">
+    <div class="frame">
+      <img class="plate" src="still.jpg" alt="" onerror="this.remove()">
+        <div class="still">
+        <div class="wall"></div>
+          <div class="doorframe"></div>
+        <div class="bloom"></div>
+        <div class="window"></div>
+        <div class="spill"></div>
+        <div class="floor"></div>
+        <div class="person far"><span class="head"></span><span class="body"></span></div>
+        <div class="person near"><span class="head"></span><span class="body"></span></div>
+      </div>
+      <div class="vignette"></div>
+      <div class="grain"></div>
+
+      <div class="reacts">
+        <span class="react a1"><span class="e">😂</span> Kabir</span>
+        <span class="react a2"><span class="e">🔥</span> Mei</span>
+        <span class="react"><span class="e">😮</span> Dev</span>
+      </div>
+
+      <div class="controls">
+        <div class="scrub"><div class="done"></div><div class="head"></div></div>
+        <div class="ctl-row">
+          <button class="ctl" aria-label="Pause">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4.2" height="16" rx="1.4"/><rect x="13.8" y="4" width="4.2" height="16" rx="1.4"/></svg>
+          </button>
+          <button class="ctl" aria-label="Back 10 seconds">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v6h6"/><path d="M3.5 13a9 9 0 1 0 2.6-6.4L3 9"/></svg>
+          </button>
+          <button class="ctl" aria-label="Volume">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          </button>
+          <span class="t mono">48:12 / 1:57:04</span>
+          <span class="sp"></span>
+          <span class="t mono">720p</span>
+          <button class="ctl" aria-label="Fullscreen">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="under">
+      <div class="rail">
+        <div class="stack">
+          <span class="face host" title="Suksham · host"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Suksham&backgroundColor=f2e3c8&radius=50" alt="Suksham"></span>
+          <span class="face" title="Priya"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Priya&backgroundColor=cfe0e8&radius=50" alt="Priya"></span>
+          <span class="face" title="Dev"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Dev&backgroundColor=f0d4d4&radius=50" alt="Dev"></span>
+          <span class="face" title="Ana"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Ana&backgroundColor=d9e5cd&radius=50" alt="Ana"></span>
+          <span class="face" title="Kabir"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Kabir&backgroundColor=e3d8ec&radius=50" alt="Kabir"></span>
+          <span class="face" title="Mei"><img src="https://api.dicebear.com/9.x/notionists/svg?seed=Mei&backgroundColor=f0e6c4&radius=50" alt="Mei"></span>
+        </div>
+        <span class="count">6 watching</span>
+      </div>
+      <div class="reactbar">
+        <button>😂</button><button>😮</button><button>❤️</button><button>🔥</button>
+      </div>
+    </div>
+
+    <div class="under">
+      <div class="meta">
+        <span class="film">In the Mood for Love</span>
+        <span class="dot"></span>
+        <span class="mono">2000</span>
+        <span class="mono ok">drift 0.2s</span>
+        <span class="mono">you control playback</span>
+      </div>
+      <button class="btn btn-ghost btn-sm">Change film</button>
+    </div>
+  </div>
+
+  <div class="chat">
+    <div class="chat-head"><h3>Chat</h3><span class="n">6 here</span></div>
+    <div class="chat-body">
+      <div class="msg sys"><b>Ana</b> joined · caught up to 46:58</div>
+      <div class="msg"><span class="who">Priya</span><p>wait go back, what did the note actually say</p></div>
+      <div class="msg"><span class="who host">Suksham</span><p>rewinding 20s, hold on</p></div>
+      <div class="msg sys">Host seeked to <b>47:52</b></div>
+      <div class="msg"><span class="who">Dev</span><p>lmaooo the way he just walked off</p></div>
+      <div class="msg"><span class="who">Ana</span><p>he is SO not going to open that door</p></div>
+      <div class="msg"><span class="who you">You</span><p>he's opening the door</p></div>
+      <div class="msg"><span class="who">Kabir</span><p>called it 💀</p></div>
+      <div class="msg"><span class="who">Mei</span><p>the score in this scene is unreal. shigeru umebayashi never misses</p></div>
+      <div class="msg"><span class="who">Priya</span><p>ok that shot of the corridor 😮‍💨</p></div>
+      <div class="msg sys"><b>Kabir</b> reacted 😂</div>
+    </div>
+    <div class="chat-foot">
+      <input class="field" placeholder="Message the room">
+      <button class="send" aria-label="Send">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+</section>
+
+
+<!-- ============================================================
+     SPEC
+     ============================================================ -->
+<section class="sheet" id="spec">
+<div class="sheet-label">Swatch + type spec</div>
+<div class="spec">
+  <h2>Direction <b>“Bulb”</b></h2>
+  <p class="lede">
+    True black surround so the film frame is the only light source. One accent — a butter
+    yellow that reads as a bulb, a marquee, a projector lamp — never as software. Geometric
+    sans, light for display and the accent word set bold. Contrast ratios below are measured,
+    not estimated.
+  </p>
+
+  <div class="spec-grid">
+    <div class="sw"><div class="chip" style="background:#000;border-bottom:1px solid var(--hair)"></div><div class="info"><div class="nm">black</div><div class="hx mono">#000000</div><div class="cr">page ground</div></div></div>
+    <div class="sw"><div class="chip" style="background:#0D0D0D"></div><div class="info"><div class="nm">coal</div><div class="hx mono">#0D0D0D</div><div class="cr">sunken wells</div></div></div>
+    <div class="sw"><div class="chip" style="background:#1B1B1B"></div><div class="info"><div class="nm">card</div><div class="hx mono">#1B1B1B</div><div class="cr">chat, panels, inputs</div></div></div>
+    <div class="sw"><div class="chip" style="background:#262626"></div><div class="info"><div class="nm">card-2</div><div class="hx mono">#262626</div><div class="cr">hover, focus fill</div></div></div>
+    <div class="sw"><div class="chip" style="background:#FEF297"></div><div class="info"><div class="nm">butter</div><div class="hx mono">#FEF297</div><div class="cr">18.4:1 on black — AAA</div></div></div>
+    <div class="sw"><div class="chip" style="background:#E8D96F"></div><div class="info"><div class="nm">butter-deep</div><div class="hx mono">#E8D96F</div><div class="cr">14.6:1 — hover/pressed</div></div></div>
+    <div class="sw"><div class="chip" style="background:#8A8050"></div><div class="info"><div class="nm">butter-mute</div><div class="hx mono">#8A8050</div><div class="cr">5.3:1 — labels, hairlines</div></div></div>
+    <div class="sw"><div class="chip" style="background:#EDEDED"></div><div class="info"><div class="nm">ash</div><div class="hx mono">#EDEDED</div><div class="cr">17.9:1 — body text</div></div></div>
+    <div class="sw"><div class="chip" style="background:#A3A3A3"></div><div class="info"><div class="nm">grey</div><div class="hx mono">#A3A3A3</div><div class="cr">8.3:1 — secondary</div></div></div>
+    <div class="sw"><div class="chip" style="background:#8A8A8A"></div><div class="info"><div class="nm">grey-dim</div><div class="hx mono">#8A8A8A</div><div class="cr">6.1:1 — metadata floor</div></div></div>
+    <div class="sw"><div class="chip" style="background:#2E2E2E"></div><div class="info"><div class="nm">hair</div><div class="hx mono">#2E2E2E</div><div class="cr">decorative divider only</div></div></div>
+  </div>
+
+  <div class="type-rows">
+    <div class="type-row">
+      <div class="k">Display <em>Outfit 200 / 700</em></div>
+      <div><span style="font-size:44px;font-weight:200;letter-spacing:-.035em;color:#fff">Best nights in, with <b style="font-weight:700;color:var(--butter)">friends</b>.</span></div>
+    </div>
+    <div class="type-row">
+      <div class="k">Heading <em>Outfit 600 · 15–26px</em></div>
+      <div style="font-size:20px;font-weight:600;letter-spacing:-.015em;color:#fff">Friday night · Wong Kar-wai marathon</div>
+    </div>
+    <div class="type-row">
+      <div class="k">Body <em>Outfit 300/400 · 14.5–17.5px</em></div>
+      <div style="font-size:16px;color:var(--grey);font-weight:300;max-width:62ch">One link, everyone in sync to the second. Your friends don't sign up — they open the link, pick a name, and they're already watching.</div>
+    </div>
+    <div class="type-row">
+      <div class="k">Chat <em>Outfit 400 · 14.5px</em></div>
+      <div><span style="font-weight:600;font-size:13.5px;color:var(--butter)">Suksham</span><div style="font-size:14.5px">rewinding 20s, hold on</div></div>
+    </div>
+    <div class="type-row">
+      <div class="k">Mono <em>JetBrains Mono 500</em></div>
+      <div class="mono" style="font-size:15px;letter-spacing:.08em">WOLF-42 &nbsp; 48:12 / 1:57:04 &nbsp; drift 0.2s</div>
+    </div>
+  </div>
+
+  <div class="rules">
+    <div class="rule"><h4>The frame is the light source</h4><p>Page is true black. Nothing else on screen is allowed to be brighter or more saturated than the video. Panels sit at #1B1B1B and stay there.</p></div>
+    <div class="rule"><h4>One accent, and it is text-safe</h4><p>Butter yellow at 18.4:1 on black passes AAA as body text — so unlike the old vermilion it can name the host, mark a live room, and fill a button without a second colour.</p></div>
+    <div class="rule"><h4>Live is yellow, not red</h4><p>No red anywhere. The live dot, the host ring and the sync readout all use the one accent, pulsing like a filament. A second signal colour would break the rule above.</p></div>
+    <div class="rule"><h4>Soft shells, hard content</h4><p>Pills for actions, 16px cards, 20px on the video frame. Roundness lives in the chrome; the film keeps clean corners against black.</p></div>
+    <div class="rule"><h4>Elevation by lightness only</h4><p>black → coal → card → card-2. No shadow, no backdrop-blur, no glowing borders. Hairlines are decorative and never carry meaning alone.</p></div>
+    <div class="rule"><h4>Show, don't list</h4><p>The landing hero is a real room running — frame, faces, chat, reactions. No numbered steps, no feature cards, no icon tiles.</p></div>
+  </div>
+</div>
+</section>
+
+</body>
+</html>

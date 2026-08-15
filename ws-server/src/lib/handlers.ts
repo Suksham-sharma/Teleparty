@@ -1,46 +1,66 @@
 import WebSocket, { RawData } from "ws";
 import { roomManager } from "./managers/roomManager";
 import { webSocketHelper } from "./helper";
-import { webSocketManager } from "./managers/webSocketManager";
+import type { ClientMessage } from "../types";
+
+const MAX_CHAT_LENGTH = 1000;
 
 export async function handleIncomingRequests(message: RawData, ws: WebSocket) {
+  let parsed: ClientMessage;
+
   try {
-    console.log("Received message", message.toString());
-    const parsedMessage = JSON.parse(message.toString());
-    const { type, roomId, userId, username, chatMessage } = parsedMessage;
+    parsed = JSON.parse(message.toString());
+  } catch {
+    webSocketHelper.sendError(ws, "Malformed message.");
+    return;
+  }
 
-    const validation = webSocketHelper.validateMessage(parsedMessage);
-    if (!validation.isValid) {
-      webSocketHelper.sendErrorAndClose(ws, validation.error!);
-      return;
-    }
+  const validation = webSocketHelper.validateMessage(parsed);
+  if (!validation.isValid) {
+    // A bad frame is a client bug, not a reason to drop the whole session —
+    // the previous behaviour closed the socket and killed the watch party.
+    webSocketHelper.sendError(ws, validation.error!);
+    return;
+  }
 
-    switch (type) {
+  try {
+    switch (parsed.type) {
       case "room:join":
-        webSocketManager.setUserId(ws, userId);
-        roomManager.joinRoom(roomId, ws, userId);
-        break;
-      case "room:leave":
-        webSocketManager.removeConnection(ws);
-        roomManager.leaveRoom(roomId, ws, userId);
-        break;
-      case "chat:message":
-        roomManager.broadcastChatMessage({
-          userId,
-          username,
-          roomId,
-          message: chatMessage,
+        roomManager.joinRoom(parsed.roomId, ws, {
+          memberId: parsed.memberId,
+          name: parsed.name,
+          role: parsed.role ?? "VIEWER",
         });
         break;
+
+      case "room:leave":
+        roomManager.leaveRoom(parsed.roomId, ws);
+        break;
+
+      case "chat:message":
+        roomManager.broadcastChatMessage(
+          parsed.roomId,
+          ws,
+          parsed.chatMessage.slice(0, MAX_CHAT_LENGTH)
+        );
+        break;
+
+      case "reaction:send":
+        roomManager.broadcastReaction(parsed.roomId, ws, parsed.emoji);
+        break;
+
       default:
-        console.log(`Unhandled message type: ${type}`);
+        webSocketHelper.sendError(
+          ws,
+          `Unhandled message type: ${(parsed as { type: string }).type}`
+        );
     }
   } catch (error) {
-    console.log("Error handling incoming request:", error);
-    webSocketHelper.sendErrorAndClose(ws, "An internal server error occurred");
+    console.error("Error handling message:", error);
+    webSocketHelper.sendError(ws, "An internal server error occurred.");
   }
 }
 
-export async function handleConnectionClosed(ws: WebSocket, userId: string) {
-  roomManager.leaveAllRooms(ws, userId);
+export function handleConnectionClosed(ws: WebSocket) {
+  roomManager.leaveAllRooms(ws);
 }

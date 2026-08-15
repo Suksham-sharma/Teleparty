@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,6 +17,10 @@ model User {
   password String
   videos   Video[]
   channels Channel?
+
+  hostedRooms Room[]
+  memberships RoomMember[]
+  messages    Message[]
 }
 
 model Video {
@@ -37,6 +38,17 @@ model Video {
   channel     Channel  @relation(fields: [channelId], references: [id])
   creatorId   String
   creator     User     @relation(fields: [creatorId], references: [id])
+
+  // Written by the worker once the transcode loop is closed (Phase 4).
+  status         VideoStatus @default(PENDING)
+  durationMs     Int?
+  variants       Json? // [{ height, bandwidth, playlist }]
+  spriteVttUrl   String? // scrub-preview storyboard
+  subtitleVttUrl String?
+  transcript     String?
+  failureReason  String?
+
+  queueItems QueueItem[]
 }
 
 model Channel {
@@ -48,4 +60,122 @@ model Channel {
   videos       Video[]
   creatorId    String  @unique
   creator      User    @relation(fields: [creatorId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// Rooms — the unit of everything live. See docs/REBUILD.md §3.
+//
+// A room is disposable: created in one click, shared as /r/{code}, ended or
+// expired. Playback authority is the HOST/COHOST membership, never Channel
+// ownership. Guests participate without an account via a `guestId` cookie.
+// ---------------------------------------------------------------------------
+
+enum RoomStatus {
+  LOBBY
+  LIVE
+  ENDED
+}
+
+enum Visibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
+enum Role {
+  HOST
+  COHOST
+  VIEWER
+}
+
+enum VideoStatus {
+  PENDING
+  TRANSCODING
+  READY
+  FAILED
+}
+
+model Room {
+  id     String     @id @default(cuid())
+  code   String     @unique // human-speakable, e.g. WOLF-42
+  title  String
+  status RoomStatus @default(LOBBY)
+
+  visibility Visibility @default(UNLISTED)
+
+  // Convenience pointer for "my rooms"; null when a guest hosts. The
+  // authoritative host is the RoomMember with role HOST.
+  hostUserId String?
+  hostUser   User?   @relation(fields: [hostUserId], references: [id])
+
+  // Mirror of the ws-server's in-memory room state, persisted so a restart or
+  // a late joiner can be served an accurate snapshot.
+  currentVideoId String?
+  positionMs     Int     @default(0)
+  isPlaying      Boolean @default(false)
+
+  scheduledFor DateTime?
+  createdAt    DateTime  @default(now())
+  endedAt      DateTime?
+
+  members  RoomMember[]
+  messages Message[]
+  queue    QueueItem[]
+
+  @@index([status, createdAt])
+}
+
+model RoomMember {
+  id     String @id @default(cuid())
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  // Exactly one of userId / guestId is set.
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id])
+  guestId   String?
+  guestName String?
+
+  role       Role     @default(VIEWER)
+  joinedAt   DateTime @default(now())
+  lastSeenAt DateTime @updatedAt
+
+  @@unique([roomId, userId])
+  @@unique([roomId, guestId])
+  @@index([roomId, role])
+}
+
+model Message {
+  id     String @id @default(cuid())
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  // Denormalized so guest messages survive without a User row.
+  authorLabel String
+  userId      String?
+  user        User?   @relation(fields: [userId], references: [id])
+
+  body String
+
+  // Set when the message is pinned to a moment in the video rather than to
+  // wall-clock time (timestamped comments).
+  videoTimeMs Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([roomId, createdAt])
+}
+
+model QueueItem {
+  id     String @id @default(cuid())
+  roomId String
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  videoId String
+  video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  position Int
+  addedBy  String // RoomMember id
+
+  @@index([roomId, position])
 }

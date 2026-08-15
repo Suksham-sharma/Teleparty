@@ -32,7 +32,7 @@ export const useAuthStore = create<AuthState>()(
         }),
     }),
     {
-      name: "auth-storage",
+      name: "auth-storage-streamlit",
       partialize: (state) => ({
         user: state.user,
         isAuthenticated: state.isAuthenticated,

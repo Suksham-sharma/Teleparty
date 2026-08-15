@@ -1,72 +1,87 @@
 import { createClient, type RedisClientType } from "redis";
+import { REDIS_URL } from "./config";
 
 type VideoAction = "play" | "pause" | "update" | "timestamp";
 
-interface BaseRedisMessage {
-  userId: string;
-  roomId: string;
-  videoId: string;
-  action: VideoAction;
-}
+/**
+ * Everything the API pushes to the ws-server travels on one list as a tagged
+ * union, so the consumer can switch exhaustively instead of guessing from the
+ * shape of the payload.
+ *
+ * Note this is a Redis *list* (`brPop`), not pub/sub: exactly one ws-server
+ * instance receives each message. Multi-instance fanout requires pub/sub —
+ * tracked in docs/REBUILD.md Phase 5.
+ */
+export type WsQueueMessage =
+  | {
+      kind: "video";
+      roomId: string;
+      userId: string;
+      videoId: string;
+      action: VideoAction;
+      currentTime?: string;
+    }
+  | {
+      kind: "room";
+      roomId: string;
+      type: "room:ended" | "queue:updated" | "room:roles-updated";
+    };
 
-interface TimestampMessage extends BaseRedisMessage {
-  action: "timestamp";
-  currentTime: string;
-}
-
-interface VideoControlMessage extends BaseRedisMessage {
-  action: "play" | "pause" | "update";
-}
-
-type RedisMessage = TimestampMessage | VideoControlMessage;
+export const WS_QUEUE_KEY = "video-Data";
+export const TRANSCODE_QUEUE_KEY = "video-transcode";
 
 class RedisManager {
   static instance: RedisManager;
   private queueClient: RedisClientType;
-  private subscribeClient: RedisClientType;
+
   constructor() {
-    try {
-      this.queueClient = createClient();
-      this.queueClient.connect();
-      this.subscribeClient = createClient();
-      this.subscribeClient.connect();
-      console.log("Connected to Redis Clients 🚀");
-    } catch (error) {
-      throw new Error(`Error connecting to Redis: ${error}`);
-    }
+    this.queueClient = createClient({ url: REDIS_URL });
+    this.queueClient.on("error", (error) =>
+      console.error("Redis client error:", error)
+    );
+    this.queueClient.connect().catch((error) => {
+      console.error("Could not connect to Redis:", error);
+    });
   }
 
   public static getInstance() {
     if (!this.instance) {
-      console.log("Creating new instance of RedisManager");
       this.instance = new RedisManager();
     }
     return this.instance;
   }
 
-  private generateRandomId = () => {
-    return Math.random().toString(36).substring(2, 15);
-  };
-
   sendToWorkerAndSubscribe = async (key: string) => {
     try {
-      const id = this.generateRandomId();
-      await this.subscribeClient.subscribe(id, (message: any) => {});
-
-      console.log("Sending data to worker", { key: key, requestId: id });
-
       await this.queueClient.lPush(
-        "video-transcode",
-        JSON.stringify({ key: key, requestId: id })
+        TRANSCODE_QUEUE_KEY,
+        JSON.stringify({ key, requestId: key })
       );
-    } catch (error: any) {
-      console.log("Error sending data to worker", error);
+    } catch (error) {
+      console.error("Error queueing transcode job:", error);
     }
   };
 
-  sendUpdatesToWs = async (data: RedisMessage) => {
-    console.log("Sending data to Redis", data);
-    this.queueClient.lPush("video-Data", JSON.stringify(data));
+  /** Playback events: play/pause/seek/video-change. */
+  sendUpdatesToWs = async (
+    data: Omit<Extract<WsQueueMessage, { kind: "video" }>, "kind">
+  ) => {
+    await this.push({ kind: "video", ...data });
+  };
+
+  /** Non-playback room events: queue changes, role changes, room ended. */
+  sendRoomEvent = async (
+    data: Omit<Extract<WsQueueMessage, { kind: "room" }>, "kind">
+  ) => {
+    await this.push({ kind: "room", ...data });
+  };
+
+  private push = async (message: WsQueueMessage) => {
+    try {
+      await this.queueClient.lPush(WS_QUEUE_KEY, JSON.stringify(message));
+    } catch (error) {
+      console.error("Error publishing to ws queue:", error);
+    }
   };
 }
 

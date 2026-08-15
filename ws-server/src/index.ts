@@ -1,50 +1,41 @@
 import { WebSocketServer } from "ws";
 import http from "http";
 import { handleIncomingRequests, handleConnectionClosed } from "./lib/handlers";
-import { webSocketHelper } from "./lib/helper";
-import { roomManager } from "./lib/managers/roomManager";
 import { redisManager } from "./lib/managers/redisManager";
-import { webSocketManager } from "./lib/managers/webSocketManager";
 
-const server = http.createServer();
+const PORT = Number(process.env.WS_PORT ?? 8080);
+
+const server = http.createServer((req, res) => {
+  if (req.url === "/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ ok: true }));
+    return;
+  }
+  res.writeHead(404);
+  res.end();
+});
+
 const wss = new WebSocketServer({ server });
 
-interface RoomUpdateData {
-  userId: string;
-  roomId: string;
-  timestamp?: number;
-}
-
 wss.on("connection", (ws) => {
-  console.log(`${new Date().toISOString()} New client connected`);
-
-  ws.on("error", (error) => {
-    console.log("WebSocket error:", error);
-    webSocketHelper.sendErrorAndClose(ws, "An internal server error occurred");
-  });
-
-  ws.on("message", (message) => {
-    handleIncomingRequests(message, ws);
-  });
-
-  ws.on("close", () => {
-    const userId = webSocketManager.removeConnection(ws);
-    if (userId) {
-      handleConnectionClosed(ws, userId);
-    }
-  });
+  ws.on("error", (error) => console.error("WebSocket error:", error));
+  ws.on("message", (message) => handleIncomingRequests(message, ws));
+  ws.on("close", () => handleConnectionClosed(ws));
 });
 
 async function startServer() {
   try {
     await redisManager.connect();
 
-    server.listen(8080, () => {
-      console.log("Server is listening on port 8080");
+    server.listen(PORT, () => {
+      console.log(`ws-server listening on :${PORT}`);
     });
+
+    // Runs for the life of the process.
     await redisManager.listenForVideoUpdates();
   } catch (error) {
-    console.log("Server error:", error);
+    console.error("Fatal server error:", error);
+    process.exit(1);
   }
 }
 

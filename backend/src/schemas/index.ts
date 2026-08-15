@@ -32,3 +32,22 @@ export const videoInteractionData = z.object({
   action: z.enum(["play", "pause", "timestamp"]),
   currentTime: z.string().optional(),
 });
+
+export const createRoomData = z.object({
+  title: z.string().max(80).optional(),
+  // Guests name themselves at creation time; signed-in users use their username.
+  hostName: z.string().min(1).max(40).optional(),
+});
+
+export const joinRoomData = z.object({
+  displayName: z.string().min(1).max(40).optional(),
+});
+
+export const queueAddData = z.object({
+  videoId: z.string(),
+});
+
+export const setRoleData = z.object({
+  memberId: z.string(),
+  role: z.enum(["COHOST", "VIEWER"]),
+});
