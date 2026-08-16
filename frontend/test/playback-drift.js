@@ -1,0 +1,179 @@
+const { execSync } = require("child_process");
+const os = require("os");
+const path = require("path");
+const fs = require("fs");
+
+const root = path.join(__dirname, "..");
+const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "drift-"));
+
+execSync(
+  `npx tsc ${path.join(root, "src/lib/playback-drift.ts")} ` +
+    `--outDir ${outDir} --module commonjs --target es2020 --strict`,
+  { cwd: root, stdio: "inherit" }
+);
+
+const {
+  resolveDrift,
+  DEADBAND_SECONDS,
+  HARD_SEEK_SECONDS,
+  MAX_RATE_DELTA,
+} = require(path.join(outDir, "playback-drift.js"));
+
+const results = [];
+const check = (label, ok, extra = "") => {
+  results.push({ label, ok: !!ok });
+  console.log(`${ok ? "ok  " : "FAIL"} ${label}`, extra);
+};
+
+const near = (a, b, tolerance = 1e-9) => Math.abs(a - b) < tolerance;
+
+const playing = (localTime, hostTime, secondsSinceAnchor = 0) =>
+  resolveDrift({
+    localTime,
+    hostTime,
+    hostIsPlaying: true,
+    secondsSinceAnchor,
+  });
+
+console.log("");
+
+const stale = playing(10.8, 10, 0.8);
+check(
+  "a viewer level with the host is not corrected while the sample ages",
+  stale.correction.kind === "hold",
+  `(offset ${stale.offset.toFixed(3)})`
+);
+
+const naive = playing(10.8, 10, 0);
+check(
+  "without projection the same viewer would look 0.8s ahead",
+  near(naive.offset, 0.8) && naive.correction.kind === "rate"
+);
+
+const inSync = playing(30.1, 30);
+check(
+  "drift inside the deadband holds",
+  inSync.correction.kind === "hold",
+  `(${DEADBAND_SECONDS}s deadband)`
+);
+
+const ahead = playing(31, 30);
+check(
+  "a viewer ahead of the host is slowed",
+  ahead.correction.kind === "rate" && ahead.correction.value < 1,
+  `(rate ${ahead.correction.value})`
+);
+
+const behind = playing(29, 30);
+check(
+  "a viewer behind the host is sped up",
+  behind.correction.kind === "rate" && behind.correction.value > 1,
+  `(rate ${behind.correction.value})`
+);
+
+const clamped = playing(31.9, 30);
+check(
+  "the nudge never exceeds the rate cap",
+  Math.abs(1 - clamped.correction.value) <= MAX_RATE_DELTA + 1e-9,
+  `(rate ${clamped.correction.value})`
+);
+
+let oscillated = false;
+let previousSign = 0;
+let signFlips = 0;
+
+const far = playing(45, 30);
+check(
+  "drift past the hard-seek threshold seeks instead of nudging",
+  far.correction.kind === "seek" && near(far.correction.to, 30),
+  `(${HARD_SEEK_SECONDS}s threshold)`
+);
+
+const boundary = playing(30 + HARD_SEEK_SECONDS, 30);
+check(
+  "exactly at the threshold still nudges, it does not seek",
+  boundary.correction.kind === "rate"
+);
+
+const seekTarget = playing(100, 30, 5);
+check(
+  "a seek targets the projected host position, not the raw sample",
+  seekTarget.correction.kind === "seek" && near(seekTarget.correction.to, 35)
+);
+
+const pausedDrift = resolveDrift({
+  localTime: 30.4,
+  hostTime: 30,
+  hostIsPlaying: false,
+  secondsSinceAnchor: 12,
+});
+check(
+  "while the host is paused the projection does not advance",
+  near(pausedDrift.projectedHostTime, 30)
+);
+check(
+  "while the host is paused a small offset is seeked, not rate-nudged",
+  pausedDrift.correction.kind === "seek" && near(pausedDrift.correction.to, 30)
+);
+
+const pausedTight = resolveDrift({
+  localTime: 30.1,
+  hostTime: 30,
+  hostIsPlaying: false,
+  secondsSinceAnchor: 12,
+});
+check(
+  "a paused viewer inside the deadband is left alone",
+  pausedTight.correction.kind === "hold"
+);
+
+const backwards = playing(30, 30, -1);
+check(
+  "a negative elapsed time cannot rewind the projection",
+  near(backwards.projectedHostTime, 30)
+);
+
+let rate = 1;
+let local = 31;
+let host = 30;
+let ticksToSettle = null;
+for (let tick = 0; tick < 400; tick++) {
+  const result = resolveDrift({
+    localTime: local,
+    hostTime: host,
+    hostIsPlaying: true,
+    secondsSinceAnchor: 0,
+  });
+  rate = result.correction.kind === "rate" ? result.correction.value : 1;
+  if (result.correction.kind === "seek") {
+    oscillated = true;
+    local = result.correction.to;
+  }
+  local += 0.25 * rate;
+  host += 0.25;
+
+  const sign = Math.sign(local - host);
+  if (previousSign !== 0 && sign !== 0 && sign !== previousSign) signFlips++;
+  if (sign !== 0) previousSign = sign;
+
+  if (ticksToSettle === null && Math.abs(local - host) <= DEADBAND_SECONDS) {
+    ticksToSettle = tick + 1;
+  }
+}
+check(
+  "a 1s drift converges into the deadband and stays there",
+  ticksToSettle !== null && Math.abs(local - host) <= DEADBAND_SECONDS,
+  `(settled after ${((ticksToSettle ?? 0) * 0.25).toFixed(1)}s, resting at ${(local - host).toFixed(4)}s)`
+);
+check("it converges by nudging alone, never seeking", !oscillated);
+check("it does not oscillate around the host", signFlips === 0, `(${signFlips} flips)`);
+
+fs.rmSync(outDir, { recursive: true, force: true });
+
+const failed = results.filter((r) => !r.ok);
+console.log(
+  failed.length === 0
+    ? `\nall ${results.length} checks passed`
+    : `\n${failed.length}/${results.length} failed`
+);
+process.exit(failed.length === 0 ? 0 : 1);

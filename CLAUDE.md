@@ -21,10 +21,18 @@ cd worker     && pnpm install && pnpm dev   # tsc -b + node dist (needs ffmpeg o
 cd frontend   && pnpm install && pnpm dev   # next dev         → :3000
 ```
 
-End-to-end sync check (needs all of the above running):
+End-to-end sync check — 21 checks over the real API, Redis and sockets (needs all of the
+above running):
 
 ```bash
 cd ws-server && node test/room-sync.js
+```
+
+Drift-correction logic — 16 checks, pure, no services or DOM needed (it compiles
+`src/lib/playback-drift.ts` to a temp dir and asserts against it):
+
+```bash
+cd frontend && node test/playback-drift.js
 ```
 
 When restarting a service, kill by port rather than by script path — `pkill -f dist/index.js`
@@ -72,7 +80,8 @@ This is the part that spans all four services — read it before touching playba
 3. Backend persists the new position/play state on the `Room` row, then `LPUSH`es a tagged event onto the Redis list `video-Data`.
 4. ws-server's `redisManager.listenForVideoUpdates()` sits in a `brPop("video-Data", 0)` loop and hands each event to `roomManager.handleQueueMessage`.
 5. `RoomManager` (keyed by room **code**, e.g. `WOLF-42`) mutates in-memory fanout state and broadcasts `video:update` to every socket in the room.
-6. Clients receive it in `useRoomSocket` (`frontend/src/hooks/use-room-socket.ts`), which lifts playback into state for `RoomStage`. Non-controllers seek only when drift exceeds 1 second.
+6. Clients receive it in `useRoomSocket` (`frontend/src/hooks/use-room-socket.ts`), which lifts playback into state for `RoomStage`.
+7. Non-controllers correct themselves in `use-playback-sync.ts`. The received position is **already stale** by the round trip, so it is treated as an anchor (`{ hostTime, capturedAt }`) and projected forward while the host plays — never compared against raw. Decisions come from the pure `lib/playback-drift.ts`: hold inside 0.25s, `playbackRate` nudge (gain 0.15/s, capped ±8%) past that, hard seek only past 2s. Anything that corrects toward the raw sample is a bug; it drags viewers backwards to a position the host has left.
 
 On join the server replies with a **`room:snapshot`** — current video, position, play state, roster and recent chat — so a late arrival is immediately in sync instead of waiting for the host's next action.
 
@@ -108,6 +117,21 @@ There are **users** and **guests**, and most of the app accepts either.
 
 ## Conventions
 
+- **Do not write comments.** This is the strongest rule in this file and it overrides
+  any default instinct to explain code. No block comments, no JSDoc, no inline `//`
+  notes, no section banners, no "why" essays above a function. Write code that reads
+  on its own instead: name the variable, extract the function, pick the clearer
+  construct. If something genuinely cannot be understood without prose, that prose
+  belongs in `docs/` or a commit message, not in the source file. When editing a file,
+  strip any comment you would otherwise have added — and do not add one back to justify
+  a change. The only exceptions are content that is not a comment-as-explanation:
+  license headers, `@ts-expect-error` / `eslint-disable` pragmas, `"use client"`-style
+  directives, and generated-file markers.
+- **No AI attribution in commits or PRs.** No `Co-Authored-By: Claude` trailer, no
+  "Generated with Claude Code", no 🤖 badge, no mention of Claude, Anthropic or AI in
+  any commit message, PR title, PR body, changelog entry or code comment. Commit
+  messages themselves are wanted and should be substantive — plain engineering voice,
+  no trace of how they were produced.
 - Singleton managers: every cross-service resource (Redis, S3, rooms, socket map) is a class with a private constructor and `static getInstance()`, exported as a ready-made instance (`export const redisManager = RedisManager.getInstance()`). Follow that pattern rather than exporting loose functions.
 - Frontend HTTP goes through `services/*.ts` (thin wrappers over the shared `lib/axios.ts` instance with `withCredentials: true`); components should not call axios directly. One exception: `video-upload.tsx` uses raw axios for the presigned S3 PUT, which must *not* carry credentials.
 - WebSocket messages are `{ type, roomId, ... }` with `namespace:verb` types (`room:join`, `room:snapshot`, `room:presence`, `chat:message`, `reaction:send`, `video:update`). Validation lives in `ws-server/src/lib/helper.ts`, dispatch in `handlers.ts`. A bad frame returns an error and keeps the socket open — never close it, that ejects the viewer from the party.

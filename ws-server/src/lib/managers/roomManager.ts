@@ -232,6 +232,7 @@ class RoomManager {
         break;
       default:
         room.isCurrentlyPlaying = message.action === "play";
+        if (message.currentTime) room.currentVideoTime = message.currentTime;
     }
 
     this.broadcast(code, {

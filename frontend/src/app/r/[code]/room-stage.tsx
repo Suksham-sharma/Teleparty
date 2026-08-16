@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import { playlistUrl } from "@/lib/config";
 import { endRoom, getRoom } from "@/services/room";
 import { useRoomSocket } from "@/hooks/use-room-socket";
+import { DEADBAND_SECONDS } from "@/lib/playback-drift";
 import { useAuthStore } from "@/store/authStore";
 import type { Membership, Room } from "@/services/types";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,7 @@ export function RoomStage({
 }) {
   const { user } = useAuthStore();
   const [copied, setCopied] = useState(false);
+  const [drift, setDrift] = useState<number | null>(null);
   const canControl = membership.role === "HOST" || membership.role === "COHOST";
 
   const {
@@ -126,6 +128,7 @@ export function RoomStage({
                 isPlaying={playback.isPlaying}
                 currentTime={playback.currentTime}
                 isChannelOwner={canControl}
+                onDrift={setDrift}
                 className="frame aspect-video w-full"
               />
             ) : (
@@ -169,22 +172,24 @@ export function RoomStage({
             </div>
           </div>
 
-          {canControl && (
-            <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            {canControl ? (
               <span className="rounded-full border border-butter-mute px-3.5 py-1 font-mono text-xs tracking-[0.06em] text-butter">
                 you control playback
               </span>
-              {/* A guest has no library, so this would bounce them to /auth. */}
-              {user && (
-                <Link
-                  href={`/library?room=${code}`}
-                  className="text-base text-grey transition-colors hover:text-ash"
-                >
-                  Change film
-                </Link>
-              )}
-            </div>
-          )}
+            ) : (
+              videoId && <SyncChip drift={drift} />
+            )}
+
+            {canControl && user && (
+              <Link
+                href={`/library?room=${code}`}
+                className="text-base text-grey transition-colors hover:text-ash"
+              >
+                Change film
+              </Link>
+            )}
+          </div>
         </div>
 
         <aside className="min-h-[520px] lg:h-auto">
@@ -201,14 +206,30 @@ export function RoomStage({
   );
 }
 
-/**
- * Three genuinely different dead-ends, and they must not share copy.
- *
- * A guest host is the awkward one: `POST /videos/presignedurl` requires an
- * account (backend/src/routes/videos.ts), so someone who opened a room without
- * signing in has no way to supply a film at all. Say that plainly and give both
- * real exits rather than pointing them at a library they cannot have.
- */
+function SyncChip({ drift }: { drift: number | null }) {
+  const isSettling = drift !== null && Math.abs(drift) > DEADBAND_SECONDS;
+
+  const label =
+    drift === null
+      ? "syncing"
+      : !isSettling
+        ? "in sync"
+        : `${Math.abs(drift).toFixed(1)}s ${drift > 0 ? "ahead" : "behind"}`;
+
+  return (
+    <span
+      aria-live="polite"
+      className={
+        isSettling
+          ? "rounded-full border border-butter-mute px-3.5 py-1 font-mono text-xs tracking-[0.06em] text-butter"
+          : "rounded-full border border-hair px-3.5 py-1 font-mono text-xs tracking-[0.06em] text-grey-dim"
+      }
+    >
+      {label}
+    </span>
+  );
+}
+
 function EmptyStage({
   canControl,
   isGuest,

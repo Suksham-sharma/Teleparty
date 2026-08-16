@@ -90,6 +90,27 @@ const first = (ws, type) => ws.received.find((m) => m.type === type);
   check("late joiner lands at the current position", vlSnap?.currentTime === "42.5");
   check("late joiner knows playback is running", vlSnap?.isCurrentlyPlaying === true);
 
+  control({ roomId: CODE, action: "pause", currentTime: "58.25" });
+  await wait(600);
+  const paused = last(friend, "video:update");
+  check("pause carries the host's position", paused?.currentTime === "58.25");
+  check("pause state propagates", paused?.isCurrentlyPlaying === false);
+
+  control({ roomId: CODE, action: "play", currentTime: "58.25" });
+  await wait(600);
+  const resumed = last(friend, "video:update");
+  check("resume carries the host's position", resumed?.currentTime === "58.25");
+  check("resume state propagates", resumed?.isCurrentlyPlaying === true);
+
+  const afterResume = await open("m-ar", "Kabir", "VIEWER");
+  await wait(300);
+  check(
+    "a joiner arriving after a resume lands on the resume position",
+    first(afterResume, "room:snapshot")?.currentTime === "58.25"
+  );
+  afterResume.close();
+  await wait(400);
+
   // A second tab from an existing member must not double-count them.
   const secondTab = await open("m-friend", "Aditi", "VIEWER");
   await wait(300);

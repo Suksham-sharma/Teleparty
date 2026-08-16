@@ -153,14 +153,16 @@ videosRouter.post(
         return;
       }
 
-      // Persist so a late joiner's snapshot is accurate even if the
-      // ws-server has restarted since the last event.
+      const positionMs = currentTime
+        ? { positionMs: Math.round(parseFloat(currentTime) * 1000) }
+        : {};
+
       await prismaClient.room.update({
         where: { id: guard.room.id },
         data:
           action === "timestamp"
-            ? { positionMs: Math.round(parseFloat(currentTime!) * 1000) }
-            : { isPlaying: action === "play" },
+            ? positionMs
+            : { isPlaying: action === "play", ...positionMs },
       });
 
       await redisManager.sendUpdatesToWs({
@@ -168,7 +170,7 @@ videosRouter.post(
         videoId,
         roomId: guard.room.code,
         action,
-        ...(action === "timestamp" ? { currentTime } : {}),
+        ...(currentTime ? { currentTime } : {}),
       });
 
       res.status(201).json({ message: "Video interaction broadcast." });

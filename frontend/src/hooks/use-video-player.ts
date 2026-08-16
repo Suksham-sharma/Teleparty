@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import Plyr from "plyr";
 import Hls from "hls.js";
 
@@ -16,6 +16,8 @@ interface VideoPlayerControls {
   getDuration: () => number;
   seek: (time: number) => void;
   isPlaying: () => boolean;
+  setPlaybackRate: (rate: number) => void;
+  isMeasurable: () => boolean;
 }
 
 export function useVideoPlayer({ src, type }: UseVideoPlayerProps): {
@@ -73,9 +75,7 @@ export function useVideoPlayer({ src, type }: UseVideoPlayerProps): {
         speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
       });
 
-      // Add ready event listener
       plyrRef.current.on("ready", () => {
-        console.log("Plyr is ready");
         isReadyRef.current = true;
       });
 
@@ -117,34 +117,43 @@ export function useVideoPlayer({ src, type }: UseVideoPlayerProps): {
     };
   }, [src, type, isHLS]);
 
-  const controls: VideoPlayerControls = {
-    play: async () => {
-      try {
-        console.log("Attempting to play");
-        if (!plyrRef.current || !isReadyRef.current) {
-          console.log("Waiting for player to be ready...");
-          setTimeout(() => {
-            if (plyrRef.current && isReadyRef.current) {
-              plyrRef.current.play();
-            }
-          }, 100);
-          return;
+  const controls: VideoPlayerControls = useMemo(
+    () => ({
+      play: async () => {
+        try {
+          if (!plyrRef.current || !isReadyRef.current) {
+            setTimeout(() => {
+              if (plyrRef.current && isReadyRef.current) {
+                plyrRef.current.play();
+              }
+            }, 100);
+            return;
+          }
+          await plyrRef.current.play();
+        } catch (error) {
+          console.error("Error playing video:", error);
         }
-        await plyrRef.current.play();
-      } catch (error) {
-        console.error("Error playing video:", error);
-      }
-    },
-    pause: () => plyrRef.current?.pause(),
-    getCurrentTime: () => plyrRef.current?.currentTime || 0,
-    getDuration: () => plyrRef.current?.duration || 0,
-    seek: (time: number) => {
-      if (plyrRef.current) {
-        plyrRef.current.currentTime = time;
-      }
-    },
-    isPlaying: () => !plyrRef.current?.paused,
-  };
+      },
+      pause: () => plyrRef.current?.pause(),
+      getCurrentTime: () => plyrRef.current?.currentTime || 0,
+      getDuration: () => plyrRef.current?.duration || 0,
+      seek: (time: number) => {
+        if (plyrRef.current) {
+          plyrRef.current.currentTime = time;
+        }
+      },
+      isPlaying: () => !plyrRef.current?.paused,
+      setPlaybackRate: (rate: number) => {
+        const video = videoRef.current;
+        if (video && video.playbackRate !== rate) video.playbackRate = rate;
+      },
+      isMeasurable: () => {
+        const video = videoRef.current;
+        return !!video && !video.seeking && video.readyState >= 2;
+      },
+    }),
+    []
+  );
 
   return { videoRef, controls };
 }

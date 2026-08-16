@@ -2,8 +2,12 @@
 
 import React from "react";
 import { useVideoPlayer } from "@/hooks/use-video-player";
+import { usePlaybackSync } from "@/hooks/use-playback-sync";
 import "plyr/dist/plyr.css";
 import { videoInteractionService } from "@/services/video-interaction";
+
+const REPORT_INTERVAL_SECONDS = 1;
+const REPORT_DEBOUNCE_MS = 500;
 
 type VideoPlayerProps = {
   src: string;
@@ -13,6 +17,7 @@ type VideoPlayerProps = {
   videoId: string;
   isChannelOwner?: boolean;
   currentTime?: number | null;
+  onDrift?: (drift: number | null) => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -24,78 +29,52 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoId,
   isChannelOwner,
   currentTime,
+  onDrift,
 }) => {
   const { videoRef, controls } = useVideoPlayer({ src, type });
   const [showOverlay, setShowOverlay] = React.useState(true);
-  const seekTimeoutRef = React.useRef<NodeJS.Timeout>();
-  const lastSeekTime = React.useRef<number>(0);
+  const reportTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const lastReportedTime = React.useRef<number>(0);
+
+  const drift = usePlaybackSync({
+    enabled: !isChannelOwner && !showOverlay,
+    hostTime: currentTime ?? null,
+    hostIsPlaying: Boolean(isPlaying),
+    controls,
+  });
 
   React.useEffect(() => {
-    if (!videoRef.current || isChannelOwner) return;
-    if (!currentTime) return;
-
-    const currentPlayerTime = controls.getCurrentTime();
-    if (Math.abs(currentPlayerTime - currentTime) > 1) {
-      controls.seek(currentTime);
-    }
-  }, [currentTime, controls, videoRef, isChannelOwner]);
+    onDrift?.(drift);
+  }, [drift, onDrift]);
 
   React.useEffect(() => {
     if (!videoRef.current || !isChannelOwner) return;
 
-    const handlePlay = () => {
+    const report = (
+      action: "play" | "pause" | "timestamp",
+      at: number
+    ) =>
       videoInteractionService.handleInteraction(videoId, {
         roomId,
-        action: "play",
+        action,
+        currentTime: at.toString(),
       });
-    };
 
-    const handlePause = () => {
-      videoInteractionService.handleInteraction(videoId, {
-        roomId,
-        action: "pause",
-      });
-    };
+    const handlePlay = () => report("play", controls.getCurrentTime());
+    const handlePause = () => report("pause", controls.getCurrentTime());
 
     const handleTimeUpdate = () => {
-      const currentTime = videoRef.current?.currentTime || 0;
-      if (Math.abs(currentTime - lastSeekTime.current) > 1) {
-        console.log("Seeking", currentTime);
-        lastSeekTime.current = currentTime;
-
-        // Clear any existing timeout
-        console.log("the seekTImeoutRef is", seekTimeoutRef.current);
-        if (seekTimeoutRef.current) {
-          clearTimeout(seekTimeoutRef.current);
-          console.log("Cleared existing timeout");
-        }
-
-        // Set new timeout
-        console.log("Setting timeout");
-
-        const timeoutId = setTimeout(() => {
-          console.log("Inside timeout callback");
-          try {
-            videoInteractionService.handleInteraction(videoId, {
-              roomId,
-              action: "timestamp",
-              currentTime: currentTime.toString(),
-            });
-
-            console.log("Actual Data Sent", {
-              videoId,
-              roomId,
-              currentTime: currentTime.toString(),
-            });
-            seekTimeoutRef.current = undefined;
-          } catch (error) {
-            console.error("Error sending data:", error);
-          }
-        }, 500);
-
-        seekTimeoutRef.current = timeoutId;
-        console.log("sdfv", seekTimeoutRef.current);
+      const at = videoRef.current?.currentTime ?? 0;
+      if (Math.abs(at - lastReportedTime.current) <= REPORT_INTERVAL_SECONDS) {
+        return;
       }
+      lastReportedTime.current = at;
+
+      if (reportTimeoutRef.current) clearTimeout(reportTimeoutRef.current);
+      reportTimeoutRef.current = setTimeout(() => {
+        report("timestamp", at);
+        reportTimeoutRef.current = undefined;
+      }, REPORT_DEBOUNCE_MS);
     };
 
     const video = videoRef.current;
@@ -107,17 +86,14 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener("play", handlePlay);
       video.removeEventListener("pause", handlePause);
       video.removeEventListener("timeupdate", handleTimeUpdate);
-      if (seekTimeoutRef.current) {
-        clearTimeout(seekTimeoutRef.current);
-      }
+      if (reportTimeoutRef.current) clearTimeout(reportTimeoutRef.current);
     };
-  }, [videoRef, controls, isChannelOwner, roomId, videoId, lastSeekTime]);
+  }, [videoRef, controls, isChannelOwner, roomId, videoId]);
 
   React.useEffect(() => {
     if (!videoRef.current) return;
 
     if (isPlaying && !showOverlay) {
-      console.log("Attempting to play video");
       controls.play();
     } else {
       controls.pause();

@@ -341,7 +341,53 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
 - [ ] **Persist chat to Postgres** — the `Message` table exists but the ws-server
       still keeps only an in-memory ring buffer, so history dies with the room
 - [ ] Queue + auto-advance on `ended` (API and schema done; player wiring pending)
-- [ ] Drift correction via `playbackRate` nudge; hard seek only past 2s; drift readout
+- [x] **Drift correction via `playbackRate` nudge; hard seek only past 2s; drift readout.**
+
+      The interesting part was not the nudge, it was discovering that the thing
+      being compared against was wrong. Nothing in the pipeline carries a timestamp,
+      so the `currentTime` a viewer receives is already stale by the whole round trip
+      (host debounce → HTTP → Postgres → Redis → ws-server → socket, ~0.5–1s), and the
+      host has moved on since. The old code compared the viewer's clock against that
+      stale value and hard-seeked whenever it differed by >1s — which means it was
+      seeking viewers *backwards* to a position the host had already left, and then
+      doing it again a second later. Correcting toward a stale target is worse than
+      not correcting.
+
+      So the viewer now anchors on receipt (`{ hostTime, capturedAt }`) and projects
+      the host forward while the host is playing, rather than trusting the raw sample.
+      Everyone ends up equally behind the host by roughly one network hop, which is
+      what actually matters — a watch party needs viewers in sync with *each other*.
+
+      - Pure decision logic in `lib/playback-drift.ts`, applied by
+        `hooks/use-playback-sync.ts` on a 250ms tick. Splitting it that way is what
+        makes it testable without a DOM.
+      - Deadband 0.25s → hold. Past that → `playbackRate` nudge, gain 0.15/s capped
+        at ±8%. Past 2s → hard seek to the *projected* position.
+      - Host paused → the projection stops advancing and small offsets are seeked
+        instead of nudged, since rate does nothing to a paused element.
+      - Correction is skipped while the element is seeking or below
+        `HAVE_CURRENT_DATA`; measuring during a buffering stall reads a stale
+        position and turns a hiccup into a spurious seek.
+      - `frontend/test/playback-drift.js` — 16 checks. A 1s drift converges into the
+        deadband in 11s, by nudging alone, without oscillating. First cut used a 5%
+        cap and took 27.8s, which is too slow to be worth having.
+
+      Fixed alongside, both prerequisites rather than extras:
+
+      - **`play`/`pause` carried no position.** Only `timestamp` did, so every
+        pause/resume injected up to a second of drift at exactly the moment people
+        notice. The wire already allowed it (`currentTime` was optional on the
+        schema); the player simply never sent it and the backend only persisted it
+        for `timestamp`. Five new checks in `test/room-sync.js` cover it (21 total).
+      - **`controls` was rebuilt on every render** in `use-video-player.ts`, and it
+        sits in the dependency array of the sync effects — so the media listeners
+        were torn down and reattached on every state change, and an interval driven
+        off it could not stay alive. Memoised; it only reads refs.
+
+      Not verified end to end: there are no transcoded videos in the dev database, so
+      the correction has not been watched against a real HLS stream. The logic is
+      covered by unit checks and the room shell was confirmed to render, but the
+      feel of it — whether ±8% is imperceptible in practice — is unconfirmed.
 - [ ] Co-host request flow (viewer asks, host approves) — also the current workaround for
       a guest host with no library, so it is worth more than its size
 - [ ] **Give a guest host something to play.** Ranked by cost:

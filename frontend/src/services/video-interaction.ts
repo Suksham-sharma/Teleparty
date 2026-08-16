@@ -12,7 +12,6 @@ export const videoInteractionService = {
     payload: VideoInteractionPayload
   ) => {
     try {
-      console.log("Request Sent to backend", payload);
       const response = await axiosInstance.post(
         `/videos/interaction/${videoId}`,
         payload
