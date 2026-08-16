@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { Play } from "lucide-react";
 import { useVideoPlayer } from "@/hooks/use-video-player";
 import { usePlaybackSync } from "@/hooks/use-playback-sync";
 import "plyr/dist/plyr.css";
@@ -31,7 +32,11 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   currentTime,
   onDrift,
 }) => {
-  const { videoRef, controls } = useVideoPlayer({ src, type });
+  const { videoRef, controls } = useVideoPlayer({
+    src,
+    type,
+    canControl: Boolean(isChannelOwner),
+  });
   const [showOverlay, setShowOverlay] = React.useState(true);
   const reportTimeoutRef = React.useRef<NodeJS.Timeout>();
   const lastReportedTime = React.useRef<number>(0);
@@ -46,6 +51,18 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   React.useEffect(() => {
     onDrift?.(drift);
   }, [drift, onDrift]);
+
+  React.useEffect(() => {
+    const video = videoRef.current;
+    if (!video || isChannelOwner) return;
+
+    const followHost = () => {
+      if (!isPlaying && !video.paused) video.pause();
+    };
+
+    video.addEventListener("play", followHost);
+    return () => video.removeEventListener("play", followHost);
+  }, [videoRef, isChannelOwner, isPlaying]);
 
   React.useEffect(() => {
     if (!videoRef.current || !isChannelOwner) return;
@@ -109,46 +126,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   return (
     <div className={className}>
-      <div className="video-container relative rounded-xl overflow-clip shadow-lg">
-        <video
-          ref={videoRef}
-          className="plyr-react plyr"
-          crossOrigin="anonymous"
-          style={
-            {
-              "--plyr-color-main": "#9333ea",
-              "--plyr-range-fill-background": "#a855f7",
-              "--plyr-video-controls-background":
-                "linear-gradient(rgba(147, 51, 234, 0.5), rgba(0, 0, 0, 0.7))",
-              "--plyr-menu-background": "#1f1f1f",
-              "--plyr-menu-item-active-background": "#9333ea",
-              "--plyr-menu-color": "#ffffff",
-              "--plyr-menu-item-active-color": "#ffffff",
-              "--plyr-menu-border-color": "rgba(255, 255, 255, 0.15)",
-              "--plyr-menu-radius": "4px",
-              "--plyr-menu-shadow": "0 1px 3px rgba(0, 0, 0, 0.3)",
-              "--plyr-menu-arrow-color": "#1f1f1f",
-            } as React.CSSProperties
-          }
-        />
+      <div
+        className={`video-container frame-fill relative w-full overflow-clip${
+          isChannelOwner ? "" : " playback-locked"
+        }`}
+      >
+        <video ref={videoRef} className="plyr-react plyr" crossOrigin="anonymous" />
+
         {showOverlay && (
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center cursor-pointer hover:bg-black/50 transition-all duration-300 ease-in-out"
+          <button
             onClick={handleOverlayClick}
+            aria-label="Join the screening"
+            className="group absolute inset-0 flex cursor-pointer items-center justify-center bg-black/50 transition-colors hover:bg-black/40"
           >
-            <div className="transform hover:scale-110 transition-transform duration-300 bg-white/20 p-6 rounded-full backdrop-blur-md shadow-xl hover:bg-white/30 group">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="64"
-                height="64"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="text-white/90 group-hover:text-white transition-colors duration-300"
-              >
-                <path d="M8 5v14l11-7z" />
-              </svg>
-            </div>
-          </div>
+            <span className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-butter text-black transition-colors group-hover:bg-butter-deep">
+              <Play className="h-8 w-8 translate-x-0.5 fill-current" />
+            </span>
+          </button>
         )}
       </div>
     </div>

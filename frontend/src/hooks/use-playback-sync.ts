@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { resolveDrift } from "@/lib/playback-drift";
+import {
+  resolveDrift,
+  shouldApplySeek,
+  isSnapResidual,
+  SEEK_COOLDOWN_MS,
+} from "@/lib/playback-drift";
 
 const TICK_MS = 250;
 const READOUT_PRECISION = 10;
@@ -32,6 +37,9 @@ export function usePlaybackSync({
   controls: SyncControls;
 }): number | null {
   const anchorRef = useRef<HostAnchor | null>(null);
+  const lastSeekAtRef = useRef(0);
+  const settledOffsetRef = useRef<number | null>(null);
+  const awaitingSettleRef = useRef(false);
   const [drift, setDrift] = useState<number | null>(null);
 
   useEffect(() => {
@@ -44,6 +52,8 @@ export function usePlaybackSync({
       capturedAt: performance.now(),
       hostIsPlaying,
     };
+    settledOffsetRef.current = null;
+    awaitingSettleRef.current = false;
   }, [hostTime, hostIsPlaying]);
 
   useEffect(() => {
@@ -69,7 +79,27 @@ export function usePlaybackSync({
         Math.round(offset * READOUT_PRECISION) / READOUT_PRECISION;
       setDrift((previous) => (previous === rounded ? previous : rounded));
 
+      const now = performance.now();
+      const msSinceLastSeek = now - lastSeekAtRef.current;
+
+      if (awaitingSettleRef.current && msSinceLastSeek >= SEEK_COOLDOWN_MS) {
+        settledOffsetRef.current = isSnapResidual(offset) ? offset : null;
+        awaitingSettleRef.current = false;
+      }
+
       if (correction.kind === "seek") {
+        const permitted = shouldApplySeek({
+          hostIsPlaying: anchor.hostIsPlaying,
+          msSinceLastSeek,
+          offset,
+          settledOffset: settledOffsetRef.current,
+        });
+
+        if (!permitted) return;
+
+        lastSeekAtRef.current = now;
+        awaitingSettleRef.current = true;
+        settledOffsetRef.current = null;
         controls.setPlaybackRate(1);
         controls.seek(correction.to);
         return;

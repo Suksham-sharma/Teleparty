@@ -100,6 +100,17 @@
     @apply overflow-hidden rounded-frame bg-coal;
   }
 
+  .frame-fill,
+  .frame-fill .plyr,
+  .frame-fill .plyr__video-wrapper {
+    height: 100%;
+  }
+
+  .frame-fill .plyr video {
+    height: 100%;
+    object-fit: contain;
+  }
+
   /* Small uppercase mono label, for metadata that should recede. */
   .label-mute {
     @apply font-mono text-[11px] uppercase tracking-[0.13em] text-butter-mute;

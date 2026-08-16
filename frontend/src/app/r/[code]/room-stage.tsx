@@ -23,6 +23,9 @@ const VideoPlayer = dynamic(() => import("@/components/VideoPlayer"), {
   loading: () => <div className="frame aspect-video w-full bg-card" />,
 });
 
+const stageWidth =
+  "mx-auto w-full lg:max-w-[calc((100vh-172px)*16/9+336px)]";
+
 export function RoomStage({
   code,
   room,
@@ -57,9 +60,10 @@ export function RoomStage({
     getRoom(code).then(({ room: fresh }) => onRoomChange(fresh)).catch(() => {});
   }, [status, code, onRoomChange]);
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(`${window.location.origin}/r/${code}`);
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(`${window.location.origin}/r/${code}`);
     setCopied(true);
+    toast.success("Link copied — send it to anyone");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -67,140 +71,150 @@ export function RoomStage({
   const roster = members.length > 0 ? members : room.members;
 
   return (
-    <main className="min-h-screen">
-      <header className="border-b border-hair">
-        <div className="mx-auto flex max-w-shell flex-wrap items-center justify-between gap-4 px-6 py-4 md:px-10">
-          <div className="flex min-w-0 items-baseline gap-4">
+    <main className="flex min-h-screen flex-col">
+      <header className="shrink-0 border-b border-hair">
+        <div className="mx-auto w-full max-w-stage px-6">
+          <div
+            className={`${stageWidth} flex h-14 items-center justify-between gap-4`}
+          >
             <Wordmark />
-            <span className="truncate text-base text-grey">{room.title}</span>
-          </div>
 
-          <div className="flex items-center gap-3">
-            {playback.isPlaying && (
-              <span className="hidden items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-butter sm:flex">
-                <span className="h-1.5 w-1.5 animate-filament rounded-full bg-butter" />
-                Live
-              </span>
-            )}
-
-            {/* The code is the invite, so it gets the accent. */}
-            <button
-              onClick={copyLink}
-              className="group inline-flex items-center gap-2.5 rounded-full border border-butter-mute py-1.5 pl-4 pr-1.5 transition-colors hover:border-butter"
-              aria-label={`Copy invite link for room ${code}`}
-            >
-              <code className="text-sm font-medium tracking-[0.1em] text-butter">
-                {code}
-              </code>
-              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-card-2 transition-colors group-hover:bg-butter group-hover:text-black">
-                {copied ? (
-                  <Check className="h-3 w-3" />
-                ) : (
-                  <Copy className="h-3 w-3" />
-                )}
-              </span>
-            </button>
-
-            {membership.role === "HOST" && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={async () => {
-                  await endRoom(code);
-                  toast.success("Party ended");
-                }}
+            <div className="flex shrink-0 items-center gap-2.5">
+              <button
+                onClick={copyLink}
+                title="Copy the invite link"
+                className="group inline-flex h-9 items-center gap-2 rounded-full border border-butter-mute pl-3.5 pr-1.5 transition-colors hover:border-butter"
+                aria-label={`Copy the invite link for room ${code}`}
               >
-                End party
-              </Button>
-            )}
+                <code className="text-sm font-medium tracking-[0.08em] text-butter">
+                  {code}
+                </code>
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-card-2 transition-colors group-hover:bg-butter group-hover:text-black">
+                  {copied ? (
+                    <Check className="h-3 w-3" />
+                  ) : (
+                    <Copy className="h-3 w-3" />
+                  )}
+                </span>
+              </button>
+
+              {membership.role === "HOST" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    await endRoom(code);
+                    toast.success("Party ended");
+                  }}
+                >
+                  End party
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-shell items-stretch gap-5 px-6 py-6 md:px-10 lg:grid-cols-[1fr_352px]">
-        <div className="flex flex-col gap-4">
-          <div className="relative">
-            {videoId ? (
-              <VideoPlayer
-                src={playlistUrl(videoId)}
-                videoId={videoId}
-                roomId={code}
-                isPlaying={playback.isPlaying}
-                currentTime={playback.currentTime}
-                isChannelOwner={canControl}
-                onDrift={setDrift}
-                className="frame aspect-video w-full"
-              />
-            ) : (
-              <EmptyStage
-                canControl={canControl}
-                isGuest={!user}
-                code={code}
-              />
-            )}
-
-            {/* Reactions drift up off the frame and expire on their own. */}
-            <div className="pointer-events-none absolute bottom-20 left-5 flex flex-col items-start gap-1.5">
-              {reactions.map((reaction) => (
-                <span
-                  key={reaction.id}
-                  className="inline-flex animate-react-rise items-center gap-2 rounded-full border border-white/15 bg-black/70 py-1 pl-2.5 pr-3 text-sm text-white"
-                >
-                  <span className="text-base leading-none">
-                    {reaction.emoji}
-                  </span>
-                  {reaction.name}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <PresenceRail members={roster} />
-
-            <div className="flex gap-1.5">
-              {["😂", "😮", "❤️", "🔥"].map((emoji) => (
-                <button
-                  key={emoji}
-                  onClick={() => sendReaction(emoji)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-transparent bg-card text-lg transition-colors hover:border-butter-mute hover:bg-card-2"
-                  aria-label={`React ${emoji}`}
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            {canControl ? (
-              <span className="rounded-full border border-butter-mute px-3.5 py-1 font-mono text-xs tracking-[0.06em] text-butter">
-                you control playback
-              </span>
-            ) : (
-              videoId && <SyncChip drift={drift} />
-            )}
-
-            {canControl && user && (
-              <Link
-                href={`/library?room=${code}`}
-                className="text-base text-grey transition-colors hover:text-ash"
-              >
-                Change film
-              </Link>
-            )}
-          </div>
+      <div className="mx-auto flex w-full max-w-stage flex-1 flex-col px-6 pb-4 pt-3">
+        <div
+          className={`${stageWidth} flex min-h-[28px] items-center justify-between gap-4`}
+        >
+          <h1 className="truncate text-lg font-medium text-white">
+            {room.title}
+          </h1>
+          {playback.isPlaying && (
+            <span className="flex shrink-0 items-center gap-2 text-xs font-medium uppercase tracking-[0.14em] text-butter">
+              <span className="h-1.5 w-1.5 animate-filament rounded-full bg-butter" />
+              Live
+            </span>
+          )}
         </div>
 
-        <aside className="min-h-[520px] lg:h-auto">
-          <RoomChat
-            messages={messages}
-            memberId={membership.id}
-            memberCount={roster.length}
-            status={status}
-            onSend={sendChat}
-          />
-        </aside>
+        <div className={`${stageWidth} flex flex-1 flex-col justify-center gap-4`}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
+            <div className="relative min-w-0 flex-1">
+              {videoId ? (
+                <VideoPlayer
+                  src={playlistUrl(videoId)}
+                  videoId={videoId}
+                  roomId={code}
+                  isPlaying={playback.isPlaying}
+                  currentTime={playback.currentTime}
+                  isChannelOwner={canControl}
+                  onDrift={setDrift}
+                  className="frame aspect-video w-full"
+                />
+              ) : (
+                <EmptyStage
+                  canControl={canControl}
+                  isGuest={!user}
+                  code={code}
+                />
+              )}
+
+              <div className="pointer-events-none absolute bottom-20 left-5 flex flex-col items-start gap-1.5">
+                {reactions.map((reaction) => (
+                  <span
+                    key={reaction.id}
+                    className="inline-flex animate-react-rise items-center gap-2 rounded-full border border-white/15 bg-black/70 py-1 pl-2.5 pr-3 text-sm text-white"
+                  >
+                    <span className="text-base leading-none">
+                      {reaction.emoji}
+                    </span>
+                    {reaction.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <aside className="h-[380px] lg:h-auto lg:w-[320px] lg:shrink-0">
+              <RoomChat
+                messages={messages}
+                memberId={membership.id}
+                memberCount={roster.length}
+                status={status}
+                onSend={sendChat}
+              />
+            </aside>
+          </div>
+
+          <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-x-5 gap-y-2">
+            <div className="flex items-center gap-4">
+              <PresenceRail members={roster} />
+              {canControl ? (
+                <span className="rounded-full border border-butter-mute px-3.5 py-1 font-mono text-xs tracking-[0.06em] text-butter">
+                  you control playback
+                </span>
+              ) : (
+                videoId && <SyncChip drift={drift} />
+              )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              {canControl && user && (
+                <Link
+                  href={`/library?room=${code}`}
+                  className="text-base text-grey transition-colors hover:text-ash"
+                >
+                  Change film
+                </Link>
+              )}
+
+              <div className="flex gap-1.5">
+                {["😂", "😮", "❤️", "🔥"].map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={() => sendReaction(emoji)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-transparent bg-card text-lg transition-colors hover:border-butter-mute hover:bg-card-2"
+                    aria-label={`React ${emoji}`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );
@@ -264,20 +278,10 @@ function EmptyStage({
         )}
 
         {canControl && isGuest && (
-          <>
-            <p className="text-base text-grey">
-              You&rsquo;re hosting as a guest, so there&rsquo;s nothing to play
-              yet &mdash; uploading a film needs an account.
-            </p>
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-              <Button size="sm" asChild>
-                <Link href="/auth">Sign in to upload</Link>
-              </Button>
-              <span className="text-base text-grey-dim">
-                or make someone with a library a co-host
-              </span>
-            </div>
-          </>
+          <p className="text-base text-grey">
+            You&rsquo;re a co-host, but films come from a library and yours
+            needs an account. Ask the host to start something.
+          </p>
         )}
       </div>
     </div>

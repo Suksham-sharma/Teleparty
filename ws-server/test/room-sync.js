@@ -15,12 +15,27 @@ const JAR = __dirname + "/.test-host.jar";
 const API = "localhost:4000";
 const WS = "ws://localhost:8080";
 
-const CODE = JSON.parse(
+const HOST_EMAIL = `room-sync-${Date.now()}@local.test`;
+
+execSync(
+  `curl -s -c ${JAR} -X POST ${API}/api/auth/signup ` +
+    `-H 'Content-Type: application/json' -d ` +
+    `'{"email":"${HOST_EMAIL}","username":"TestHost","password":"room-sync-pw"}'`
+);
+
+const createResponse = JSON.parse(
   execSync(
-    `curl -s -c ${JAR} -X POST ${API}/api/rooms ` +
-      `-H 'Content-Type: application/json' -d '{"hostName":"TestHost"}'`
+    `curl -s -b ${JAR} -c ${JAR} -X POST ${API}/api/rooms ` +
+      `-H 'Content-Type: application/json' -d '{}'`
   ).toString()
-).room.code;
+);
+
+if (!createResponse.room) {
+  console.error("Could not create a room as the signed-in host:", createResponse);
+  process.exit(1);
+}
+
+const CODE = createResponse.room.code;
 
 const results = [];
 const check = (label, ok, extra = "") => {

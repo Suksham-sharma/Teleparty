@@ -14,9 +14,12 @@ execSync(
 
 const {
   resolveDrift,
+  shouldApplySeek,
+  isSnapResidual,
   DEADBAND_SECONDS,
   HARD_SEEK_SECONDS,
   MAX_RATE_DELTA,
+  SEEK_COOLDOWN_MS,
 } = require(path.join(outDir, "playback-drift.js"));
 
 const results = [];
@@ -167,6 +170,133 @@ check(
 );
 check("it converges by nudging alone, never seeking", !oscillated);
 check("it does not oscillate around the host", signFlips === 0, `(${signFlips} flips)`);
+
+const KEYFRAME_SNAP = 0.4;
+
+function runPausedViewer({ ticks, jumpAtTick, jumpTo, snap = KEYFRAME_SNAP }) {
+  let seeks = 0;
+  let localTime = 31;
+  let msSinceLastSeek = SEEK_COOLDOWN_MS;
+  let settledOffset = null;
+  let awaitingSettle = false;
+
+  for (let tick = 0; tick < ticks; tick++) {
+    if (tick === jumpAtTick) localTime = jumpTo;
+
+    const result = resolveDrift({
+      localTime,
+      hostTime: 30,
+      hostIsPlaying: false,
+      secondsSinceAnchor: tick * 0.25,
+    });
+
+    if (awaitingSettle && msSinceLastSeek >= SEEK_COOLDOWN_MS) {
+      settledOffset = isSnapResidual(result.offset) ? result.offset : null;
+      awaitingSettle = false;
+    }
+
+    if (
+      result.correction.kind === "seek" &&
+      shouldApplySeek({
+        hostIsPlaying: false,
+        msSinceLastSeek,
+        offset: result.offset,
+        settledOffset,
+      })
+    ) {
+      seeks++;
+      msSinceLastSeek = 0;
+      awaitingSettle = true;
+      settledOffset = null;
+      localTime = result.correction.to - snap;
+    }
+    msSinceLastSeek += 250;
+  }
+  return { seeks, localTime };
+}
+
+const steady = runPausedViewer({ ticks: 60, jumpAtTick: -1 });
+check(
+  "a paused host is corrected once, even when the seek lands off-target",
+  steady.seeks === 1,
+  `(${steady.seeks} seeks; hls snapped ${KEYFRAME_SNAP}s short)`
+);
+
+const jumped = runPausedViewer({ ticks: 60, jumpAtTick: 30, jumpTo: 90 });
+check(
+  "a viewer who moves while the host is paused is still pulled back",
+  jumped.seeks === 2 && Math.abs(jumped.localTime - 30) < 1,
+  `(${jumped.seeks} seeks, ended at ${jumped.localTime.toFixed(2)}s)`
+);
+
+const landedClean = runPausedViewer({
+  ticks: 60,
+  jumpAtTick: 30,
+  jumpTo: 90,
+  snap: 0,
+});
+check(
+  "an accurate correction does not swallow the next genuine seek",
+  landedClean.seeks === 2 && Math.abs(landedClean.localTime - 30) < 0.01,
+  `(${landedClean.seeks} seeks, ended at ${landedClean.localTime.toFixed(2)}s)`
+);
+
+check(
+  "a large offset is never accepted as a keyframe-snap residual",
+  !isSnapResidual(90) && isSnapResidual(0.4)
+);
+
+check(
+  "without the guard that same case seeks on every tick",
+  (() => {
+    let n = 0;
+    let t = 31;
+    for (let i = 0; i < 40; i++) {
+      const r = resolveDrift({
+        localTime: t,
+        hostTime: 30,
+        hostIsPlaying: false,
+        secondsSinceAnchor: i * 0.25,
+      });
+      if (r.correction.kind === "seek") {
+        n++;
+        t = r.correction.to - KEYFRAME_SNAP;
+      }
+    }
+    return n > 30;
+  })(),
+  "(this is the flicker the guard prevents)"
+);
+
+check(
+  "a playing host may seek again once the cooldown expires",
+  shouldApplySeek({
+    hostIsPlaying: true,
+    msSinceLastSeek: SEEK_COOLDOWN_MS + 1,
+    offset: 5,
+    settledOffset: 0.4,
+  })
+);
+
+check(
+  "no seek may fire inside the cooldown window",
+  !shouldApplySeek({
+    hostIsPlaying: true,
+    msSinceLastSeek: SEEK_COOLDOWN_MS - 1,
+    offset: 5,
+    settledOffset: null,
+  })
+);
+
+check(
+  "a residual matching where the last seek settled is not chased",
+  !shouldApplySeek({
+    hostIsPlaying: false,
+    msSinceLastSeek: SEEK_COOLDOWN_MS * 10,
+    offset: 0.4,
+    settledOffset: 0.4,
+  })
+);
 
 fs.rmSync(outDir, { recursive: true, force: true });
 

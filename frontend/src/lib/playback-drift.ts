@@ -2,6 +2,8 @@ export const DEADBAND_SECONDS = 0.25;
 export const HARD_SEEK_SECONDS = 2;
 export const RATE_GAIN_PER_SECOND = 0.15;
 export const MAX_RATE_DELTA = 0.08;
+export const SEEK_COOLDOWN_MS = 1200;
+export const SNAP_TOLERANCE_SECONDS = 2;
 
 export type Correction =
   | { kind: "seek"; to: number }
@@ -61,4 +63,25 @@ export function resolveDrift({
   }
 
   return { projectedHostTime, offset, correction: { kind: "hold" } };
+}
+
+export function isSnapResidual(offset: number): boolean {
+  return Math.abs(offset) <= SNAP_TOLERANCE_SECONDS;
+}
+
+export function shouldApplySeek({
+  hostIsPlaying,
+  msSinceLastSeek,
+  offset,
+  settledOffset,
+}: {
+  hostIsPlaying: boolean;
+  msSinceLastSeek: number;
+  offset: number;
+  settledOffset: number | null;
+}): boolean {
+  if (msSinceLastSeek < SEEK_COOLDOWN_MS) return false;
+  if (hostIsPlaying) return true;
+  if (settledOffset === null) return true;
+  return Math.abs(offset - settledOffset) > DEADBAND_SECONDS;
 }

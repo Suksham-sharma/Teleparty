@@ -18,11 +18,6 @@ import { redisManager } from "../lib/redisManager";
 
 export const roomsRouter = Router();
 
-/**
- * Create a room. Deliberately available to guests: "start a watch party" is the
- * primary call to action on the landing page and must not be gated behind
- * signup. The creator becomes the HOST member.
- */
 roomsRouter.post("/", async (req: Request, res: Response) => {
   try {
     const payload = createRoomData.safeParse(req.body ?? {});
@@ -32,26 +27,24 @@ roomsRouter.post("/", async (req: Request, res: Response) => {
     }
 
     const identity = req.identity!;
+    if (identity.kind !== "user") {
+      res.status(401).json({ error: "Sign in to host a watch party." });
+      return;
+    }
+
     const code = await generateRoomCode();
-
-    const hostName =
-      identity.kind === "user"
-        ? identity.displayName
-        : payload.data.hostName?.trim() || "Host";
-
+    const hostName = identity.displayName;
     const title = payload.data.title?.trim() || `${hostName}'s watch party`;
 
     const room = await prismaClient.room.create({
       data: {
         code,
         title,
-        hostUserId: identity.kind === "user" ? identity.userId : null,
+        hostUserId: identity.userId,
         members: {
           create: {
             role: Role.HOST,
-            userId: identity.kind === "user" ? identity.userId : null,
-            guestId: identity.kind === "guest" ? identity.guestId : null,
-            guestName: identity.kind === "guest" ? hostName : null,
+            userId: identity.userId,
           },
         },
       },

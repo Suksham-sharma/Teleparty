@@ -84,6 +84,7 @@ export default {
       },
       maxWidth: {
         shell: "1320px",
+        stage: "2400px",
       },
       borderRadius: {
         // Pills for actions, 16px cards, 20px on the video frame.

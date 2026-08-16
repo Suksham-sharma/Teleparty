@@ -30,8 +30,10 @@ out of band to a friend, who must then create an account before they can use it.
 Rules:
 
 - Rooms are cheap and disposable. A user may host many; they end explicitly or expire.
-- **Guests need no account.** Name + a `guestId` cookie. Signing in only buys persistence
-  (your library, your history, the ability to host).
+- **Guests need no account to *join*.** Name + a `guestId` cookie. Signing in buys
+  persistence (your library, your history) and the ability to host. Hosting is gated
+  because a film comes from a library and a library needs an account — a guest host
+  could open a room but never play anything in it. Enforced in Phase 2.
 - The room code is the invite. `/r/WOLF-42` is the whole sharing story — no separate page,
   no dialog, no copy-the-code step.
 - Playback authority is `Room.hostId` (plus co-hosts), not `Channel.creatorId`.
@@ -286,13 +288,12 @@ protocol, `use-room-socket.ts` and `VideoPlayer.tsx` sync logic were not touched
 - [x] **No `/home` route.** Rooms are disposable and the link is the artifact, so a
       "your rooms" screen would be empty for most people. `/library` absorbs the job
 
-Known gap, deliberately not fixed here:
+Known gap, deliberately not fixed here — **since resolved in Phase 2:**
 
-- **A guest host has nothing to play.** `POST /videos/presignedurl` requires an account,
-  so someone who opens a room without signing in cannot supply a film at all. The empty
-  stage now says this plainly and offers the two real exits (sign in, or promote a
-  signed-in member to co-host — `requireController` accepts COHOST). Closing it properly
-  is a product decision; see Phase 2.
+- ~~**A guest host has nothing to play.**~~ `POST /videos/presignedurl` requires an
+  account, so someone who opened a room without signing in could not supply a film at
+  all. Rather than working around it, hosting now requires an account and the case no
+  longer exists. Guests still join freely. See Phase 2.
 
 ### Phase 1.6 — Auth page + identity `[x]`
 
@@ -368,9 +369,24 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
       - Correction is skipped while the element is seeking or below
         `HAVE_CURRENT_DATA`; measuring during a buffering stall reads a stale
         position and turns a hiccup into a spurious seek.
-      - `frontend/test/playback-drift.js` — 16 checks. A 1s drift converges into the
+      - `frontend/test/playback-drift.js` — 24 checks. A 1s drift converges into the
         deadband in 11s, by nudging alone, without oscillating. First cut used a 5%
         cap and took 27.8s, which is too slow to be worth having.
+      - **Seeks are rate-limited, and that took three attempts to get right.** Playing
+        it against a real HLS stream exposed what unit tests had not: hls.js snaps a
+        seek to a keyframe, so a correction lands slightly off target, the next 250ms
+        tick measures it as still off, and seeks again — forever. On a second device
+        that reads as flicker, and it only shows while the host is *paused*, because
+        a playing host's projection moves past the residual on its own.
+        The fix is a 1.2s cooldown plus a remembered "settled" residual: once a
+        correction has landed, an offset that matches where it landed is left alone,
+        but an offset that *differs* from it means the position genuinely moved and is
+        corrected. Only offsets within `SNAP_TOLERANCE_SECONDS` (2s) may be accepted
+        as a snap residual, so a viewer 90s out of position can never be mistaken for
+        one. The two intermediate versions both had bugs — "correct once per anchor"
+        stranded anyone knocked out of position, and recording the residual inside the
+        seek branch meant an accurate landing never cleared the flag and swallowed the
+        next genuine seek. Both are now regression checks.
 
       Fixed alongside, both prerequisites rather than extras:
 
@@ -384,19 +400,74 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
         were torn down and reattached on every state change, and an interval driven
         off it could not stay alive. Memoised; it only reads refs.
 
-      Not verified end to end: there are no transcoded videos in the dev database, so
-      the correction has not been watched against a real HLS stream. The logic is
-      covered by unit checks and the room shell was confirmed to render, but the
-      feel of it — whether ±8% is imperceptible in practice — is unconfirmed.
-- [ ] Co-host request flow (viewer asks, host approves) — also the current workaround for
-      a guest host with no library, so it is worth more than its size
-- [ ] **Give a guest host something to play.** Ranked by cost:
-      1. a shared demo film every room can reach — smallest change, makes a guest room
-         useful immediately;
-      2. guest uploads scoped by `guestId` with a size and TTL cap — the current block is
-         a deliberate anti-abuse guard, so this needs a rate limit, not just removing the
-         `req.userId` check;
-      3. paste-a-URL — the biggest, and the feature Teleparty and Watch2Gether compete on.
+      Now verified against a real HLS stream. There are still no transcoded videos in
+      the dev database, so testing runs against a public test stream behind
+      `NEXT_PUBLIC_DEMO_HLS_URL` (see below). Confirmed by demoting a member to VIEWER:
+      jumps to 90s and 45s are both pulled back, and a settled viewer performs zero
+      seeks over six seconds. Still unconfirmed: whether a ±8% nudge is imperceptible
+      to a person, which needs two humans rather than two tabs.
+- [x] **A viewer's player is read-only.** Authority was enforced server-side from
+      Phase 1 — `requireController` rejects a viewer's POST — but the client never
+      enforced it, so a viewer had a fully working Plyr: they could press play while
+      the host was paused, scrub anywhere, change speed. They were not controlling the
+      room, only desyncing themselves, and then fighting the drift corrector.
+
+      Non-controllers now get the play button, large play button, speed menu,
+      click-to-play and keyboard shortcuts removed, and a scrubber pinned with
+      `pointer-events: none` (`.playback-locked` in `plyr.css`). They keep volume,
+      quality and fullscreen, which are local concerns.
+
+      Hiding controls is not enough on its own: media keys, Picture-in-Picture and
+      extensions can all start playback without touching Plyr's UI. A `play` listener
+      re-pauses a viewer the moment the host is paused, so the invariant holds however
+      playback was started.
+
+      Worth knowing: drift correction only runs after a viewer clicks the join
+      overlay, because browsers require a gesture before audio can play. Before that
+      click a viewer is unmanaged — which is why the first attempt to reproduce the
+      seek bug appeared to do nothing at all.
+- [x] **Hosting requires an account.** `POST /api/rooms` now 401s a guest, the landing
+      CTA becomes "Sign in to host", and the room's empty state no longer offers a
+      guest an upload it cannot perform. This closes the Phase 1.5 gap rather than
+      working around it, and it restores §1's stated rule — signing in buys "your
+      library, your history, **the ability to host**". Guests still join any room with
+      nothing but the link, which is the part that matters.
+
+      Consequence: `ws-server/test/room-sync.js` created its room as an anonymous
+      guest and so had been failing since this landed. It now signs up a throwaway
+      host first. Each run leaves one user row in the dev database.
+- [x] **The room fills the screen.** It was capped at `max-w-stage: 1920px`, so on a
+      wide display the player was width-bound with ~340px of dead margin either side
+      and a band of unclaimed space beneath it. The stage width is now derived from
+      the viewport *height* (`calc((100vh-172px)*16/9+336px)`) with the cap raised to
+      2400px, the chat narrowed 360 → 320px, and the leftover height centred so it
+      splits evenly above and below instead of pooling at the bottom. The room title
+      sits directly under the header rather than inside the centred block, which is
+      what gives the player room to breathe without pushing it down the page.
+      Measured at 2000×1187: player 840×473 → 1616×909, height used 55% → 95%.
+- [x] **Player chrome matches the design system.** `VideoPlayer.tsx` still carried its
+      pre-rebuild inline styles — `--plyr-color-main: #9333ea` and a purple gradient —
+      which overrode the butter theme `plyr.css` had already set. Phase 1.5 skipped
+      this file deliberately, so nobody had seen it against an actual video. Removed,
+      along with the `shadow-lg` and two `backdrop-blur`s that `DESIGN.md` bans. Plyr
+      also sized itself to the video's intrinsic ratio and overflowed the 16:9 frame by
+      15px, clipping the control bar on the rounded corners; it is now pinned to the
+      frame with `object-fit: contain`, so an off-ratio film letterboxes instead of
+      distorting the frame.
+
+      The control bar keeps its gradient scrim. `DESIGN.md` §5 bans gradients on
+      surfaces and a literal reading condemns this one, but a scrim over moving
+      picture is a legibility device, not elevation. Left as an explicit exception so
+      the next pass does not "fix" it again — as this one did.
+- [ ] Co-host request flow (viewer asks, host approves)
+- [ ] **A demo film every room can reach.** Now that hosting needs an account this is
+      no longer about rescuing a guest host, but the dev database has no transcoded
+      videos at all, so there is nothing to test playback against. The stopgap is
+      `NEXT_PUBLIC_DEMO_HLS_URL` in `frontend/.env.local`, which points the reserved
+      video id `hls-demo` at a public HLS stream. It needs a matching `Video` row.
+      A real shared demo film would replace it.
+- [ ] **Paste-a-URL** — the biggest remaining content gap, and the feature Teleparty
+      and Watch2Gether actually compete on.
 
 ### Phase 3 — Video calls
 - [ ] Signaling message types + relay in `handlers.ts`

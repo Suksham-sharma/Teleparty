@@ -7,6 +7,7 @@ import Hls from "hls.js";
 interface UseVideoPlayerProps {
   src: string;
   type?: string;
+  canControl?: boolean;
 }
 
 interface VideoPlayerControls {
@@ -20,7 +21,11 @@ interface VideoPlayerControls {
   isMeasurable: () => boolean;
 }
 
-export function useVideoPlayer({ src, type }: UseVideoPlayerProps): {
+export function useVideoPlayer({
+  src,
+  type,
+  canControl = true,
+}: UseVideoPlayerProps): {
   videoRef: React.RefObject<HTMLVideoElement>;
   controls: VideoPlayerControls;
 } {
@@ -44,16 +49,20 @@ export function useVideoPlayer({ src, type }: UseVideoPlayerProps): {
       }
 
       plyrRef.current = new Plyr(video, {
-        controls: [
-          "play-large",
-          "play",
-          "progress",
-          "current-time",
-          "mute",
-          "volume",
-          "settings",
-          "fullscreen",
-        ],
+        controls: canControl
+          ? [
+              "play-large",
+              "play",
+              "progress",
+              "current-time",
+              "mute",
+              "volume",
+              "settings",
+              "fullscreen",
+            ]
+          : ["progress", "current-time", "mute", "volume", "settings", "fullscreen"],
+        clickToPlay: canControl,
+        keyboard: { focused: canControl, global: false },
         ...(isHLS && qualityOptions
           ? {
               settings: ["quality", "speed"],
@@ -72,7 +81,9 @@ export function useVideoPlayer({ src, type }: UseVideoPlayerProps): {
               },
             }
           : {}),
-        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+        speed: canControl
+          ? { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] }
+          : { selected: 1, options: [1] },
       });
 
       plyrRef.current.on("ready", () => {
@@ -115,7 +126,7 @@ export function useVideoPlayer({ src, type }: UseVideoPlayerProps): {
       hls?.destroy();
       plyrRef.current?.destroy();
     };
-  }, [src, type, isHLS]);
+  }, [src, type, isHLS, canControl]);
 
   const controls: VideoPlayerControls = useMemo(
     () => ({

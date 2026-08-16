@@ -28,7 +28,7 @@ above running):
 cd ws-server && node test/room-sync.js
 ```
 
-Drift-correction logic — 16 checks, pure, no services or DOM needed (it compiles
+Drift-correction logic — 24 checks, pure, no services or DOM needed (it compiles
 `src/lib/playback-drift.ts` to a temp dir and asserts against it):
 
 ```bash
@@ -75,7 +75,7 @@ frontend (Next 15 App Router)
 
 This is the part that spans all four services — read it before touching playback:
 
-1. Only a **HOST or COHOST** player emits events. `VideoPlayer` (`frontend/src/components/VideoPlayer.tsx`) attaches `play`/`pause`/`timeupdate` listeners only when it may control the room.
+1. Only a **HOST or COHOST** player emits events. `VideoPlayer` (`frontend/src/components/VideoPlayer.tsx`) attaches `play`/`pause`/`timeupdate` listeners only when it may control the room. A viewer's player is also read-only in the UI — no play button, dead scrubber, no speed menu, no keyboard shortcuts (`.playback-locked`) — plus a `play` listener that re-pauses them whenever the host is paused, because media keys and PiP can start playback without touching Plyr. Hiding the buttons alone is not enough.
 2. That browser POSTs to `/api/videos/interaction/:videoId` (or `/api/videos/current/:videoId` to switch the film). The backend **re-verifies authority server-side** via `requireController` in `backend/src/lib/rooms.ts` — that module is the single source of truth for who may drive a room. Any new control surface must go through it.
 3. Backend persists the new position/play state on the `Room` row, then `LPUSH`es a tagged event onto the Redis list `video-Data`.
 4. ws-server's `redisManager.listenForVideoUpdates()` sits in a `brPop("video-Data", 0)` loop and hands each event to `roomManager.handleQueueMessage`.

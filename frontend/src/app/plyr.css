@@ -1455,3 +1455,14 @@ a.plyr__control:before {
 .plyr__video-wrapper {
   border-radius: inherit;
 }
+
+/* Only a HOST or COHOST drives a room. A viewer's progress bar reports the
+   host's position and must not be draggable — see docs/DESIGN.md and
+   `requireController`, which rejects the same action server-side. */
+.playback-locked .plyr__progress input[type="range"] {
+  pointer-events: none;
+}
+
+.playback-locked .plyr__progress__buffer {
+  cursor: default;
+}
