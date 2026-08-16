@@ -29,6 +29,31 @@ export type WsQueueMessage =
 
 export const WS_QUEUE_KEY = "video-Data";
 export const TRANSCODE_QUEUE_KEY = "video-transcode";
+export const TRANSCODE_STATUS_KEY = "video-status";
+
+export type TranscodeVariant = {
+  height: number;
+  bandwidth: number;
+  playlist: string;
+};
+
+/**
+ * The return leg of the transcode pipeline. The worker has no Prisma client,
+ * so it reports here and this service is the only writer of `Video.status`.
+ *
+ * Kept structurally identical to the worker's own copy in
+ * `worker/src/lib/manager/redisManager.ts` — there is no shared package, so
+ * the two must be changed together.
+ */
+export type TranscodeStatusMessage =
+  | { videoId: string; status: "TRANSCODING" }
+  | {
+      videoId: string;
+      status: "READY";
+      durationMs: number | null;
+      variants: TranscodeVariant[];
+    }
+  | { videoId: string; status: "FAILED"; failureReason: string };
 
 class RedisManager {
   static instance: RedisManager;

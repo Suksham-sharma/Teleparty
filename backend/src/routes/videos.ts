@@ -210,8 +210,6 @@ videosRouter.post("/upload", async (req: Request, res: Response) => {
     const { title, description, thumbnailId, videoId } =
       uploadVideoPayload.data;
 
-    redisManager.sendToWorkerAndSubscribe(videoId);
-
     const video = await prismaClient.video.create({
       data: {
         id: videoId,
@@ -224,7 +222,15 @@ videosRouter.post("/upload", async (req: Request, res: Response) => {
       },
     });
 
-    res.status(201).json({ message: "Video uploaded successfully." });
+    // Queued *after* the row exists. The worker reports TRANSCODING almost
+    // immediately, and that update targets this id — enqueueing first left a
+    // window where the status write would hit a row that wasn't there yet.
+    await redisManager.sendToWorkerAndSubscribe(videoId);
+
+    res.status(201).json({
+      message: "Video uploaded successfully.",
+      video: { id: video.id, status: video.status },
+    });
   } catch (error: any) {
     console.log("Errror", error);
     res.status(500).json({ error: "Internal server error." });

@@ -37,6 +37,10 @@ lsof -ti:8080 | xargs kill -9
 
 `dev` is **not** watch mode in backend/ws-server/worker — it is `build && start`. Re-run it after every change.
 
+**Never run `pnpm build` in `frontend/` while `pnpm dev` is running.** They share `.next/`, so the build overwrites the dev server's chunks underneath it: `main-app.js` starts 404ing, React never hydrates, and the page silently stops responding to every click. It does not look like a build problem. Recover with `lsof -ti:3000 | xargs kill -9 && rm -rf .next && pnpm dev`.
+
+Postgres runs in Docker as **`collabyt-db` on host port 5435** (user/db `collabyt`), attached to the original data volume. If `prisma` reports P1000, check `docker ps -a` — the container is probably just stopped, and its port may have been taken by another project's database. There is no compose file yet; the mapping is baked into the container, so it breaks on every Docker restart (Phase 5).
+
 Prisma (from `backend/`):
 
 ```bash
@@ -110,7 +114,8 @@ There are **users** and **guests**, and most of the app accepts either.
 - Config comes from `backend/src/lib/config.ts` and `frontend/src/lib/config.ts`. Nothing is hardcoded: ports, CORS origin, S3 bucket/region, CDN host, JWT secret, API/WS URLs.
 - Request bodies are validated with zod schemas in `backend/src/schemas/index.ts`.
 - UI is shadcn-style (`components.json`, Radix + CVA + `cn()` in `lib/utils.ts`) in `components/ui/`; route-local components live beside their route.
-- **Design system is "Cinema Programme"** — see docs/REBUILD.md §2 for the rules and validated contrast ratios. Warm paper, ink hairlines, one vermilion accent. Flat: elevation comes from border weight and `paper → bone`, never shadow or backdrop-blur. `radius: 2px`. Body text is never vermilion (it fails AA); use `vermilion-deep`. Motion is opacity plus ≤4px translate, ≤150ms.
+- **Design system is "Bulb"** — `docs/DESIGN.md` is the source of truth and supersedes REBUILD.md §2 in full. The page is a dark room and the video is the only light source: true black ground, one butter-yellow accent (`#FEF297`, 18.4:1 on black, so it works as text too), Outfit + JetBrains Mono. Elevation is a step in lightness (`black → coal → card → card-2`) — never a shadow, `backdrop-blur`, or gradient on a surface. Radius is `999px` on buttons/inputs/chips, `16px` on cards, `20px` on the video frame. Motion is opacity plus ≤12px translate, ≤150ms; the rotating headline word and the live-dot filament pulse are the two deliberate exceptions, both disabled under `prefers-reduced-motion`.
+  ("Cinema Programme" — warm paper, vermilion, `radius: 2px` — was the *previous* system and is gone. If you find those tokens anywhere, they are dead code.)
 
 ## Known rough edges
 

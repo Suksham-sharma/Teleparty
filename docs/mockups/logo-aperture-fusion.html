@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>watchparty — aperture, fused</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#000; --coal:#0D0D0D; --card:#1B1B1B; --card-2:#262626;
+    --hair:#2E2E2E; --hair-strong:#3D3D3D;
+    --butter:#FEF297; --butter-deep:#E8D96F; --butter-mute:#8A8050;
+    --white:#fff; --ash:#EDEDED; --grey:#A3A3A3; --grey-dim:#8A8A8A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--black);color:var(--ash);
+    font-family:Outfit,system-ui,sans-serif;font-weight:300;padding:52px 40px 90px}
+  .shell{max-width:1320px;margin:0 auto}
+  .eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:.13em;color:var(--butter-mute);margin:0 0 14px}
+  h1{font-weight:200;font-size:40px;letter-spacing:-.035em;color:var(--white);margin:0 0 10px}
+  h1 b{font-weight:700;color:var(--butter)}
+  .lede{color:var(--grey);font-size:16px;max-width:66ch;margin:0 0 44px;line-height:1.55}
+  .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(275px,1fr))}
+  .card{background:var(--card);border-radius:16px;padding:24px 22px;display:flex;flex-direction:column;gap:20px}
+  .card.ref{background:transparent;border:1px solid var(--hair)}
+  .name{font-weight:600;font-size:19px;color:var(--white);letter-spacing:-.015em;margin:0 0 6px}
+  .card.ref .name{color:var(--grey)}
+  .why{color:var(--grey);font-size:14.5px;line-height:1.55;margin:0;min-height:92px}
+  .hero{display:flex;align-items:center;justify-content:center;background:var(--coal);border-radius:12px;padding:22px 0}
+  .card.ref .hero{background:#080808}
+  .sizes{display:flex;align-items:flex-end;gap:22px}
+  .size{display:flex;flex-direction:column;align-items:center;gap:9px}
+  .size span{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--grey-dim)}
+  .lockup{display:flex;align-items:center;gap:10px}
+  .lockup .wm{font-weight:600;font-size:20px;color:var(--white);letter-spacing:-.02em}
+  .tab{display:inline-flex;align-items:center;gap:7px;background:var(--card-2);
+    border-radius:8px 8px 0 0;padding:8px 14px 8px 11px;font-size:12px;color:var(--grey)}
+  footer{margin-top:52px;color:var(--grey-dim);font-size:14.5px;line-height:1.6}
+  code{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--butter-deep);font-size:13.5px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <p class="eyebrow">Identity · round 3 · fusion</p>
+  <h1>Body from <b>A.</b> Blade from the <b>original.</b></h1>
+  <p class="lede">
+    Round 2 threw away the lit blade, which was the thing worth keeping. These put it back on top
+    of A’s hairline body and lit opening — so the light sits in the aperture <em style="font-style:normal;color:var(--ash)">and</em>
+    escapes through one blade. The first card is the original, unchanged, for comparison.
+  </p>
+
+  <div class="grid">
+
+    <!-- REFERENCE -->
+    <div class="card ref">
+      <div>
+        <p class="name">Original (round 1)</p>
+        <p class="why">Solid wedge from the centre. No opening — the butter is a slice of the
+        mechanism, so it reads as a pie chart before it reads as an aperture.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <path d="M16 16 16 3 27.26 9.5Z" fill="#FEF297"/>
+          <path d="M16 3 4.74 9.5 4.74 22.5 16 29 27.26 22.5 27.26 9.5Z" stroke="#3D3D3D" stroke-width="2" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><path d="M16 16 16 3 27.26 9.5Z" fill="#FEF297"/><path d="M16 3 4.74 9.5 4.74 22.5 16 29 27.26 22.5 27.26 9.5Z" stroke="#3D3D3D" stroke-width="2" stroke-linejoin="round"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><path d="M16 16 16 3 27.26 9.5Z" fill="#FEF297"/><path d="M16 3 4.74 9.5 4.74 22.5 16 29 27.26 22.5 27.26 9.5Z" stroke="#565656" stroke-width="2.6" stroke-linejoin="round"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><path d="M16 16 16 3 27.26 9.5Z" fill="#FEF297"/><path d="M16 3 4.74 9.5 4.74 22.5 16 29 27.26 22.5 27.26 9.5Z" stroke="#6B6B6B" stroke-width="3.2" stroke-linejoin="round"/></svg><span>16</span></div>
+      </div>
+    </div>
+
+    <!-- F1 · BEAM -->
+    <div class="card">
+      <div>
+        <p class="name">F1 · Beam</p>
+        <p class="why">Lit opening plus one full-strength blade sector, both butter. The light
+        fills the aperture and escapes through a single blade. Boldest of the three.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,9.5 16,3 27.26,9.5 21.63,12.75" fill="#FEF297"/>
+          <polygon points="16,9.5 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,9.5 16,3 27.26,9.5 21.63,12.75" fill="#FEF297"/><polygon points="16,9.5 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,9.2 16,3.4 26.8,9.7 21.4,12.7" fill="#FEF297"/><polygon points="16,10 21.2,13 21.2,19 16,22 10.8,19 10.8,13" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,10 16,4.2 26,9.9 21,12.8" fill="#FEF297"/><polygon points="16,10.5 20.8,13.25 20.8,18.75 16,21.5 11.2,18.75 11.2,13.25" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,9.2 16,3.4 26.8,9.7 21.4,12.7" fill="#FEF297"/><polygon points="16,10 21.2,13 21.2,19 16,22 10.8,19 10.8,13" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,10 16,4.2 26,9.9 21,12.8" fill="#FEF297"/><polygon points="16,10.5 20.8,13.25 20.8,18.75 16,21.5 11.2,18.75 11.2,13.25" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+    <!-- F2 · SPILL -->
+    <div class="card">
+      <div>
+        <p class="name">F2 · Spill</p>
+        <p class="why">Same shapes, but the blade drops to <code>butter-mute</code> so the opening
+        stays the brightest thing. Obeys rule 1 — nothing outranks the light.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,9.5 16,3 27.26,9.5 21.63,12.75" fill="#8A8050"/>
+          <polygon points="16,9.5 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,9.5 16,3 27.26,9.5 21.63,12.75" fill="#8A8050"/><polygon points="16,9.5 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,9.2 16,3.4 26.8,9.7 21.4,12.7" fill="#9A8F5A"/><polygon points="16,10 21.2,13 21.2,19 16,22 10.8,19 10.8,13" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,10 16,4.2 26,9.9 21,12.8" fill="#A89B60"/><polygon points="16,10.5 20.8,13.25 20.8,18.75 16,21.5 11.2,18.75 11.2,13.25" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,9.2 16,3.4 26.8,9.7 21.4,12.7" fill="#9A8F5A"/><polygon points="16,10 21.2,13 21.2,19 16,22 10.8,19 10.8,13" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,10 16,4.2 26,9.9 21,12.8" fill="#A89B60"/><polygon points="16,10.5 20.8,13.25 20.8,18.75 16,21.5 11.2,18.75 11.2,13.25" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+    <!-- F3 · IRIS + BLADE -->
+    <div class="card">
+      <div>
+        <p class="name">F3 · Iris + blade</p>
+        <p class="why">The full mechanism: lit opening, one lit blade, and the other five scored as
+        hairlines. Richest at 48px — the hairlines are what to watch at 16.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <g stroke="#3D3D3D" stroke-width="1.2" stroke-linecap="round">
+            <path d="M21.63 19.25 27.26 22.5"/><path d="M16 22.5 16 29"/>
+            <path d="M10.37 19.25 4.74 22.5"/><path d="M10.37 12.75 4.74 9.5"/>
+            <path d="M16 9.5 16 3"/>
+          </g>
+          <polygon points="16,9.5 16,3 27.26,9.5 21.63,12.75" fill="#FEF297"/>
+          <polygon points="16,9.5 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><g stroke="#3D3D3D" stroke-width="1.4" stroke-linecap="round"><path d="M21.63 19.25 27.26 22.5"/><path d="M16 22.5 16 29"/><path d="M10.37 19.25 4.74 22.5"/><path d="M10.37 12.75 4.74 9.5"/><path d="M16 9.5 16 3"/></g><polygon points="16,9.5 16,3 27.26,9.5 21.63,12.75" fill="#FEF297"/><polygon points="16,9.5 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><g stroke="#565656" stroke-width="1.9" stroke-linecap="round"><path d="M21.2 19 26.8 22.2"/><path d="M16 22 16 28.6"/><path d="M10.8 19 5.2 22.2"/><path d="M10.8 13 5.2 9.8"/></g><polygon points="16,9.2 16,3.4 26.8,9.7 21.4,12.7" fill="#FEF297"/><polygon points="16,10 21.2,13 21.2,19 16,22 10.8,19 10.8,13" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><g stroke="#6B6B6B" stroke-width="2.5" stroke-linecap="round"><path d="M20.8 18.75 26 21.8"/><path d="M16 21.5 16 28"/><path d="M11.2 18.75 6 21.8"/><path d="M11.2 13.25 6 10.2"/></g><polygon points="16,10 16,4.2 26,9.9 21,12.8" fill="#FEF297"/><polygon points="16,10.5 20.8,13.25 20.8,18.75 16,21.5 11.2,18.75 11.2,13.25" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><g stroke="#565656" stroke-width="1.9" stroke-linecap="round"><path d="M21.2 19 26.8 22.2"/><path d="M16 22 16 28.6"/><path d="M10.8 19 5.2 22.2"/><path d="M10.8 13 5.2 9.8"/></g><polygon points="16,9.2 16,3.4 26.8,9.7 21.4,12.7" fill="#FEF297"/><polygon points="16,10 21.2,13 21.2,19 16,22 10.8,19 10.8,13" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><g stroke="#6B6B6B" stroke-width="2.5" stroke-linecap="round"><path d="M20.8 18.75 26 21.8"/><path d="M16 21.5 16 28"/><path d="M11.2 18.75 6 21.8"/><path d="M11.2 13.25 6 10.2"/></g><polygon points="16,10 16,4.2 26,9.9 21,12.8" fill="#FEF297"/><polygon points="16,10.5 20.8,13.25 20.8,18.75 16,21.5 11.2,18.75 11.2,13.25" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+  </div>
+
+  <footer>
+    All three keep A’s geometry exactly — point-top hexagon at <code>R=13</code>, opening at
+    <code>r=6.5</code>, body in <code>hair-strong</code>. The only variable is how loudly the one
+    blade is lit. The opening and the blade share an edge, so the light reads as continuous rather
+    than as two separate marks.
+  </footer>
+</div>
+</body>
+</html>

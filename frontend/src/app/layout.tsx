@@ -17,10 +17,19 @@ const mono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+// icon.svg / favicon.ico / apple-icon.png are picked up from this directory by
+// Next's file conventions — they are deliberately not listed here, since
+// declaring `icons` manually would override that and drop the .ico fallback.
 export const metadata = {
   title: "watchparty — best nights in",
   description:
     "Start a room, send one link, press play. Everyone stays on the same frame to the second — no app, no account.",
+  manifest: "/manifest.webmanifest",
+};
+
+// The mark sits on a black ground, so the browser chrome should match it.
+export const viewport = {
+  themeColor: "#000000",
 };
 
 export default function RootLayout({

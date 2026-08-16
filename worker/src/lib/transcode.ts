@@ -2,6 +2,27 @@ import ffmpeg from "fluent-ffmpeg";
 import fs from "fs/promises";
 import path from "path";
 import { s3Manager } from "./manager/S3Manager";
+import type { Variant } from "./manager/redisManager";
+
+/**
+ * Source duration, in milliseconds. Probed before transcoding because the
+ * source file is deleted at the end of it.
+ *
+ * Resolves to null rather than throwing — a missing duration should degrade
+ * the UI, not fail an otherwise good transcode.
+ */
+export const probeDurationMs = (videoPath: string): Promise<number | null> =>
+  new Promise((resolve) => {
+    ffmpeg.ffprobe(videoPath, (error, metadata) => {
+      if (error) {
+        console.log("ffprobe failed:", error);
+        resolve(null);
+        return;
+      }
+      const seconds = metadata?.format?.duration;
+      resolve(typeof seconds === "number" ? Math.round(seconds * 1000) : null);
+    });
+  });
 
 const RESOLUTIONS = [
   { name: "240p", width: 426, height: 240 },
@@ -62,9 +83,20 @@ export const transcodeVideoWithFFmpeg = async (
 export const transcodeVideoToHLS2 = async (
   videoPath: string,
   fileName: string
-) => {
+): Promise<{ durationMs: number | null; variants: Variant[] }> => {
   const fileWithoutExtension = path.parse(fileName).name;
   const outputDir = path.resolve(`transcoded/${fileWithoutExtension}`);
+
+  // Probed up front: the source file is unlinked once the ladder completes.
+  const durationMs = await probeDurationMs(videoPath);
+
+  // Mirrors the master playlist, and is what the API stores on Video.variants
+  // so the client can describe the ladder without fetching the manifest.
+  const variants: Variant[] = RESOLUTIONS_HLS.map((resolution) => ({
+    height: resolution.height,
+    bandwidth: parseInt(resolution.bitrate) * 1000,
+    playlist: `${resolution.name}/playlist_${resolution.name}.m3u8`,
+  }));
 
   try {
     // Create output directory structure
@@ -175,7 +207,7 @@ export const transcodeVideoToHLS2 = async (
     await fs.rm(outputDir, { recursive: true, force: true });
     await fs.unlink(videoPath);
 
-    return true;
+    return { durationMs, variants };
   } catch (error) {
     console.log("HLS transcoding failed:", error);
 

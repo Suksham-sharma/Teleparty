@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { Mark } from "./mark";
 
 /**
- * The mark is a lit filament beside the name — the accent's whole rationale.
- * See docs/DESIGN.md §6.
+ * The mark is an aperture with one blade lit — the accent as the light coming
+ * through a mechanism. See docs/DESIGN.md §6.
  */
 export function Wordmark({ href = "/" }: { href?: string }) {
   return (
@@ -10,7 +11,7 @@ export function Wordmark({ href = "/" }: { href?: string }) {
       href={href}
       className="inline-flex items-center gap-2.5 text-lg font-semibold tracking-tight text-white"
     >
-      <span className="h-2 w-2 shrink-0 rounded-full bg-butter" />
+      <Mark size={22} className="shrink-0" />
       watchparty
     </Link>
   );

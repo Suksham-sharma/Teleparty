@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>watchparty — aperture, reversed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#000; --coal:#0D0D0D; --card:#1B1B1B; --card-2:#262626;
+    --hair:#2E2E2E; --hair-strong:#3D3D3D;
+    --butter:#FEF297; --butter-deep:#E8D96F; --butter-mute:#8A8050;
+    --white:#fff; --ash:#EDEDED; --grey:#A3A3A3; --grey-dim:#8A8A8A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--black);color:var(--ash);
+    font-family:Outfit,system-ui,sans-serif;font-weight:300;padding:52px 40px 90px}
+  .shell{max-width:1320px;margin:0 auto}
+  .eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:.13em;color:var(--butter-mute);margin:0 0 14px}
+  h1{font-weight:200;font-size:40px;letter-spacing:-.035em;color:var(--white);margin:0 0 10px}
+  h1 b{font-weight:700;color:var(--butter)}
+  .lede{color:var(--grey);font-size:16px;max-width:66ch;margin:0 0 44px;line-height:1.55}
+  .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(275px,1fr))}
+  .card{background:var(--card);border-radius:16px;padding:24px 22px;display:flex;flex-direction:column;gap:20px}
+  .name{font-weight:600;font-size:19px;color:var(--white);letter-spacing:-.015em;margin:0 0 6px}
+  .why{color:var(--grey);font-size:14.5px;line-height:1.55;margin:0;min-height:92px}
+  .hero{display:flex;align-items:center;justify-content:center;background:var(--coal);border-radius:12px;padding:22px 0}
+  .sizes{display:flex;align-items:flex-end;gap:22px}
+  .size{display:flex;flex-direction:column;align-items:center;gap:9px}
+  .size span{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--grey-dim)}
+  .lockup{display:flex;align-items:center;gap:10px}
+  .lockup .wm{font-weight:600;font-size:20px;color:var(--white);letter-spacing:-.02em}
+  .tab{display:inline-flex;align-items:center;gap:7px;background:var(--card-2);
+    border-radius:8px 8px 0 0;padding:8px 14px 8px 11px;font-size:12px;color:var(--grey)}
+  footer{margin-top:52px;color:var(--grey-dim);font-size:14.5px;line-height:1.6}
+  code{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--butter-deep);font-size:13.5px}
+</style>
+</head>
+<body>
+<div class="shell">
+  <p class="eyebrow">Identity · round 5 · reversed</p>
+  <h1>Only the <b>cut</b> is lit.</h1>
+  <p class="lede">
+    C1 inverted: the opening is empty and the wedge that was removed is now the one lit thing.
+    A sixth of the mark carries all the colour, so the variable that matters is how big that wedge
+    is — too faithful to C1 and it disappears in the tab. Sizes rise left to right.
+  </p>
+
+  <div class="grid">
+
+    <!-- R1 -->
+    <div class="card">
+      <div>
+        <p class="name">R1 · Exact reverse</p>
+        <p class="why">C1’s geometry untouched — wedge at <code>r=6.5</code>. Truest to what you
+        asked for, and the most minimal. Watch it recede at 16.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,16 16,9.5 21.63,12.75" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,16 16,9.5 21.63,12.75" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,9.5 21.63,12.75" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16 16,9.5 21.63,12.75" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,9.5 21.63,12.75" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16 16,9.5 21.63,12.75" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+    <!-- R2 -->
+    <div class="card">
+      <div>
+        <p class="name">R2 · Reverse, sized up</p>
+        <p class="why">Same shape, wedge grown to <code>r=9</code> so it holds its own against the
+        body. Balanced — my pick of the four.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,16 16,7 23.79,11.5" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,6.8 23.95,11.4" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16.4 16,6.6 24.2,11.3" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,6.8 23.95,11.4" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16.4 16,6.6 24.2,11.3" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+    <!-- R3 -->
+    <div class="card">
+      <div>
+        <p class="name">R3 · Reverse + opening</p>
+        <p class="why">The lit wedge, with the aperture it belongs to scored as a hairline hexagon.
+        You can read the opening it was cut from — richest, and busiest.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,7 23.79,11.5 23.79,20.5 16,25 8.21,20.5 8.21,11.5" stroke="#3D3D3D" stroke-width="1.2" stroke-linejoin="round"/>
+          <polygon points="16,16 16,7 23.79,11.5" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,7 23.79,11.5 23.79,20.5 16,25 8.21,20.5 8.21,11.5" stroke="#3D3D3D" stroke-width="1.4" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,7 23.79,11.5 23.79,20.5 16,25 8.21,20.5 8.21,11.5" stroke="#4A4A4A" stroke-width="1.8" stroke-linejoin="round"/><polygon points="16,16 16,6.8 23.95,11.4" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,7 23.79,11.5 23.79,20.5 16,25 8.21,20.5 8.21,11.5" stroke="#4A4A4A" stroke-width="2.2" stroke-linejoin="round"/><polygon points="16,16.4 16,6.6 24.2,11.3" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,7 23.79,11.5 23.79,20.5 16,25 8.21,20.5 8.21,11.5" stroke="#4A4A4A" stroke-width="1.8" stroke-linejoin="round"/><polygon points="16,16 16,6.8 23.95,11.4" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,7 23.79,11.5 23.79,20.5 16,25 8.21,20.5 8.21,11.5" stroke="#4A4A4A" stroke-width="2.2" stroke-linejoin="round"/><polygon points="16,16.4 16,6.6 24.2,11.3" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+    <!-- R4 -->
+    <div class="card">
+      <div>
+        <p class="name">R4 · Reverse, full depth</p>
+        <p class="why">Wedge run all the way from centre to the outer edge. This is round 1’s
+        original blade — included so you can see exactly what the reverse changed.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,16 16,3 27.26,9.5" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,16 16,3 27.26,9.5" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,3.4 26.9,9.6" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16 16,4 26.2,9.9" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,3.4 26.9,9.6" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16 16,4 26.2,9.9" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+  </div>
+
+  <p class="eyebrow" style="margin-top:56px">The play problem</p>
+  <h1 style="font-size:26px;margin-bottom:8px">Same wedge, <b>turned.</b></h1>
+  <p class="lede" style="margin-bottom:28px">
+    Apex at centre opening to the upper-right is the play glyph — “play” is always rightward, so
+    R2 reads as a control before it reads as an aperture. Rotating the wedge keeps the mark and
+    drops the association. All four below are R2 exactly, rotated about centre.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <p class="name" style="margin:0">0° — up-right</p>
+      <p class="why" style="min-height:0">Reads as play.</p>
+      <div class="hero">
+        <svg width="96" height="96" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297"/></svg>
+      </div>
+      <div class="sizes"><div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297"/></svg><span>24</span></div><div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16.4 16,6.6 24.2,11.3" fill="#FEF297"/></svg><span>16</span></div></div>
+    </div>
+
+    <div class="card">
+      <p class="name" style="margin:0">−60° — straight up</p>
+      <p class="why" style="min-height:0">Symmetrical about the vertical. Calmest, most heraldic.</p>
+      <div class="hero">
+        <svg width="96" height="96" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297" transform="rotate(-60 16 16)"/></svg>
+      </div>
+      <div class="sizes"><div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297" transform="rotate(-60 16 16)"/></svg><span>24</span></div><div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16.4 16,6.6 24.2,11.3" fill="#FEF297" transform="rotate(-60 16 16)"/></svg><span>16</span></div></div>
+    </div>
+
+    <div class="card">
+      <p class="name" style="margin:0">180° — down-left</p>
+      <p class="why" style="min-height:0">Points away from the wordmark it sits beside. Quietest.</p>
+      <div class="hero">
+        <svg width="96" height="96" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297" transform="rotate(180 16 16)"/></svg>
+      </div>
+      <div class="sizes"><div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297" transform="rotate(180 16 16)"/></svg><span>24</span></div><div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16.4 16,6.6 24.2,11.3" fill="#FEF297" transform="rotate(180 16 16)"/></svg><span>16</span></div></div>
+    </div>
+
+    <div class="card">
+      <p class="name" style="margin:0">120° — down-right</p>
+      <p class="why" style="min-height:0">Diagonal without the rightward arrow read. Most dynamic.</p>
+      <div class="hero">
+        <svg width="96" height="96" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297" transform="rotate(120 16 16)"/></svg>
+      </div>
+      <div class="sizes"><div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 16,7 23.79,11.5" fill="#FEF297" transform="rotate(120 16 16)"/></svg><span>24</span></div><div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16.4 16,6.6 24.2,11.3" fill="#FEF297" transform="rotate(120 16 16)"/></svg><span>16</span></div></div>
+    </div>
+  </div>
+
+  <footer>
+    With only a sixth of the mark carrying colour, the wedge apex sits exactly on centre in all
+    four — so the eye still finds a middle even though nothing is drawn there. R1 and R2 differ
+    only in wedge radius (<code>6.5</code> vs <code>9</code>); everything else is identical.
+  </footer>
+</div>
+</body>
+</html>

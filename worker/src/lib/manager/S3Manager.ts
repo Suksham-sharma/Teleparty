@@ -65,7 +65,7 @@ class S3Manager {
 
     const originalVideoPath = path.resolve(originalPath);
     console.log("File downloaded successfully");
-    await transcodeVideoToHLS2(originalVideoPath, path.basename(key));
+    return transcodeVideoToHLS2(originalVideoPath, path.basename(key));
   }
 
   async uploadTranscodeVideoToS3(key: string) {

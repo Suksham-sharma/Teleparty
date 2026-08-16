@@ -199,9 +199,30 @@ pub/sub and moving `RoomManager` state into Redis hashes. Tracked in Phase 5.
 - [x] ~~Cinema Programme tokens~~ → **"Bulb"** tokens in `globals.css` + `tailwind.config.ts`
 - [x] Fonts wired (Outfit + JetBrains Mono; Inter and Instrument Serif dropped)
 - [x] `Room` / `RoomMember` / `Message` / `QueueItem` schema + `VideoStatus` on `Video`
-- [x] Migration authored: `20260815000000_rooms_and_video_status`
-      — **not yet applied**: the `DATABASE_URL` in `backend/.env` fails auth against the
-      local Postgres (P1000). Fix the credentials, then `npx prisma migrate deploy`.
+- [x] Migration authored **and applied**: `20260815000000_rooms_and_video_status`.
+      `npx prisma migrate status` reports 13 migrations, schema up to date.
+
+      This entry previously said "not yet applied" because of a P1000 auth failure. That
+      diagnosis was wrong and cost real time, so it is worth recording accurately: the
+      migration had been applied all along, to a container that was simply stopped. The
+      failure was a **port collision**, not bad credentials.
+
+      - `collabyt-postgres` was created mapped to host port **5434**; while it was down,
+        another project's `meet-bot-ai-postgres-1` took 5434, and `crashpad-postgres`
+        took 5432.
+      - `backend/.env` pointed at `postgres@localhost:5432` with **no database name** —
+        wrong user, wrong port, wrong server. It never matched the container even when
+        that container was running.
+      - `docker ps` hides stopped containers, so the database looked absent entirely.
+        Use `docker ps -a`.
+
+      Now: **`collabyt-db` on port 5435**, attached to the original data volume, with
+      `DATABASE_URL=postgresql://collabyt:***@localhost:5435/collabyt`. The old
+      `collabyt-postgres` container is stopped and redundant; it can be removed with
+      `docker rm collabyt-postgres` (**without** `-v` — the volume is the live one).
+
+      This will break again on every Docker restart, because the port mapping is baked
+      into the container. Docker Compose (Phase 5) is the real fix.
 - [x] Signup returned `{ userId }` while the client read `data.user`, so every new account
       landed with `isAuthenticated: true` and `user: undefined` and could never open a
       stream. `/signup` now returns the same `{ access_token, user }` shape as `/login`.
@@ -273,6 +294,45 @@ Known gap, deliberately not fixed here:
   signed-in member to co-host — `requireController` accepts COHOST). Closing it properly
   is a product decision; see Phase 2.
 
+### Phase 1.6 — Auth page + identity `[x]`
+
+- [x] **`/auth` given a second column.** It had the join gate's skeleton with half its
+      content — the gate fills its upper half with the room you're walking into, and auth
+      had a heading and one paragraph, so two thirds of a desktop viewport was dead. The
+      lamp (`_components/lamp.tsx`) fills it. Not a decorative illustration, which
+      `DESIGN.md` §5 rule 6 rules out: it is the system's own metaphor, `aria-hidden`,
+      and dropped entirely below `lg`.
+      - `mix-blend-screen` is load-bearing. The source is an opaque rectangle on pure
+        black; under `screen` black contributes nothing, so it composites onto `Ambient`
+        with no visible edge. The asset must stay true `#000000` or the whole rectangle
+        greys up.
+      - `unoptimized` is also load-bearing: at 1023px the source is smaller than anything
+        `next/image` would emit, and letting the optimizer upscale it toward `w=3840`
+        blocked the single-threaded dev image queue for minutes at a time.
+- [x] Form restyled — 44px controls, not the join gate's 52px. Three stacked pills at
+      52px matched the submit button exactly and left the form with no hierarchy.
+- [x] Password reveal hit target 17×17 → 36×36 (WCAG 2.5.8 wants ≥24×24).
+- [x] **The mark.** The butter dot became an aperture with one blade lit
+      (`_components/mark.tsx`), plus `icon.svg` / `favicon.ico` / `apple-icon.png` /
+      `manifest.webmanifest`. See `DESIGN.md` §6 for the tier rule and why favicons carry
+      their own black ground.
+
+Known gaps, deliberately not fixed here:
+
+- **Input borders fail WCAG 1.4.11.** `hair-strong` is 1.93:1 on black and the `card`
+  fill is 1.22:1 — both under the 3:1 non-text threshold, so a field's boundary is not
+  reliably perceivable. This is system-wide (join gate, chat composer), not an auth bug.
+  Passing needs a border around **`#595959`**, a gap in the palette between `hair-strong`
+  (`#3D3D3D`) and `grey-dim` (`#8A8A8A`).
+- `Upload Files` in `video-upload.tsx` is Title Case; every other action in the app is
+  sentence case.
+
+Worth knowing, because it will bite again: **`pnpm build` and `pnpm dev` share `.next/`.**
+Running a build to check types while the dev server is up silently breaks the running
+server — `main-app.js` starts 404ing, React never hydrates, and it presents as "the UI
+stopped responding to clicks", which looks nothing like the cause. Kill the dev server,
+`rm -rf .next`, restart.
+
 ### Phase 2 — Room UX (Tier 1) `[~]`
 - [x] Catch-up snapshot on join (position + play state + last 50 messages)
 - [x] Presence rail with named avatars
@@ -300,7 +360,36 @@ Known gap, deliberately not fixed here:
 - [ ] Audio ducking
 
 ### Phase 4 — Pipeline (Tier 2)
-- [ ] Close the transcode loop: worker publishes completion → `Video.status`/`variants`/`durationMs`
+- [x] **Transcode loop closed.** The worker now reports completion on a third Redis list,
+      `video-status`, and the API is the only writer of `Video.status`:
+
+      ```
+      worker ──LPUSH "video-status"──► backend consumer ──► Video row
+              TRANSCODING → READY {durationMs, variants} | FAILED {failureReason}
+      ```
+
+      - `publishDataToServer()` implemented (was an empty stub). Emits TRANSCODING on
+        pickup, READY with `durationMs` + `variants` on success, FAILED with the reason
+        on any throw — so a row is never abandoned mid-flight.
+      - `durationMs` comes from `ffprobe`, run *before* transcoding because the source
+        file is unlinked at the end of it. Resolves `null` rather than throwing: a missing
+        duration degrades the UI, it doesn't fail a good transcode.
+      - The consumer (`backend/src/lib/transcodeStatus.ts`) runs on its **own** Redis
+        client. `brPop` blocks its connection, so sharing `redisManager`'s client would
+        stall every `lPush` the API makes, playback sync included.
+      - Malformed JSON and updates for deleted rows are logged and skipped; the loop
+        keeps running. Verified by pushing both through it.
+      - `/library` shows Queued / Encoding / Failed / ready-with-duration, and polls
+        `router.refresh()` every 4s **only while something is in flight**.
+
+      Fixed alongside: `POST /videos/upload` enqueued the job *before* creating the row,
+      so TRANSCODING could arrive before the row existed. And the worker's consume loop
+      did not `await` its handler — jobs overlapped on a CPU-bound ffmpeg, and rejections
+      surfaced as unhandled promises instead of a FAILED status.
+
+      Not done here: `Video.video_urls` is still written as `[]` and playback URLs are
+      still derived by convention (`<CDN>/transcoded/<videoId>/master.m3u8`). `variants`
+      now describes the ladder, but nothing consumes it yet.
 - [ ] ffmpeg `-progress` → Redis → live upload progress
 - [ ] Auto thumbnail + ffprobe duration
 - [ ] Sprite sheet + WebVTT scrub previews (Plyr `previewThumbnails`)

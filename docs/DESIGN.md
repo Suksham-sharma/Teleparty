@@ -134,6 +134,23 @@ Both must be disabled under `prefers-reduced-motion: reduce`. This supersedes
 
 ## 6. Component patterns
 
+**The mark.** An aperture with one blade lit: a hairline hexagonal body, the opening left
+empty, and the single blade that would have been cut out of it filled with the accent. The
+wedge's apex sits exactly on centre, so the eye finds a middle even though nothing is drawn
+there. It replaces the butter dot that stood in for a logo.
+
+Drawn in `_components/mark.tsx` on a `0 0 32 32` grid at three tiers, chosen by rendered
+size — **these are optical corrections, not a scale.** A 1.7px hairline vanishes at 16px, so
+the small tiers *thicken and lighten* the body and open the wedge rather than scaling the
+large one down. The tier greys (`#565656`, `#6B6B6B`) are deliberately **not** palette
+tokens; they exist only to keep one shape legible across sizes and must not be used in UI.
+
+Favicons carry a **black rounded-square ground**, which the header mark does not. This is
+load-bearing: `butter` is 18.4:1 on black but near-invisible on the white tab bar of a
+light-mode browser, so the icon supplies its own dark ground. `icon.svg`, `favicon.ico`
+(16/32/48) and `apple-icon.png` are each drawn at their own size for the same reason — at
+16px a scaled hexagon rounds off into a circle. Sources are in `docs/mockups/`.
+
 **Button.** Primary is a `butter` fill with black text, pill, 600 weight. Secondary is
 a `hair-strong` outline that fills to `card` on hover. Never two primaries in a view.
 
@@ -181,7 +198,15 @@ rather than showing a zero state.
 
 Neither is a card on a slab. Both put the thing you are walking into first — the
 room's code, title and who is already sitting there; or a plain statement that an
-account is optional — with the input as one line across the bottom of that.
+account is optional — with the input beneath it.
+
+They diverge in one place. The gate fills its upper half with real content — the code,
+the live dot, who is already there — and auth has nothing equivalent to say, so the
+column alone left a desktop viewport two thirds empty. Auth therefore runs two columns
+above `lg`: the doorway on the left, and the lamp (`_components/lamp.tsx`) on the right.
+The lamp is atmosphere on the ambient layer, not a second column of content — it is
+`aria-hidden`, blended, and dropped entirely on narrow screens, where the two screens
+become identical again.
 
 Behind both sits `Ambient` (`app/_components/ambient.tsx`): the still at 22%
 opacity, blurred 3px and biased left, under a heavy radial that pulls the centre to

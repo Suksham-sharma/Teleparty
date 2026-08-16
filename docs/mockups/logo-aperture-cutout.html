@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>watchparty — aperture, cut</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --black:#000; --coal:#0D0D0D; --card:#1B1B1B; --card-2:#262626;
+    --hair:#2E2E2E; --hair-strong:#3D3D3D;
+    --butter:#FEF297; --butter-deep:#E8D96F; --butter-mute:#8A8050;
+    --white:#fff; --ash:#EDEDED; --grey:#A3A3A3; --grey-dim:#8A8A8A;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--black);color:var(--ash);
+    font-family:Outfit,system-ui,sans-serif;font-weight:300;padding:52px 40px 90px}
+  .shell{max-width:1320px;margin:0 auto}
+  .eyebrow{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;
+    text-transform:uppercase;letter-spacing:.13em;color:var(--butter-mute);margin:0 0 14px}
+  h1{font-weight:200;font-size:40px;letter-spacing:-.035em;color:var(--white);margin:0 0 10px}
+  h1 b{font-weight:700;color:var(--butter)}
+  .lede{color:var(--grey);font-size:16px;max-width:66ch;margin:0 0 44px;line-height:1.55}
+  .grid{display:grid;gap:20px;grid-template-columns:repeat(auto-fit,minmax(275px,1fr))}
+  .card{background:var(--card);border-radius:16px;padding:24px 22px;display:flex;flex-direction:column;gap:20px}
+  .name{font-weight:600;font-size:19px;color:var(--white);letter-spacing:-.015em;margin:0 0 6px}
+  .why{color:var(--grey);font-size:14.5px;line-height:1.55;margin:0;min-height:92px}
+  .hero{display:flex;align-items:center;justify-content:center;background:var(--coal);border-radius:12px;padding:22px 0}
+  .sizes{display:flex;align-items:flex-end;gap:22px}
+  .size{display:flex;flex-direction:column;align-items:center;gap:9px}
+  .size span{font-family:"JetBrains Mono",ui-monospace,monospace;font-size:11px;color:var(--grey-dim)}
+  .lockup{display:flex;align-items:center;gap:10px}
+  .lockup .wm{font-weight:600;font-size:20px;color:var(--white);letter-spacing:-.02em}
+  .tab{display:inline-flex;align-items:center;gap:7px;background:var(--card-2);
+    border-radius:8px 8px 0 0;padding:8px 14px 8px 11px;font-size:12px;color:var(--grey)}
+  footer{margin-top:52px;color:var(--grey-dim);font-size:14.5px;line-height:1.6}
+  code{font-family:"JetBrains Mono",ui-monospace,monospace;color:var(--butter-deep);font-size:13.5px}
+  .note{color:var(--butter-mute);font-size:13.5px;margin:6px 0 0}
+</style>
+</head>
+<body>
+<div class="shell">
+  <p class="eyebrow">Identity · round 4 · cut</p>
+  <h1>The blade, <b>cut out.</b></h1>
+  <p class="lede">
+    Same body and opening as A. But the blade is now removed from the light rather than added
+    beside it — which is what a real iris does: the blade swings <em style="font-style:normal;color:var(--ash)">in</em>
+    over the aperture. Every cut is a true <code>fill-rule="evenodd"</code> hole, so it stays
+    transparent on any ground instead of being a black shape painted on top.
+  </p>
+
+  <div class="grid">
+
+    <!-- C1 · NOTCH -->
+    <div class="card">
+      <div>
+        <p class="name">C1 · Notch</p>
+        <p class="why">One full 60° blade removed from the opening, centre outward. The cleanest
+        read — a hexagon of light with a bite taken out of it. Survives smallest.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,16 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75 16,9.5" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,16 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75 16,9.5" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 21.6,12.8 21.6,19.2 16,22.4 10.4,19.2 10.4,12.8 16,9.6" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16 21.4,12.9 21.4,19.1 16,22.2 10.6,19.1 10.6,12.9 16,9.8" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,16 21.6,12.8 21.6,19.2 16,22.4 10.4,19.2 10.4,12.8 16,9.6" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,16 21.4,12.9 21.4,19.1 16,22.2 10.6,19.1 10.6,12.9 16,9.8" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+    <!-- C2 · SLOT -->
+    <div class="card">
+      <div>
+        <p class="name">C2 · Slot</p>
+        <p class="why">A narrow beam cut through the light instead of a whole blade. Keeps the
+        hexagon of the opening fully intact — the cut is a line of shadow across it.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <path fill-rule="evenodd" fill="#FEF297"
+            d="M16 9.5 21.63 12.75 21.63 19.25 16 22.5 10.37 19.25 10.37 12.75Z
+               M16 16.4 19.35 10.6 18.05 9.85 15.1 15Z"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><path fill-rule="evenodd" fill="#FEF297" d="M16 9.5 21.63 12.75 21.63 19.25 16 22.5 10.37 19.25 10.37 12.75Z M16 16.4 19.35 10.6 18.05 9.85 15.1 15Z"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><path fill-rule="evenodd" fill="#FEF297" d="M16 9.5 21.63 12.75 21.63 19.25 16 22.5 10.37 19.25 10.37 12.75Z M16.2 16.8 19.7 10.5 17.7 9.4 14.5 15.1Z"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><path fill-rule="evenodd" fill="#FEF297" d="M16 9.5 21.63 12.75 21.63 19.25 16 22.5 10.37 19.25 10.37 12.75Z M16.4 17.2 20.1 10.4 17.3 8.9 13.9 15.2Z"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><path fill-rule="evenodd" fill="#FEF297" d="M16 9.5 21.63 12.75 21.63 19.25 16 22.5 10.37 19.25 10.37 12.75Z M16.2 16.8 19.7 10.5 17.7 9.4 14.5 15.1Z"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><path fill-rule="evenodd" fill="#FEF297" d="M16 9.5 21.63 12.75 21.63 19.25 16 22.5 10.37 19.25 10.37 12.75Z M16.4 17.2 20.1 10.4 17.3 8.9 13.9 15.2Z"/></svg>watchparty</span></div>
+    </div>
+
+    <!-- C3 · SWING -->
+    <div class="card">
+      <div>
+        <p class="name">C3 · Swing</p>
+        <p class="why">Notch cut from the light, and the blade that made it lit on the body
+        outside — you can see where it went. The most mechanical, and the most “aperture”.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,9.5 16,3 27.26,9.5 21.63,12.75" fill="#8A8050"/>
+          <polygon points="16,16 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75 16,9.5" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,9.5 16,3 27.26,9.5 21.63,12.75" fill="#8A8050"/><polygon points="16,16 21.63,12.75 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75 16,9.5" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,9.3 16,3.4 26.9,9.6 21.5,12.7" fill="#9A8F5A"/><polygon points="16,16 21.6,12.8 21.6,19.2 16,22.4 10.4,19.2 10.4,12.8 16,9.6" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,9.8 16,4.2 26.2,9.9 21.3,12.8" fill="#A89B60"/><polygon points="16,16 21.4,12.9 21.4,19.1 16,22.2 10.6,19.1 10.6,12.9 16,9.8" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,9.3 16,3.4 26.9,9.6 21.5,12.7" fill="#9A8F5A"/><polygon points="16,16 21.6,12.8 21.6,19.2 16,22.4 10.4,19.2 10.4,12.8 16,9.6" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,9.8 16,4.2 26.2,9.9 21.3,12.8" fill="#A89B60"/><polygon points="16,16 21.4,12.9 21.4,19.1 16,22.2 10.6,19.1 10.6,12.9 16,9.8" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+    <!-- C4 · HALF -->
+    <div class="card">
+      <div>
+        <p class="name">C4 · Half</p>
+        <p class="why">The cut taken all the way across — two blades removed, leaving a clean
+        chevron of light. Most graphic, least literal. Reads instantly at any size.</p>
+      </div>
+      <div class="hero">
+        <svg width="112" height="112" viewBox="0 0 32 32" fill="none">
+          <polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.7" stroke-linejoin="round"/>
+          <polygon points="16,9.5 21.63,12.75 16,16 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/>
+        </svg>
+      </div>
+      <div class="sizes">
+        <div class="size"><svg width="48" height="48" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#3D3D3D" stroke-width="1.9" stroke-linejoin="round"/><polygon points="16,9.5 21.63,12.75 16,16 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/></svg><span>48</span></div>
+        <div class="size"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,9.5 21.63,12.75 16,16 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/></svg><span>24</span></div>
+        <div class="size"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,9.5 21.63,12.75 16.4,16 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/></svg><span>16</span></div>
+      </div>
+      <div class="lockup">
+        <svg width="22" height="22" viewBox="0 0 32 32" fill="none"><polygon points="16,3 27.26,9.5 27.26,22.5 16,29 4.74,22.5 4.74,9.5" stroke="#565656" stroke-width="2.4" stroke-linejoin="round"/><polygon points="16,9.5 21.63,12.75 16,16 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/></svg>
+        <span class="wm">watchparty</span>
+      </div>
+      <div><span class="tab"><svg width="16" height="16" viewBox="0 0 32 32" fill="none"><polygon points="16,3.5 26.8,9.75 26.8,22.25 16,28.5 5.2,22.25 5.2,9.75" stroke="#6B6B6B" stroke-width="3" stroke-linejoin="round"/><polygon points="16,9.5 21.63,12.75 16.4,16 21.63,19.25 16,22.5 10.37,19.25 10.37,12.75" fill="#FEF297"/></svg>watchparty</span></div>
+    </div>
+
+  </div>
+
+  <footer>
+    Cuts widen slightly as the size drops — a 60° notch that is crisp at 48px starts to close at
+    16px, so the small variants open it up rather than scaling it down. Same trick as the stroke
+    weights.
+  </footer>
+</div>
+</body>
+</html>
