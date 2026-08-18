@@ -25,6 +25,12 @@ export type WsQueueMessage =
       kind: "room";
       roomId: string;
       type: "room:ended" | "queue:updated" | "room:roles-updated";
+    }
+  | {
+      kind: "member";
+      roomId: string;
+      memberId: string;
+      type: "room:member-removed";
     };
 
 export const WS_QUEUE_KEY = "video-Data";
@@ -100,6 +106,10 @@ class RedisManager {
     data: Omit<Extract<WsQueueMessage, { kind: "room" }>, "kind">
   ) => {
     await this.push({ kind: "room", ...data });
+  };
+
+  sendMemberRemoved = async (data: { roomId: string; memberId: string }) => {
+    await this.push({ kind: "member", type: "room:member-removed", ...data });
   };
 
   private push = async (message: WsQueueMessage) => {

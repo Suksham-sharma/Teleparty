@@ -159,6 +159,7 @@ model RoomMember {
   lastSeenAt DateTime @updatedAt
 
   controlRequestedAt DateTime?
+  removedAt          DateTime?
 
   messages Message[]
 

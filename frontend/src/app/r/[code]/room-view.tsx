@@ -10,7 +10,7 @@ import type { Membership, Room } from "@/services/types";
 import { JoinGate } from "./join-gate";
 import { RoomStage } from "./room-stage";
 
-type Phase = "loading" | "gate" | "in" | "missing" | "ended";
+type Phase = "loading" | "gate" | "in" | "missing" | "ended" | "removed";
 
 export function RoomView({ code }: { code: string }) {
   const { user } = useAuthStore();
@@ -106,6 +106,23 @@ export function RoomView({ code }: { code: string }) {
     );
   }
 
+  if (phase === "removed") {
+    return (
+      <Centered>
+        <h1 className="text-lg font-semibold">You left this party</h1>
+        <p className="mt-3 text-base text-grey">
+          The host removed you from {room?.title ?? "the room"}.
+        </p>
+        <Link
+          href="/"
+          className="mt-6 inline-block text-base text-butter underline underline-offset-4"
+        >
+          Start your own
+        </Link>
+      </Centered>
+    );
+  }
+
   if (phase === "gate" || !room || !membership) {
     return <JoinGate room={room} code={code} onJoin={handleJoin} />;
   }
@@ -123,6 +140,7 @@ export function RoomView({ code }: { code: string }) {
       displayName={displayName}
       onRoomChange={setRoom}
       onRoomEnded={() => setPhase("ended")}
+      onRemoved={() => setPhase("removed")}
     />
   );
 }

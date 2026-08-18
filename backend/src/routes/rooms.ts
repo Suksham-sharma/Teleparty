@@ -147,6 +147,11 @@ roomsRouter.post("/:code/join", async (req: Request, res: Response) => {
     const identity = req.identity!;
     const existing = findMembership(room.members, identity);
 
+    if (existing?.removedAt) {
+      res.status(403).json({ error: "You were removed from this room." });
+      return;
+    }
+
     if (existing) {
       const member =
         identity.kind === "guest" && payload.data.displayName
@@ -530,6 +535,58 @@ roomsRouter.delete(
     } catch (error) {
       console.error("Error clearing a control request:", error);
       res.status(500).json({ error: "Could not answer that request." });
+    }
+  }
+);
+
+roomsRouter.delete(
+  "/:code/members/:memberId",
+  async (req: Request, res: Response) => {
+    try {
+      const guard = await requireHost(req.params.code, req.identity!);
+      if ("error" in guard) {
+        res.status(guard.status).json({ error: guard.error });
+        return;
+      }
+
+      const { memberId } = req.params;
+
+      if (memberId === guard.membership.id) {
+        res.status(400).json({ error: "The host cannot remove themselves." });
+        return;
+      }
+
+      const removed = await prismaClient.roomMember.updateMany({
+        where: { id: memberId, roomId: guard.room.id, removedAt: null },
+        data: {
+          removedAt: new Date(),
+          role: Role.VIEWER,
+          controlRequestedAt: null,
+        },
+      });
+
+      if (removed.count === 0) {
+        res.status(404).json({ error: "Member not found." });
+        return;
+      }
+
+      await prismaClient.queueItem.deleteMany({
+        where: {
+          roomId: guard.room.id,
+          addedBy: memberId,
+          status: QueueStatus.SUGGESTED,
+        },
+      });
+
+      redisManager.sendMemberRemoved({
+        roomId: guard.room.code,
+        memberId,
+      });
+
+      res.status(200).json({ message: "Removed." });
+    } catch (error) {
+      console.error("Error removing a member:", error);
+      res.status(500).json({ error: "Could not remove them." });
     }
   }
 );

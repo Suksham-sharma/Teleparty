@@ -67,6 +67,7 @@ interface UseRoomSocket {
   reactions: { id: string; emoji: string; name: string }[];
   roomRevision: number;
   hasEnded: boolean;
+  wasRemoved: boolean;
   sendChat: (body: string) => void;
   sendReaction: (emoji: string) => void;
 }
@@ -96,6 +97,7 @@ export function useRoomSocket(
   >([]);
   const [roomRevision, setRoomRevision] = useState(0);
   const [hasEnded, setHasEnded] = useState(false);
+  const [wasRemoved, setWasRemoved] = useState(false);
 
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -175,6 +177,10 @@ export function useRoomSocket(
 
         case "room:ended":
           setHasEnded(true);
+          break;
+
+        case "room:removed":
+          setWasRemoved(true);
           break;
 
         case "room:presence":
@@ -257,6 +263,7 @@ export function useRoomSocket(
     reactions,
     roomRevision,
     hasEnded,
+    wasRemoved,
     sendChat,
     sendReaction,
   };

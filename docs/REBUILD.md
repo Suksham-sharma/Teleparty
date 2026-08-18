@@ -651,6 +651,31 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
       DRM (Netflix, Prime). YouTube's own title bar and "Watch on YouTube" button
       appear on a paused embed; that is their branding requirement, not a bug to fix.
 
+- [x] **The host can remove someone.**
+
+      `DELETE /rooms/:code/members/:memberId`, host only, and the host cannot
+      remove themselves. **The membership row is kept and stamped `removedAt`
+      rather than deleted** — `Message.memberId` points at it, and chat should not
+      lose its attribution because someone was shown the door. Removal also clears
+      any pending control request, demotes them, and deletes their pending
+      suggestions, so nothing of theirs is left waiting for an answer.
+
+      Removing has to reach the socket or it means nothing: a viewer whose row is
+      marked but whose connection survives keeps receiving the whole broadcast. The
+      API pushes a new `member` kind onto `video-Data` — the existing `room` kind
+      has no field for *who* — and `RoomManager.evict` drops that member's sockets
+      from the room, sends them `room:removed`, and re-broadcasts presence. The
+      client turns that into a "you left this party" screen.
+
+      **A removal is only as strong as the identity it is removing.** A guest is a
+      cookie, so the ejected viewer can clear it — or open a private window — and
+      rejoin as a new member. `resolveIdentity` mints a fresh `guestId` and there is
+      nothing to match them against. Verified, not assumed: the same person rejoined
+      seconds after being removed. This is a real gap, not a detail, and the UI is
+      careful not to promise otherwise. Closing it needs an identity a guest cannot
+      re-roll — a room-level invite token, or account-gated rooms — and belongs with
+      the Phase 5 platform work rather than bolted on here.
+
 ### Phase 3 — Video calls
 - [ ] Signaling message types + relay in `handlers.ts`
 - [ ] Mesh peer connections, join/leave lifecycle, 6-peer cap

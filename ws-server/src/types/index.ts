@@ -42,6 +42,12 @@ export type QueueMessage =
       kind: "room";
       roomId: string;
       type: "room:ended" | "queue:updated" | "room:roles-updated";
+    }
+  | {
+      kind: "member";
+      roomId: string;
+      memberId: string;
+      type: "room:member-removed";
     };
 
 /** Messages a client sends us. */

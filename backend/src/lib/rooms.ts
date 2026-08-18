@@ -70,6 +70,8 @@ const guard = async (
 
   const membership = findMembership(room.members, identity);
   if (!membership) return { error: "You are not in this room.", status: 403 };
+  if (membership.removedAt)
+    return { error: "You are no longer in this room.", status: 403 };
   if (!allowed.includes(membership.role))
     return {
       error:
@@ -144,14 +146,16 @@ export const serializeRoom = (room: RoomWithMembers) => ({
   isPlaying: room.isPlaying,
   scheduledFor: room.scheduledFor,
   createdAt: room.createdAt,
-  members: room.members.map((m) => ({
-    id: m.id,
-    role: m.role,
-    name: displayNameOf(m, m.user),
-    userId: m.userId,
-    joinedAt: m.joinedAt,
-    controlRequestedAt: m.controlRequestedAt,
-  })),
+  members: room.members
+    .filter((m) => !m.removedAt)
+    .map((m) => ({
+      id: m.id,
+      role: m.role,
+      name: displayNameOf(m, m.user),
+      userId: m.userId,
+      joinedAt: m.joinedAt,
+      controlRequestedAt: m.controlRequestedAt,
+    })),
   queue: serializeQueue(room, QueueStatus.QUEUED),
   suggestions: serializeQueue(room, QueueStatus.SUGGESTED),
 });

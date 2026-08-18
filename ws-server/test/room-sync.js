@@ -416,6 +416,62 @@ const first = (ws, type) => ws.received.find((m) => m.type === type);
       .error === "No request to answer."
   );
 
+  const kicked = await open(guestMembership.id, "Passerby", "VIEWER");
+  await wait(300);
+  const rosterBefore = last(realHost, "room:presence")?.members?.length ?? 0;
+
+  check(
+    "a viewer cannot remove anyone",
+    typeof del(GUEST_JAR, `/api/rooms/${CODE}/members/${hostMembership.id}`)
+      .error === "string"
+  );
+
+  check(
+    "the host cannot remove themselves",
+    del(JAR, `/api/rooms/${CODE}/members/${hostMembership.id}`).error ===
+      "The host cannot remove themselves."
+  );
+
+  del(JAR, `/api/rooms/${CODE}/members/${guestMembership.id}`);
+  await wait(500);
+
+  check(
+    "a removed member is told they are out",
+    Boolean(first(kicked, "room:removed"))
+  );
+  check(
+    "a removed member leaves the roster",
+    (last(realHost, "room:presence")?.members?.length ?? 0) < rosterBefore
+  );
+  check(
+    "a removed member is gone from the room's members",
+    !get(JAR, `/api/rooms/${CODE}`).room.members.some(
+      (m) => m.id === guestMembership.id
+    )
+  );
+  check(
+    "a removed member cannot rejoin on the same link",
+    post(GUEST_JAR, `/api/rooms/${CODE}/join`, { displayName: "Passerby" })
+      .error === "You were removed from this room."
+  );
+  check(
+    "a removed member cannot act on the room either",
+    typeof post(GUEST_JAR, `/api/rooms/${CODE}/control-request`, {}).error ===
+      "string"
+  );
+  check(
+    "what they said stays in the chat",
+    get(JAR, `/api/rooms/${CODE}/messages`).messages.some(
+      (m) => m.body === "me, one sec"
+    )
+  );
+  check(
+    "removing someone twice is refused",
+    del(JAR, `/api/rooms/${CODE}/members/${guestMembership.id}`).error ===
+      "Member not found."
+  );
+
+  kicked.close();
   realHost.close();
   realGuest.close();
 

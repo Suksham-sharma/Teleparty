@@ -190,6 +190,30 @@ class RoomManager {
     chatQueue.push(code, message);
   }
 
+  private evict(code: string, memberId: string) {
+    const room = this.rooms.get(code);
+    if (!room) return;
+
+    const sockets = Array.from(room.connections.entries())
+      .filter(([, participant]) => participant.memberId === memberId)
+      .map(([socket]) => socket);
+
+    if (sockets.length === 0) return;
+
+    sockets.forEach((socket) => {
+      room.connections.delete(socket);
+      this.send(socket, { type: "room:removed", roomId: code });
+    });
+
+    this.broadcast(code, {
+      type: "room:roles-updated",
+      roomId: code,
+    });
+
+    if (room.connections.size === 0) this.rooms.delete(code);
+    else this.presence(code);
+  }
+
   public broadcastReaction(code: string, ws: WebSocket, emoji: string) {
     const participant = this.rooms.get(code)?.connections.get(ws);
     if (!participant) return;
@@ -212,6 +236,11 @@ class RoomManager {
       if (!this.rooms.has(code)) return;
       this.broadcast(code, { type: message.type, roomId: code });
       if (message.type === "room:ended") this.rooms.delete(code);
+      return;
+    }
+
+    if (message.kind === "member") {
+      this.evict(code, message.memberId);
       return;
     }
 

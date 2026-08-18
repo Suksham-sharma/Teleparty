@@ -3,10 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import axios from "axios";
-import { Check, Hand, Loader2, X } from "lucide-react";
+import { Check, Hand, Loader2, UserMinus, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   clearControlRequest,
+  removeMember,
   requestControl,
   setMemberRole,
 } from "@/services/room";
@@ -44,12 +45,15 @@ export function RoomPeople({
 }) {
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [confirming, setConfirming] = useState<string | null>(null);
 
   const isHost = membership.role === "HOST";
   const canControl = isHost || membership.role === "COHOST";
 
   const me = members.find((member) => member.id === membership.id);
   const asked = Boolean(me?.controlRequestedAt);
+
+  const confirmee = members.find((member) => member.id === confirming) ?? null;
 
   const requests = isHost
     ? members.filter(
@@ -121,6 +125,44 @@ export function RoomPeople({
           </section>
         )}
 
+        {confirmee && (
+          <section>
+            <p className="label-mute mb-2.5">Remove</p>
+            <div className="rounded-lg bg-card-2 p-3">
+              <p className="text-base text-ash">
+                Remove {confirmee.name ?? "them"} from the room?
+              </p>
+              <p className="mt-1 text-base text-grey-dim">
+                They are dropped from the room straight away. What they said
+                stays in the chat.
+              </p>
+              <div className="mt-3 flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  disabled={actingOn === confirmee.id}
+                  onClick={() =>
+                    act(confirmee.id, async () => {
+                      await removeMember(code, confirmee.id);
+                      setConfirming(null);
+                      toast.success(`${confirmee.name ?? "They"} were removed`);
+                    })
+                  }
+                >
+                  Remove
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setConfirming(null)}
+                >
+                  Keep them
+                </Button>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section>
           <p className="label-mute mb-2.5">In the room · {members.length}</p>
           <ul className="space-y-2">
@@ -132,19 +174,28 @@ export function RoomPeople({
                   you={member.id === membership.id}
                 />
                 {isHost && member.id !== membership.id && (
-                  <RoleAction
-                    busy={actingOn === member.id}
-                    member={member}
-                    onClick={() =>
-                      act(member.id, () =>
-                        setMemberRole(
-                          code,
-                          member.id,
-                          member.role === "COHOST" ? "VIEWER" : "COHOST"
+                  <>
+                    <RoleAction
+                      busy={actingOn === member.id}
+                      member={member}
+                      onClick={() =>
+                        act(member.id, () =>
+                          setMemberRole(
+                            code,
+                            member.id,
+                            member.role === "COHOST" ? "VIEWER" : "COHOST"
+                          )
                         )
-                      )
-                    }
-                  />
+                      }
+                    />
+                    <IconButton
+                      label={`Remove ${member.name ?? "them"} from the room`}
+                      busy={actingOn === member.id}
+                      onClick={() => setConfirming(member.id)}
+                    >
+                      <UserMinus className="h-3.5 w-3.5" />
+                    </IconButton>
+                  </>
                 )}
               </li>
             ))}

@@ -39,6 +39,7 @@ export function RoomStage({
   displayName,
   onRoomChange,
   onRoomEnded,
+  onRemoved,
 }: {
   code: string;
   room: Room;
@@ -46,6 +47,7 @@ export function RoomStage({
   displayName: string;
   onRoomChange: (room: Room) => void;
   onRoomEnded: () => void;
+  onRemoved: () => void;
 }) {
   const { user } = useAuthStore();
   const [copied, setCopied] = useState(false);
@@ -60,6 +62,7 @@ export function RoomStage({
     reactions,
     roomRevision,
     hasEnded,
+    wasRemoved,
     sendChat,
     sendReaction,
   } = useRoomSocket(code, membership, displayName);
@@ -73,6 +76,10 @@ export function RoomStage({
   useEffect(() => {
     if (hasEnded) onRoomEnded();
   }, [hasEnded, onRoomEnded]);
+
+  useEffect(() => {
+    if (wasRemoved) onRemoved();
+  }, [wasRemoved, onRemoved]);
 
   const videoId = playback.videoId ?? room.currentVideoId;
   const video = room.currentVideo?.id === videoId ? room.currentVideo : null;

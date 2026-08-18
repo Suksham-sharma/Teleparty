@@ -86,6 +86,10 @@ export const clearControlRequest = async (code: string, memberId: string) => {
   await axiosInstance.delete(`/rooms/${code}/control-request/${memberId}`);
 };
 
+export const removeMember = async (code: string, memberId: string) => {
+  await axiosInstance.delete(`/rooms/${code}/members/${memberId}`);
+};
+
 export const getMessages = async (code: string): Promise<RoomMessage[]> => {
   const { data } = await axiosInstance.get(`/rooms/${code}/messages`);
   return data.messages;
