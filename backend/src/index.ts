@@ -4,6 +4,7 @@ import cors from "cors";
 import { apiRouterV1 } from "./routes";
 import { CORS_ORIGIN, PORT } from "./lib/config";
 import { transcodeStatusConsumer } from "./lib/transcodeStatus";
+import { chatPersistence } from "./lib/chatPersistence";
 
 const app = express();
 app.use(express.json());
@@ -23,3 +24,4 @@ app.listen(PORT, () => {
 // The return leg of the transcode pipeline. Started after listen so a Redis
 // outage delays status updates rather than the whole API.
 void transcodeStatusConsumer.start();
+void chatPersistence.start();

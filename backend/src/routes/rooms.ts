@@ -524,6 +524,14 @@ roomsRouter.get("/:code/messages", async (req: Request, res: Response) => {
       },
       orderBy: { createdAt: "desc" },
       take: limit,
+      select: {
+        id: true,
+        memberId: true,
+        authorLabel: true,
+        body: true,
+        videoTimeMs: true,
+        createdAt: true,
+      },
     });
 
     res.status(200).json({ messages: messages.reverse() });

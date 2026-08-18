@@ -57,6 +57,7 @@ export interface Room {
 
 export interface RoomMessage {
   id: string;
+  memberId: string | null;
   authorLabel: string;
   body: string;
   createdAt: string;

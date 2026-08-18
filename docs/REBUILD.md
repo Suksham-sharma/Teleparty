@@ -350,8 +350,49 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
 - [x] Presence rail with named avatars
 - [x] Synced reactions
 - [x] Co-host grant (`POST /rooms/:code/role`) — UI for it still to come
-- [ ] **Persist chat to Postgres** — the `Message` table exists but the ws-server
-      still keeps only an in-memory ring buffer, so history dies with the room
+- [x] **Chat persisted to Postgres, in batches.**
+
+      The `Message` table existed and nothing wrote to it, so history died with the
+      room — and with the ws-server process, which is worse, because a restart
+      emptied a live room's scrollback.
+
+      **The ws-server still does not talk to Postgres.** It has no Prisma client and
+      should not grow one: the established direction here is worker → Redis list →
+      API, with the API as the single writer of a table, exactly as `video-status`
+      closed the transcode loop. Chat takes the same route on a third list,
+      `chat-persist`, and the API is the only writer of `Message`.
+
+      - **Batched, because chat is the one thing in this app that arrives in bursts.**
+        The consumer blocks on `brPop` for the first line, lingers 500ms, then drains
+        up to 200 more with `rPopCount` and writes them in one `createMany`. A quiet
+        room costs one insert per line; an argument about the film costs one insert
+        for the argument. The 500ms is invisible: readers are served by the socket
+        and the ring buffer, so persistence lag is never on the read path.
+      - `lPush` + `brPop`/`rPopCount` is FIFO — push at the head, pop from the tail —
+        so a burst keeps the order it was said in. Worth stating because reaching for
+        `lPopCount` instead reverses the batch and nothing else in the system would
+        notice.
+      - **Attribution is resolved server-side, per batch, not per message.** The wire
+        payload carries a `memberId`; the API resolves the distinct ids in one
+        `roomMember.findMany` and takes `roomId`, `userId` and the author label from
+        the row. A message whose member does not exist, or whose member belongs to a
+        different room than the code claims, is dropped — persistence is not a second
+        identity system, and the ws-server's join frame is client-supplied.
+      - `Message` gained a nullable `memberId` (`onDelete: SetNull`). Chat renders
+        "You" by comparing `memberId`, so without it every one of your own lines came
+        back from history under your name — visibly a different person from the live
+        ones directly below. Nullable because history should outlive the membership.
+      - Ids are the UUIDs the ws-server already minted for the wire, so the ring
+        buffer and the table agree on identity: the client merges history under live
+        chat by id and the seam is invisible. `createMany` uses `skipDuplicates`, so a
+        redelivered batch cannot double-write.
+      - The room now hydrates from `GET /rooms/:code/messages` on mount, held in state
+        separate from the socket's. Merging them in a `useMemo` rather than writing
+        history into the same array is what makes the fetch and the snapshot
+        order-independent — otherwise whichever landed second won, and on a fast
+        connection that was the snapshot, silently discarding everything older.
+      - Tests: `backend/test/chat-batch.js` — 21 checks on parsing and row-building,
+        no services needed — plus 5 end-to-end checks in `room-sync.js`.
 - [x] **Queue, viewer suggestions, and auto-advance on `ended`.**
 
       `POST /rooms/:code/queue` takes a url or a videoId and the caller's role decides

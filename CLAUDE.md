@@ -21,11 +21,18 @@ cd worker     && pnpm install && pnpm dev   # tsc -b + node dist (needs ffmpeg o
 cd frontend   && pnpm install && pnpm dev   # next dev         → :3000
 ```
 
-End-to-end sync check — 21 checks over the real API, Redis and sockets (needs all of the
+End-to-end sync check — 44 checks over the real API, Redis and sockets (needs all of the
 above running):
 
 ```bash
 cd ws-server && node test/room-sync.js
+```
+
+Chat batching — 21 checks, pure, no services (compiles `src/lib/chatBatch.ts` to a temp
+dir; it imports nothing, which is the point of it being a separate module):
+
+```bash
+cd backend && node test/chat-batch.js
 ```
 
 Pasted-link parsing — 24 checks, pure, no services (compiles `src/lib/videoSource.ts`
@@ -35,7 +42,7 @@ to a temp dir against a stub for Prisma's enum and the CDN host):
 cd backend && node test/video-source.js
 ```
 
-Drift-correction logic — 24 checks, pure, no services or DOM needed (it compiles
+Drift-correction logic — 29 checks, pure, no services or DOM needed (it compiles
 `src/lib/playback-drift.ts` to a temp dir and asserts against it):
 
 ```bash
@@ -74,7 +81,8 @@ Requires locally: PostgreSQL, Redis, ffmpeg, and AWS credentials. Backend env (`
 frontend (Next 15 App Router)
    │  REST  ──────────────► backend :4000  ──► Postgres (Prisma)
    │                            │  LPUSH "video-transcode"  ──► worker ──► S3 ──► CloudFront
-   │                            └─ LPUSH "video-Data" ───────► ws-server
+   │                            │  LPUSH "video-Data" ───────► ws-server
+   │                            └─◄ BRPOP "chat-persist" ──── ws-server
    └─ WebSocket ────────────────────────────────────────────► ws-server :8080
 ```
 
@@ -105,7 +113,7 @@ Consequences worth knowing:
 - **Room fanout state is in-process memory only** (`Map` in `RoomManager`) and the queue is a Redis *list*, not pub/sub, so `video-Data` is consumed by exactly one ws-server instance. Running more than one breaks sync for rooms split across instances. Horizontal scaling requires pub/sub plus room state in Redis (docs/REBUILD.md Phase 5).
 - The durable record lives in Postgres; the in-memory room is rebuilt from the API snapshot when someone returns.
 - **The queue is role-aware.** `POST /rooms/:code/queue` takes a url or a videoId; a host or co-host queues directly, anyone else lands in `SUGGESTED` (capped at 5 pending per member) until a controller approves. The controller's player posts `/next` on `ended` to auto-advance, and the server claims the head with `deleteMany` so racing controllers advance once. Beware: `ended` also fires during player teardown, which happens on every film change — `use-video-player.ts` drops events dispatched after teardown starts, and `VideoPlayer` only advances when the player really is at the end. Without both, one ending drains the whole queue.
-- Chat is still only an in-memory ring buffer of the last 50 messages. The `Message` table exists but nothing writes to it, so history dies with the room.
+- **Chat is persisted, but not by the ws-server.** It keeps its in-memory ring of the last 50 messages for the snapshot and additionally `LPUSH`es each line onto the Redis list `chat-persist`; the backend's `chatPersistence` consumer drains it in batches (blocking pop, 500ms linger, up to 200 per `createMany`) and is the only writer of `Message`. Attribution is resolved server-side from `memberId` — a line whose member is unknown, or belongs to another room than the code claims, is dropped. Ids are the ws-server's own UUIDs, so history and the live ring de-duplicate on id and the room merges them without a seam.
 - The roster is de-duplicated by `memberId`: one person with two tabs is one participant.
 
 ### Upload / transcode pipeline
@@ -164,7 +172,7 @@ Useful context before making changes — these are current facts about the code,
 
 - **The transcode loop is closed** (Phase 4): the worker reports `TRANSCODING`/`READY`/`FAILED` on the `video-status` Redis list and the API is the only writer of `Video.status`. Still open in that pipeline: `Video.video_urls` is written as `[]` and never read, uploaded playback URLs remain a convention (`<CDN>/transcoded/<videoId>/master.m3u8`), and `variants` is written but nothing consumes it.
 - **A pasted link is trusted to be playable.** Nothing fetches it server-side, so a private, region-locked or hotlink-protected URL only fails in the browser; the player surfaces a "can't play this link" frame rather than catching it at paste time. YouTube's own title bar and "Watch on YouTube" button show on a paused embed — their branding requirement, not a bug.
-- Chat is not persisted (see the sync-loop notes above).
+- Chat history is written asynchronously, so a line is durable ~500ms after it is said. Reads never wait on it — the socket and the ring buffer serve the room.
 - `GET /api/videos/feed` is implemented with pagination and a category filter, but nothing calls it — there is no browse surface any more.
 - `POST /api/videos/upload` still requires the caller to have a `Channel`, created best-effort at signup. A user whose channel creation failed can sign in but not upload.
 - Error handling is inconsistent in the older code: several handlers `console.log` and return `false`/`undefined` rather than throwing (e.g. `videosRouter.get("/feed")` has an empty catch). The rooms router is the pattern to follow.

@@ -1,5 +1,6 @@
 import WebSocket from "ws";
 import { randomUUID } from "crypto";
+import { chatQueue } from "./chatQueue";
 import type {
   ChatMessage,
   Participant,
@@ -186,6 +187,7 @@ class RoomManager {
     }
 
     this.broadcast(code, { type: "chat:message", ...message });
+    chatQueue.push(code, message);
   }
 
   public broadcastReaction(code: string, ws: WebSocket, emoji: string) {

@@ -158,6 +158,8 @@ model RoomMember {
   joinedAt   DateTime @default(now())
   lastSeenAt DateTime @updatedAt
 
+  messages Message[]
+
   @@unique([roomId, userId])
   @@unique([roomId, guestId])
   @@index([roomId, role])
@@ -173,6 +175,9 @@ model Message {
   userId      String?
   user        User?   @relation(fields: [userId], references: [id])
 
+  memberId String?
+  member   RoomMember? @relation(fields: [memberId], references: [id], onDelete: SetNull)
+
   body String
 
   // Set when the message is pinned to a moment in the video rather than to
@@ -182,6 +187,7 @@ model Message {
   createdAt DateTime @default(now())
 
   @@index([roomId, createdAt])
+  @@index([memberId])
 }
 
 model QueueItem {

@@ -30,6 +30,7 @@ export type WsQueueMessage =
 export const WS_QUEUE_KEY = "video-Data";
 export const TRANSCODE_QUEUE_KEY = "video-transcode";
 export const TRANSCODE_STATUS_KEY = "video-status";
+export const CHAT_QUEUE_KEY = "chat-persist";
 
 export type TranscodeVariant = {
   height: number;

@@ -2,6 +2,7 @@ import { WebSocketServer } from "ws";
 import http from "http";
 import { handleIncomingRequests, handleConnectionClosed } from "./lib/handlers";
 import { redisManager } from "./lib/managers/redisManager";
+import { chatQueue } from "./lib/managers/chatQueue";
 
 const PORT = Number(process.env.WS_PORT ?? 8080);
 
@@ -26,6 +27,7 @@ wss.on("connection", (ws) => {
 async function startServer() {
   try {
     await redisManager.connect();
+    await chatQueue.connect();
 
     server.listen(PORT, () => {
       console.log(`ws-server listening on :${PORT}`);

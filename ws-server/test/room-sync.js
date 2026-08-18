@@ -304,6 +304,51 @@ const first = (ws, type) => ws.received.find((m) => m.type === type);
   check("disconnect broadcasts a leave", host.received.filter((m) => m.type === "room:leave").length > before);
   check("roster shrinks on leave", last(host, "room:presence")?.members?.length === 2);
 
+  const hostMembership = get(JAR, `/api/rooms/${CODE}`).membership;
+  const guestMembership = post(GUEST_JAR, `/api/rooms/${CODE}/join`, {
+    displayName: "Passerby",
+  }).membership;
+
+  const realHost = await open(hostMembership.id, "Suksham", "HOST");
+  const realGuest = await open(guestMembership.id, "Passerby", "VIEWER");
+
+  realHost.send(
+    JSON.stringify({ type: "chat:message", roomId: CODE, chatMessage: "who is in?" })
+  );
+  realGuest.send(
+    JSON.stringify({ type: "chat:message", roomId: CODE, chatMessage: "me, one sec" })
+  );
+
+  await wait(1500);
+
+  const history = get(JAR, `/api/rooms/${CODE}/messages`).messages ?? [];
+  const bodies = history.map((m) => m.body);
+
+  check(
+    "chat survives the socket — both lines are in Postgres",
+    bodies.includes("who is in?") && bodies.includes("me, one sec"),
+    `(${bodies.length} persisted)`
+  );
+  check(
+    "history keeps the order the room said things in",
+    bodies.indexOf("who is in?") < bodies.indexOf("me, one sec")
+  );
+  check(
+    "a persisted line carries the member who sent it",
+    history.find((m) => m.body === "me, one sec")?.memberId === guestMembership.id
+  );
+  check(
+    "a guest's line persists under their display name",
+    history.find((m) => m.body === "me, one sec")?.authorLabel === "Passerby"
+  );
+  check(
+    "a chat line from an unknown member is never written",
+    !bodies.includes("starting in 2")
+  );
+
+  realHost.close();
+  realGuest.close();
+
   const failed = results.filter((r) => !r.ok);
   console.log(
     failed.length === 0

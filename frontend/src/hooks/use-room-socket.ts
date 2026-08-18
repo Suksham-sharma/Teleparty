@@ -1,8 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { WS_URL } from "@/lib/config";
-import type { LiveMessage, Membership, Role, RoomMember } from "@/services/types";
+import { getMessages } from "@/services/room";
+import type {
+  LiveMessage,
+  Membership,
+  Role,
+  RoomMember,
+  RoomMessage,
+} from "@/services/types";
 
 /**
  * The socket identifies participants by `memberId`; the REST roster uses `id`.
@@ -14,6 +21,26 @@ interface WireParticipant {
   name: string;
   role: Role;
 }
+
+const toLiveMessage = (message: RoomMessage): LiveMessage => ({
+  id: message.id,
+  memberId: message.memberId ?? "",
+  name: message.authorLabel,
+  body: message.body,
+  sentAt: message.createdAt,
+});
+
+const mergeHistory = (
+  history: RoomMessage[],
+  live: LiveMessage[]
+): LiveMessage[] => {
+  const seen = new Set(live.map((message) => message.id));
+  const older = history
+    .filter((message) => !seen.has(message.id))
+    .map(toLiveMessage);
+
+  return [...older, ...live];
+};
 
 const toMembers = (participants: WireParticipant[] = []): RoomMember[] =>
   participants.map((p) => ({
@@ -62,7 +89,8 @@ export function useRoomSocket(
     isPlaying: false,
   });
   const [members, setMembers] = useState<RoomMember[]>([]);
-  const [messages, setMessages] = useState<LiveMessage[]>([]);
+  const [history, setHistory] = useState<RoomMessage[]>([]);
+  const [liveMessages, setLiveMessages] = useState<LiveMessage[]>([]);
   const [reactions, setReactions] = useState<
     { id: string; emoji: string; name: string }[]
   >([]);
@@ -70,6 +98,22 @@ export function useRoomSocket(
   const [hasEnded, setHasEnded] = useState(false);
 
   const socketRef = useRef<WebSocket | null>(null);
+
+  useEffect(() => {
+    if (!membership) return;
+
+    let cancelled = false;
+
+    getMessages(code)
+      .then((rows) => {
+        if (!cancelled) setHistory(rows);
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [code, membership]);
 
   useEffect(() => {
     if (!membership) return;
@@ -109,7 +153,7 @@ export function useRoomSocket(
             isPlaying: Boolean(data.isCurrentlyPlaying),
           });
           setMembers(toMembers(data.members as WireParticipant[]));
-          setMessages((data.messages as LiveMessage[]) ?? []);
+          setLiveMessages((data.messages as LiveMessage[]) ?? []);
           break;
         }
 
@@ -138,7 +182,7 @@ export function useRoomSocket(
           break;
 
         case "chat:message":
-          setMessages((prev) => [
+          setLiveMessages((prev) => [
             ...prev,
             {
               id: data.id as string,
@@ -198,6 +242,11 @@ export function useRoomSocket(
       socket.send(JSON.stringify({ type: "reaction:send", roomId: code, emoji }));
     },
     [code]
+  );
+
+  const messages = useMemo(
+    () => mergeHistory(history, liveMessages),
+    [history, liveMessages]
   );
 
   return {
