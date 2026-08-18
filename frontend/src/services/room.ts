@@ -1,5 +1,5 @@
 import axiosInstance from "@/lib/axios";
-import type { Membership, Room, RoomMessage } from "./types";
+import type { Membership, PlayableVideo, Room, RoomMessage } from "./types";
 
 export const createRoom = async (input?: {
   title?: string;
@@ -36,9 +36,34 @@ export const endRoom = async (code: string) => {
   await axiosInstance.post(`/rooms/${code}/end`);
 };
 
-export const addToQueue = async (code: string, videoId: string) => {
-  const { data } = await axiosInstance.post(`/rooms/${code}/queue`, { videoId });
+export const setRoomSource = async (
+  code: string,
+  url: string
+): Promise<PlayableVideo> => {
+  const { data } = await axiosInstance.post(`/rooms/${code}/source`, { url });
+  return data.video;
+};
+
+export const addToQueue = async (
+  code: string,
+  input: { url?: string; videoId?: string }
+): Promise<{ id: string; status: "SUGGESTED" | "QUEUED"; video: PlayableVideo }> => {
+  const { data } = await axiosInstance.post(`/rooms/${code}/queue`, input);
   return data.item;
+};
+
+export const approveSuggestion = async (code: string, itemId: string) => {
+  await axiosInstance.post(`/rooms/${code}/queue/${itemId}/approve`);
+};
+
+export const playNext = async (
+  code: string,
+  afterVideoId: string
+): Promise<boolean> => {
+  const { data } = await axiosInstance.post(`/rooms/${code}/next`, {
+    afterVideoId,
+  });
+  return Boolean(data.advanced);
 };
 
 export const removeFromQueue = async (code: string, itemId: string) => {

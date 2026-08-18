@@ -1,10 +1,9 @@
 import { Router, Request, Response } from "express";
-import { RoomStatus } from "@prisma/client";
 import prismaClient from "../lib/prismaClient";
 import { uploadVideoData, videoInteractionData } from "../schemas";
 import { redisManager } from "../lib/redisManager";
 import { s3Service } from "../lib/s3uploader";
-import { requireController } from "../lib/rooms";
+import { requireController, setCurrentVideo } from "../lib/rooms";
 
 export const videosRouter = Router();
 
@@ -106,22 +105,7 @@ videosRouter.post("/current/:videoId", async (req: Request, res: Response) => {
       return;
     }
 
-    await prismaClient.room.update({
-      where: { id: guard.room.id },
-      data: {
-        currentVideoId: videoId,
-        positionMs: 0,
-        isPlaying: false,
-        status: RoomStatus.LIVE,
-      },
-    });
-
-    await redisManager.sendUpdatesToWs({
-      userId: guard.membership.id,
-      videoId,
-      roomId: guard.room.code,
-      action: "update",
-    });
+    await setCurrentVideo(guard.room, guard.membership, videoId);
 
     res.status(201).json({ message: "Video update broadcast." });
   } catch (error) {

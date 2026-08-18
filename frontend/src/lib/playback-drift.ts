@@ -4,6 +4,7 @@ export const RATE_GAIN_PER_SECOND = 0.15;
 export const MAX_RATE_DELTA = 0.08;
 export const SEEK_COOLDOWN_MS = 1200;
 export const SNAP_TOLERANCE_SECONDS = 2;
+export const SEEK_ONLY_THRESHOLD_SECONDS = 1.5;
 
 export type Correction =
   | { kind: "seek"; to: number }
@@ -15,6 +16,7 @@ export interface DriftInput {
   hostTime: number;
   hostIsPlaying: boolean;
   secondsSinceAnchor: number;
+  canNudge?: boolean;
 }
 
 export interface DriftResult {
@@ -31,6 +33,7 @@ export function resolveDrift({
   hostTime,
   hostIsPlaying,
   secondsSinceAnchor,
+  canNudge = true,
 }: DriftInput): DriftResult {
   const projectedHostTime = hostIsPlaying
     ? hostTime + Math.max(0, secondsSinceAnchor)
@@ -39,7 +42,10 @@ export function resolveDrift({
   const offset = localTime - projectedHostTime;
   const magnitude = Math.abs(offset);
 
-  const seekThreshold = hostIsPlaying ? HARD_SEEK_SECONDS : DEADBAND_SECONDS;
+  const playingThreshold = canNudge
+    ? HARD_SEEK_SECONDS
+    : SEEK_ONLY_THRESHOLD_SECONDS;
+  const seekThreshold = hostIsPlaying ? playingThreshold : DEADBAND_SECONDS;
 
   if (magnitude > seekThreshold) {
     return {
@@ -49,7 +55,7 @@ export function resolveDrift({
     };
   }
 
-  if (hostIsPlaying && magnitude > DEADBAND_SECONDS) {
+  if (canNudge && hostIsPlaying && magnitude > DEADBAND_SECONDS) {
     const delta = clamp(
       offset * RATE_GAIN_PER_SECOND,
       -MAX_RATE_DELTA,

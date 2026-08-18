@@ -17,6 +17,7 @@ interface SyncControls {
   setPlaybackRate: (rate: number) => void;
   isPlaying: () => boolean;
   isMeasurable: () => boolean;
+  canNudgeRate: () => boolean;
 }
 
 interface HostAnchor {
@@ -73,6 +74,7 @@ export function usePlaybackSync({
         hostTime: anchor.hostTime,
         hostIsPlaying: anchor.hostIsPlaying,
         secondsSinceAnchor: (performance.now() - anchor.capturedAt) / 1000,
+        canNudge: controls.canNudgeRate(),
       });
 
       const rounded =

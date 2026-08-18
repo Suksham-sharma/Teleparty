@@ -2,28 +2,30 @@
 
 import React from "react";
 import { Play } from "lucide-react";
-import { useVideoPlayer } from "@/hooks/use-video-player";
+import { useVideoPlayer, type SourceKind } from "@/hooks/use-video-player";
 import { usePlaybackSync } from "@/hooks/use-playback-sync";
 import "plyr/dist/plyr.css";
 import { videoInteractionService } from "@/services/video-interaction";
 
 const REPORT_INTERVAL_SECONDS = 1;
 const REPORT_DEBOUNCE_MS = 500;
+const END_TOLERANCE_SECONDS = 1.5;
 
 type VideoPlayerProps = {
   src: string;
-  type?: string;
+  kind: SourceKind;
   isPlaying?: boolean;
   roomId: string;
   videoId: string;
   isChannelOwner?: boolean;
   currentTime?: number | null;
   onDrift?: (drift: number | null) => void;
+  onEnded?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
 
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   src,
-  type,
+  kind,
   className,
   isPlaying,
   roomId,
@@ -31,13 +33,15 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   isChannelOwner,
   currentTime,
   onDrift,
+  onEnded,
 }) => {
-  const { videoRef, controls } = useVideoPlayer({
+  const { containerRef, controls } = useVideoPlayer({
     src,
-    type,
+    kind,
     canControl: Boolean(isChannelOwner),
   });
   const [showOverlay, setShowOverlay] = React.useState(true);
+  const [failed, setFailed] = React.useState(false);
   const reportTimeoutRef = React.useRef<NodeJS.Timeout>();
   const lastReportedTime = React.useRef<number>(0);
 
@@ -53,35 +57,47 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [drift, onDrift]);
 
   React.useEffect(() => {
-    const video = videoRef.current;
-    if (!video || isChannelOwner) return;
-
-    const followHost = () => {
-      if (!isPlaying && !video.paused) video.pause();
-    };
-
-    video.addEventListener("play", followHost);
-    return () => video.removeEventListener("play", followHost);
-  }, [videoRef, isChannelOwner, isPlaying]);
+    setFailed(false);
+    return controls.on("error", () => setFailed(true));
+  }, [controls, src]);
 
   React.useEffect(() => {
-    if (!videoRef.current || !isChannelOwner) return;
+    if (!isChannelOwner || !onEnded) return;
 
-    const report = (
-      action: "play" | "pause" | "timestamp",
-      at: number
-    ) =>
+    return controls.on("ended", () => {
+      const duration = controls.getDuration();
+      if (duration > 0 && controls.getCurrentTime() >= duration - END_TOLERANCE_SECONDS) {
+        onEnded();
+      }
+    });
+  }, [controls, isChannelOwner, onEnded]);
+
+  React.useEffect(() => {
+    if (isChannelOwner) return;
+
+    return controls.on("play", () => {
+      if (!isPlaying && controls.isPlaying()) controls.pause();
+    });
+  }, [controls, isChannelOwner, isPlaying]);
+
+  React.useEffect(() => {
+    if (!isChannelOwner) return;
+
+    const report = (action: "play" | "pause" | "timestamp", at: number) =>
       videoInteractionService.handleInteraction(videoId, {
         roomId,
         action,
         currentTime: at.toString(),
       });
 
-    const handlePlay = () => report("play", controls.getCurrentTime());
-    const handlePause = () => report("pause", controls.getCurrentTime());
-
-    const handleTimeUpdate = () => {
-      const at = videoRef.current?.currentTime ?? 0;
+    const offPlay = controls.on("play", () =>
+      report("play", controls.getCurrentTime())
+    );
+    const offPause = controls.on("pause", () =>
+      report("pause", controls.getCurrentTime())
+    );
+    const offTimeUpdate = controls.on("timeupdate", () => {
+      const at = controls.getCurrentTime();
       if (Math.abs(at - lastReportedTime.current) <= REPORT_INTERVAL_SECONDS) {
         return;
       }
@@ -92,30 +108,23 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
         report("timestamp", at);
         reportTimeoutRef.current = undefined;
       }, REPORT_DEBOUNCE_MS);
-    };
-
-    const video = videoRef.current;
-    video.addEventListener("play", handlePlay);
-    video.addEventListener("pause", handlePause);
-    video.addEventListener("timeupdate", handleTimeUpdate);
+    });
 
     return () => {
-      video.removeEventListener("play", handlePlay);
-      video.removeEventListener("pause", handlePause);
-      video.removeEventListener("timeupdate", handleTimeUpdate);
+      offPlay();
+      offPause();
+      offTimeUpdate();
       if (reportTimeoutRef.current) clearTimeout(reportTimeoutRef.current);
     };
-  }, [videoRef, controls, isChannelOwner, roomId, videoId]);
+  }, [controls, isChannelOwner, roomId, videoId]);
 
   React.useEffect(() => {
-    if (!videoRef.current) return;
-
     if (isPlaying && !showOverlay) {
       controls.play();
     } else {
       controls.pause();
     }
-  }, [isPlaying, controls, videoRef, showOverlay]);
+  }, [isPlaying, controls, showOverlay]);
 
   const handleOverlayClick = () => {
     setShowOverlay(false);
@@ -131,9 +140,22 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           isChannelOwner ? "" : " playback-locked"
         }`}
       >
-        <video ref={videoRef} className="plyr-react plyr" crossOrigin="anonymous" />
+        <div ref={containerRef} className="h-full w-full" />
 
-        {showOverlay && (
+        {failed && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/85 px-6 text-center">
+            <div className="max-w-[42ch]">
+              <p className="label-mute mb-3">Can&rsquo;t play this link</p>
+              <p className="text-base text-grey">
+                {isChannelOwner
+                  ? "The file didn't load. It may be private, region-locked, or blocked from playing on other sites. Try another link."
+                  : "The host's link didn't load here."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {showOverlay && !failed && (
           <button
             onClick={handleOverlayClick}
             aria-label="Join the screening"

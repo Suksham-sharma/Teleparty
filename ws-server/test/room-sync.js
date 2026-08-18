@@ -12,6 +12,7 @@ const WebSocket = require("ws");
 const { execSync } = require("child_process");
 
 const JAR = __dirname + "/.test-host.jar";
+const GUEST_JAR = __dirname + "/.test-guest.jar";
 const API = "localhost:4000";
 const WS = "ws://localhost:8080";
 
@@ -44,6 +45,22 @@ const check = (label, ok, extra = "") => {
 };
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const post = (jar, route, body) =>
+  JSON.parse(
+    execSync(
+      `curl -s -b ${jar} -c ${jar} -X POST ${API}${route} ` +
+        `-H 'Content-Type: application/json' -d '${JSON.stringify(body)}'`
+    ).toString()
+  );
+
+const get = (jar, route) =>
+  JSON.parse(execSync(`curl -s -b ${jar} ${API}${route}`).toString());
+
+const del = (jar, route) =>
+  JSON.parse(
+    execSync(`curl -s -b ${jar} -c ${jar} -X DELETE ${API}${route}`).toString()
+  );
 
 const control = (body) =>
   execSync(
@@ -135,6 +152,143 @@ const first = (ws, type) => ws.received.find((m) => m.type === type);
   );
   secondTab.close();
   await wait(300);
+
+  const YOUTUBE_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+  const pasted = post(JAR, `/api/rooms/${CODE}/source`, { url: YOUTUBE_URL });
+  check(
+    "a pasted youtube link becomes a playable video",
+    pasted.video?.source === "YOUTUBE" && pasted.video?.url === YOUTUBE_URL
+  );
+
+  await wait(600);
+  check(
+    "the pasted film is broadcast to the room",
+    last(friend, "video:update")?.videoId === pasted.video?.id
+  );
+
+  const roomAfterPaste = JSON.parse(
+    execSync(`curl -s -b ${JAR} ${API}/api/rooms/${CODE}`).toString()
+  );
+  check(
+    "the room snapshot resolves the pasted url",
+    roomAfterPaste.room?.currentVideo?.url === YOUTUBE_URL
+  );
+
+  check(
+    "a link nothing can play is refused",
+    typeof post(JAR, `/api/rooms/${CODE}/source`, {
+      url: "https://example.com/some/page",
+    }).error === "string"
+  );
+
+  post(GUEST_JAR, `/api/rooms/${CODE}/join`, { displayName: "Passerby" });
+  const denied = post(GUEST_JAR, `/api/rooms/${CODE}/source`, {
+    url: YOUTUBE_URL,
+  });
+  check(
+    "a viewer cannot change what the room is watching",
+    !denied.video && typeof denied.error === "string",
+    `(${denied.error})`
+  );
+
+  const QUEUE_A = "https://films.example/queue-one.mp4";
+  const QUEUE_B = "https://films.example/queue-two.mp4";
+  const SUGGESTED = "https://films.example/suggested.mp4";
+
+  const queuedByHost = post(JAR, `/api/rooms/${CODE}/queue`, { url: QUEUE_A });
+  check(
+    "a controller's addition lands in the queue directly",
+    queuedByHost.item?.status === "QUEUED"
+  );
+
+  post(JAR, `/api/rooms/${CODE}/queue`, { url: QUEUE_B });
+
+  const suggested = post(GUEST_JAR, `/api/rooms/${CODE}/queue`, {
+    url: SUGGESTED,
+  });
+  check(
+    "a viewer's addition lands as a suggestion",
+    suggested.item?.status === "SUGGESTED"
+  );
+
+  const beforeApproval = get(JAR, `/api/rooms/${CODE}`).room;
+  check(
+    "suggestions are kept out of the queue proper",
+    beforeApproval.queue.length === 2 && beforeApproval.suggestions.length === 1
+  );
+  check(
+    "a suggestion carries who asked for it",
+    beforeApproval.suggestions[0]?.addedByName === "Passerby",
+    `(${beforeApproval.suggestions[0]?.addedByName})`
+  );
+
+  check(
+    "a viewer cannot approve their own suggestion",
+    typeof post(GUEST_JAR, `/api/rooms/${CODE}/queue/${suggested.item.id}/approve`, {})
+      .error === "string"
+  );
+
+  post(JAR, `/api/rooms/${CODE}/queue/${suggested.item.id}/approve`, {});
+  const afterApproval = get(JAR, `/api/rooms/${CODE}`).room;
+  check(
+    "the host's approval moves it into the queue, last",
+    afterApproval.queue.length === 3 &&
+      afterApproval.suggestions.length === 0 &&
+      afterApproval.queue[2].video.sourceUrl === undefined &&
+      afterApproval.queue[2].video.url === SUGGESTED
+  );
+
+  check(
+    "a viewer cannot remove someone else's queue item",
+    typeof del(GUEST_JAR, `/api/rooms/${CODE}/queue/${queuedByHost.item.id}`)
+      .error === "string"
+  );
+
+  const currentBefore = get(JAR, `/api/rooms/${CODE}`).room.currentVideoId;
+  const advanced = post(JAR, `/api/rooms/${CODE}/next`, {
+    afterVideoId: currentBefore,
+  });
+  check(
+    "the queue advances to its head",
+    advanced.advanced === true && advanced.video?.url === QUEUE_A
+  );
+
+  await wait(600);
+  check(
+    "the room is told the film changed",
+    last(friend, "video:update")?.videoId === advanced.video.id
+  );
+
+  const afterAdvance = get(JAR, `/api/rooms/${CODE}`).room;
+  check(
+    "the played item leaves the queue",
+    afterAdvance.currentVideo?.url === QUEUE_A && afterAdvance.queue.length === 2
+  );
+
+  check(
+    "an advance for a film the room has already left is refused",
+    post(JAR, `/api/rooms/${CODE}/next`, { afterVideoId: currentBefore })
+      .advanced === false
+  );
+
+  check(
+    "a viewer cannot advance the queue",
+    typeof post(GUEST_JAR, `/api/rooms/${CODE}/next`, {}).error === "string"
+  );
+
+  const spam = [];
+  for (let i = 0; i < 7; i++) {
+    spam.push(
+      post(GUEST_JAR, `/api/rooms/${CODE}/queue`, {
+        url: `https://films.example/spam-${i}.mp4`,
+      })
+    );
+  }
+  check(
+    "a viewer's pending suggestions are capped",
+    spam.filter((r) => r.item).length === 5 &&
+      spam.filter((r) => r.error).length === 2
+  );
 
   friend.send(JSON.stringify({ type: "chat:message", roomId: CODE }));
   await wait(300);

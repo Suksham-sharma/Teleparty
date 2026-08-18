@@ -34,10 +34,14 @@ model Video {
   duration    String?
   timeStamp   String?
   created_at  DateTime @default(now())
-  channelId   String
-  channel     Channel  @relation(fields: [channelId], references: [id])
-  creatorId   String
-  creator     User     @relation(fields: [creatorId], references: [id])
+  channelId   String?
+  channel     Channel? @relation(fields: [channelId], references: [id])
+  creatorId   String?
+  creator     User?    @relation(fields: [creatorId], references: [id])
+
+  source       VideoSource @default(UPLOAD)
+  sourceUrl    String?     @unique
+  thumbnailUrl String?
 
   // Written by the worker once the transcode loop is closed (Phase 4).
   status         VideoStatus @default(PENDING)
@@ -48,7 +52,8 @@ model Video {
   transcript     String?
   failureReason  String?
 
-  queueItems QueueItem[]
+  queueItems  QueueItem[]
+  playingIn   Room[]      @relation("RoomCurrentVideo")
 }
 
 model Channel {
@@ -95,6 +100,18 @@ enum VideoStatus {
   FAILED
 }
 
+enum VideoSource {
+  UPLOAD
+  FILE
+  HLS
+  YOUTUBE
+}
+
+enum QueueStatus {
+  SUGGESTED
+  QUEUED
+}
+
 model Room {
   id     String     @id @default(cuid())
   code   String     @unique // human-speakable, e.g. WOLF-42
@@ -111,6 +128,7 @@ model Room {
   // Mirror of the ws-server's in-memory room state, persisted so a restart or
   // a late joiner can be served an accurate snapshot.
   currentVideoId String?
+  currentVideo   Video?  @relation("RoomCurrentVideo", fields: [currentVideoId], references: [id], onDelete: SetNull)
   positionMs     Int     @default(0)
   isPlaying      Boolean @default(false)
 
@@ -175,7 +193,10 @@ model QueueItem {
   video   Video  @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   position Int
-  addedBy  String // RoomMember id
+  addedBy  String
+  status   QueueStatus @default(QUEUED)
 
-  @@index([roomId, position])
+  createdAt DateTime @default(now())
+
+  @@index([roomId, status, position])
 }

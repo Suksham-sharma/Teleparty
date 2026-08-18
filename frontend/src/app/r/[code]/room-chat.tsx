@@ -12,14 +12,10 @@ import type { LiveMessage } from "@/services/types";
 export function RoomChat({
   messages,
   memberId,
-  memberCount,
-  status,
   onSend,
 }: {
   messages: LiveMessage[];
   memberId: string;
-  memberCount: number;
-  status: "connecting" | "open" | "closed" | "error";
   onSend: (body: string) => void;
 }) {
   const [value, setValue] = useState("");
@@ -36,20 +32,7 @@ export function RoomChat({
   };
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg bg-card">
-      <div className="flex items-center justify-between border-b border-hair px-4 py-3.5">
-        <h3 className="text-md font-semibold text-white">Chat</h3>
-        <span className="text-sm text-grey">
-          {status === "open" ? (
-            `${memberCount} here`
-          ) : status === "connecting" ? (
-            "connecting…"
-          ) : (
-            <span className="text-grey-dim">disconnected</span>
-          )}
-        </span>
-      </div>
-
+    <div className="flex h-full flex-col overflow-hidden">
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
           <p className="text-base text-grey-dim">

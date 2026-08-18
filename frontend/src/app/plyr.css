@@ -1466,3 +1466,7 @@ a.plyr__control:before {
 .playback-locked .plyr__progress__buffer {
   cursor: default;
 }
+
+.playback-locked .plyr__video-embed iframe {
+  pointer-events: none;
+}

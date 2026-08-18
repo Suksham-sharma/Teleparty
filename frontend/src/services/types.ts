@@ -19,16 +19,24 @@ export interface RoomMember {
   joinedAt: string;
 }
 
+export type VideoSource = "UPLOAD" | "FILE" | "HLS" | "YOUTUBE";
+
+export interface PlayableVideo {
+  id: string;
+  title: string;
+  source: VideoSource;
+  url: string;
+  status: "PENDING" | "TRANSCODING" | "READY" | "FAILED";
+  durationMs: number | null;
+  thumbnailUrl: string | null;
+}
+
 export interface QueuedVideo {
   id: string;
   position: number;
-  video: {
-    id: string;
-    title: string;
-    status: "PENDING" | "TRANSCODING" | "READY" | "FAILED";
-    durationMs: number | null;
-    thumbnailUrl: string | null;
-  };
+  addedBy: string;
+  addedByName: string;
+  video: PlayableVideo;
 }
 
 export interface Room {
@@ -37,12 +45,14 @@ export interface Room {
   status: "LOBBY" | "LIVE" | "ENDED";
   visibility: "PUBLIC" | "UNLISTED" | "PRIVATE";
   currentVideoId: string | null;
+  currentVideo: PlayableVideo | null;
   positionMs: number;
   isPlaying: boolean;
   scheduledFor: string | null;
   createdAt: string;
   members: RoomMember[];
   queue: QueuedVideo[];
+  suggestions: QueuedVideo[];
 }
 
 export interface RoomMessage {

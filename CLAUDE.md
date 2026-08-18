@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A "watch party" platform. Anyone — signed in or not — starts a room in one click, shares `/r/{code}`, and everyone's playback stays in sync with the host's, alongside live chat and reactions. Uploaded films are transcoded to adaptive HLS and served from CloudFront.
+A "watch party" platform. Anyone — signed in or not — starts a room in one click, shares `/r/{code}`, and everyone's playback stays in sync with the host's, alongside live chat and reactions. A room plays either a pasted link (YouTube, direct `.mp4`/`.webm`, external HLS) or an uploaded film, transcoded to adaptive HLS and served from CloudFront.
 
 The product was rebuilt around disposable rooms; `docs/REBUILD.md` is the spec and the roadmap, and it is the document to trust when this file and `Readme.md` disagree.
 
@@ -26,6 +26,13 @@ above running):
 
 ```bash
 cd ws-server && node test/room-sync.js
+```
+
+Pasted-link parsing — 24 checks, pure, no services (compiles `src/lib/videoSource.ts`
+to a temp dir against a stub for Prisma's enum and the CDN host):
+
+```bash
+cd backend && node test/video-source.js
 ```
 
 Drift-correction logic — 24 checks, pure, no services or DOM needed (it compiles
@@ -75,19 +82,29 @@ frontend (Next 15 App Router)
 
 This is the part that spans all four services — read it before touching playback:
 
-1. Only a **HOST or COHOST** player emits events. `VideoPlayer` (`frontend/src/components/VideoPlayer.tsx`) attaches `play`/`pause`/`timeupdate` listeners only when it may control the room. A viewer's player is also read-only in the UI — no play button, dead scrubber, no speed menu, no keyboard shortcuts (`.playback-locked`) — plus a `play` listener that re-pauses them whenever the host is paused, because media keys and PiP can start playback without touching Plyr. Hiding the buttons alone is not enough.
+0. **What the room is playing is a `Video` row, whatever its origin.** `Video.source`
+   is `UPLOAD | FILE | HLS | YOUTUBE`; an external source carries a unique `sourceUrl`
+   and has no `channelId`/`creatorId` (both nullable), so pasted links never appear in
+   anyone's library. `POST /api/rooms/:code/source` parses and whitelists the URL in
+   `backend/src/lib/videoSource.ts` before upserting the row. **The client no longer
+   derives playback URLs** — `playbackUrlFor` resolves `UPLOAD` by the CDN convention
+   and everything else to its own URL, and the room serializes `currentVideo` next to
+   `currentVideoId`. The socket still carries only an id, so the room refetches when it
+   sees one it can't resolve.
+1. Only a **HOST or COHOST** player emits events. `VideoPlayer` (`frontend/src/components/VideoPlayer.tsx`) subscribes to `play`/`pause`/`timeupdate` only when it may control the room. Those come from `controls.on()` in `use-video-player.ts`, not from DOM listeners: a YouTube embed has no `<video>` element, so the hook builds its media element imperatively (React must never own a node Plyr replaces) and relays Plyr's events through a bus that survives the player being rebuilt. A viewer's player is also read-only in the UI — no play button, dead scrubber, no speed menu, no keyboard shortcuts (`.playback-locked`, which also kills `pointer-events` on a YouTube embed iframe — otherwise a click lands inside YouTube's own player) — plus a `play` listener that re-pauses them whenever the host is paused, because media keys and PiP can start playback without touching Plyr. Hiding the buttons alone is not enough.
 2. That browser POSTs to `/api/videos/interaction/:videoId` (or `/api/videos/current/:videoId` to switch the film). The backend **re-verifies authority server-side** via `requireController` in `backend/src/lib/rooms.ts` — that module is the single source of truth for who may drive a room. Any new control surface must go through it.
 3. Backend persists the new position/play state on the `Room` row, then `LPUSH`es a tagged event onto the Redis list `video-Data`.
 4. ws-server's `redisManager.listenForVideoUpdates()` sits in a `brPop("video-Data", 0)` loop and hands each event to `roomManager.handleQueueMessage`.
 5. `RoomManager` (keyed by room **code**, e.g. `WOLF-42`) mutates in-memory fanout state and broadcasts `video:update` to every socket in the room.
 6. Clients receive it in `useRoomSocket` (`frontend/src/hooks/use-room-socket.ts`), which lifts playback into state for `RoomStage`.
-7. Non-controllers correct themselves in `use-playback-sync.ts`. The received position is **already stale** by the round trip, so it is treated as an anchor (`{ hostTime, capturedAt }`) and projected forward while the host plays — never compared against raw. Decisions come from the pure `lib/playback-drift.ts`: hold inside 0.25s, `playbackRate` nudge (gain 0.15/s, capped ±8%) past that, hard seek only past 2s. Anything that corrects toward the raw sample is a bug; it drags viewers backwards to a position the host has left.
+7. Non-controllers correct themselves in `use-playback-sync.ts`. **YouTube cannot be rate-nudged** — its API ignores any rate outside `getAvailablePlaybackRates()` — so `resolveDrift` takes `canNudge`, and without it corrects by seek alone with a tighter 1.5s playing threshold. The received position is **already stale** by the round trip, so it is treated as an anchor (`{ hostTime, capturedAt }`) and projected forward while the host plays — never compared against raw. Decisions come from the pure `lib/playback-drift.ts`: hold inside 0.25s, `playbackRate` nudge (gain 0.15/s, capped ±8%) past that, hard seek only past 2s. Anything that corrects toward the raw sample is a bug; it drags viewers backwards to a position the host has left.
 
 On join the server replies with a **`room:snapshot`** — current video, position, play state, roster and recent chat — so a late arrival is immediately in sync instead of waiting for the host's next action.
 
 Consequences worth knowing:
 - **Room fanout state is in-process memory only** (`Map` in `RoomManager`) and the queue is a Redis *list*, not pub/sub, so `video-Data` is consumed by exactly one ws-server instance. Running more than one breaks sync for rooms split across instances. Horizontal scaling requires pub/sub plus room state in Redis (docs/REBUILD.md Phase 5).
 - The durable record lives in Postgres; the in-memory room is rebuilt from the API snapshot when someone returns.
+- **The queue is role-aware.** `POST /rooms/:code/queue` takes a url or a videoId; a host or co-host queues directly, anyone else lands in `SUGGESTED` (capped at 5 pending per member) until a controller approves. The controller's player posts `/next` on `ended` to auto-advance, and the server claims the head with `deleteMany` so racing controllers advance once. Beware: `ended` also fires during player teardown, which happens on every film change — `use-video-player.ts` drops events dispatched after teardown starts, and `VideoPlayer` only advances when the player really is at the end. Without both, one ending drains the whole queue.
 - Chat is still only an in-memory ring buffer of the last 50 messages. The `Message` table exists but nothing writes to it, so history dies with the room.
 - The roster is de-duplicated by `memberId`: one person with two tabs is one participant.
 
@@ -145,7 +162,8 @@ There are **users** and **guests**, and most of the app accepts either.
 
 Useful context before making changes — these are current facts about the code, not a to-do list.
 
-- **The transcode loop is still open.** `Video.status` never leaves `PENDING`: the worker's `publishDataToServer()` is an empty stub, so nothing reports completion. Playback URLs are derived by convention (`<CDN>/transcoded/<videoId>/master.m3u8`), and the UI cannot tell a ready film from one still encoding. This is Phase 4 and the highest-value remaining work.
+- **The transcode loop is closed** (Phase 4): the worker reports `TRANSCODING`/`READY`/`FAILED` on the `video-status` Redis list and the API is the only writer of `Video.status`. Still open in that pipeline: `Video.video_urls` is written as `[]` and never read, uploaded playback URLs remain a convention (`<CDN>/transcoded/<videoId>/master.m3u8`), and `variants` is written but nothing consumes it.
+- **A pasted link is trusted to be playable.** Nothing fetches it server-side, so a private, region-locked or hotlink-protected URL only fails in the browser; the player surfaces a "can't play this link" frame rather than catching it at paste time. YouTube's own title bar and "Watch on YouTube" button show on a paused embed — their branding requirement, not a bug.
 - Chat is not persisted (see the sync-loop notes above).
 - `GET /api/videos/feed` is implemented with pagination and a category filter, but nothing calls it — there is no browse surface any more.
 - `POST /api/videos/upload` still requires the caller to have a `Channel`, created best-effort at signup. A user whose channel creation failed can sign in but not upload.

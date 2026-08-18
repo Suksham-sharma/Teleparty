@@ -1,5 +1,5 @@
 import { Request, Response, Router } from "express";
-import { Prisma, Role, RoomStatus } from "@prisma/client";
+import { Prisma, QueueStatus, Role, RoomStatus } from "@prisma/client";
 import prismaClient from "../lib/prismaClient";
 import { generateRoomCode } from "../lib/roomCode";
 import {
@@ -7,13 +7,20 @@ import {
   joinRoomData,
   queueAddData,
   setRoleData,
+  setSourceData,
 } from "../schemas";
 import {
   findMembership,
+  isController,
   requireHost,
   requireController,
+  requireMember,
+  roomInclude,
   serializeRoom,
+  serializeVideo,
+  setCurrentVideo,
 } from "../lib/rooms";
+import { videoFromUrl } from "../lib/externalVideo";
 import { redisManager } from "../lib/redisManager";
 
 export const roomsRouter = Router();
@@ -48,7 +55,7 @@ roomsRouter.post("/", async (req: Request, res: Response) => {
           },
         },
       },
-      include: { members: true, queue: { include: { video: true } } },
+      include: roomInclude,
     });
 
     res.status(201).json({ room: serializeRoom(room) });
@@ -70,7 +77,7 @@ roomsRouter.get("/mine", async (req: Request, res: Response) => {
     const rooms = await prismaClient.room.findMany({
       where: { hostUserId: identity.userId, status: { not: RoomStatus.ENDED } },
       orderBy: { createdAt: "desc" },
-      include: { members: true, queue: { include: { video: true } } },
+      include: roomInclude,
     });
 
     res.status(200).json({ rooms: rooms.map(serializeRoom) });
@@ -88,10 +95,7 @@ roomsRouter.get("/:code", async (req: Request, res: Response) => {
   try {
     const room = await prismaClient.room.findUnique({
       where: { code: req.params.code.toUpperCase() },
-      include: {
-        members: true,
-        queue: { include: { video: true }, orderBy: { position: "asc" } },
-      },
+      include: roomInclude,
     });
 
     if (!room) {
@@ -214,11 +218,11 @@ roomsRouter.post("/:code/end", async (req: Request, res: Response) => {
   }
 });
 
-roomsRouter.post("/:code/queue", async (req: Request, res: Response) => {
+roomsRouter.post("/:code/source", async (req: Request, res: Response) => {
   try {
-    const payload = queueAddData.safeParse(req.body);
+    const payload = setSourceData.safeParse(req.body);
     if (!payload.success) {
-      res.status(400).json({ error: "Invalid request." });
+      res.status(400).json({ error: "Paste a link first." });
       return;
     }
 
@@ -228,45 +232,186 @@ roomsRouter.post("/:code/queue", async (req: Request, res: Response) => {
       return;
     }
 
-    const video = await prismaClient.video.findUnique({
-      where: { id: payload.data.videoId },
-      select: { id: true },
-    });
-
-    if (!video) {
-      res.status(404).json({ error: "Video not found." });
+    const resolved = await videoFromUrl(payload.data.url, req.identity!);
+    if ("error" in resolved) {
+      res.status(400).json({ error: resolved.error });
       return;
     }
 
-    const last = await prismaClient.queueItem.findFirst({
-      where: { roomId: guard.room.id },
-      orderBy: { position: "desc" },
-      select: { position: true },
-    });
+    await setCurrentVideo(guard.room, guard.membership, resolved.video.id);
+
+    res.status(201).json({ video: serializeVideo(resolved.video) });
+  } catch (error) {
+    console.error("Error setting room source:", error);
+    res.status(500).json({ error: "Could not start that link." });
+  }
+});
+
+const SUGGESTION_LIMIT = 5;
+
+const nextPosition = async (roomId: string) => {
+  const last = await prismaClient.queueItem.findFirst({
+    where: { roomId },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+  return (last?.position ?? -1) + 1;
+};
+
+const announceQueue = (code: string) =>
+  redisManager.sendRoomEvent({ roomId: code, type: "queue:updated" });
+
+roomsRouter.post("/:code/queue", async (req: Request, res: Response) => {
+  try {
+    const payload = queueAddData.safeParse(req.body);
+    if (!payload.success) {
+      res.status(400).json({ error: "Paste a link first." });
+      return;
+    }
+
+    const guard = await requireMember(req.params.code, req.identity!);
+    if ("error" in guard) {
+      res.status(guard.status).json({ error: guard.error });
+      return;
+    }
+
+    const controls = isController(guard.membership);
+    const { url, videoId } = payload.data;
+
+    if (videoId && !controls) {
+      res.status(403).json({ error: "Suggest a link instead." });
+      return;
+    }
+
+    let video;
+    if (url) {
+      const resolved = await videoFromUrl(url, req.identity!);
+      if ("error" in resolved) {
+        res.status(400).json({ error: resolved.error });
+        return;
+      }
+      video = resolved.video;
+    } else {
+      const found = await prismaClient.video.findUnique({
+        where: { id: videoId! },
+      });
+      if (!found) {
+        res.status(404).json({ error: "Video not found." });
+        return;
+      }
+      video = found;
+    }
+
+    if (!controls) {
+      const pending = await prismaClient.queueItem.count({
+        where: {
+          roomId: guard.room.id,
+          addedBy: guard.membership.id,
+          status: QueueStatus.SUGGESTED,
+        },
+      });
+      if (pending >= SUGGESTION_LIMIT) {
+        res.status(429).json({
+          error: "You have enough suggestions waiting. Wait for the host.",
+        });
+        return;
+      }
+    }
 
     const item = await prismaClient.queueItem.create({
       data: {
         roomId: guard.room.id,
         videoId: video.id,
-        position: (last?.position ?? -1) + 1,
+        position: await nextPosition(guard.room.id),
         addedBy: guard.membership.id,
+        status: controls ? QueueStatus.QUEUED : QueueStatus.SUGGESTED,
       },
       include: { video: true },
     });
 
-    redisManager.sendRoomEvent({
-      roomId: guard.room.code,
-      type: "queue:updated",
-    });
+    announceQueue(guard.room.code);
 
-    res.status(201).json({ item });
+    res.status(201).json({
+      item: {
+        id: item.id,
+        status: item.status,
+        video: serializeVideo(item.video),
+      },
+    });
   } catch (error) {
     console.error("Error adding to queue:", error);
     res.status(500).json({ error: "Could not add to queue." });
   }
 });
 
+roomsRouter.post(
+  "/:code/queue/:itemId/approve",
+  async (req: Request, res: Response) => {
+    try {
+      const guard = await requireController(req.params.code, req.identity!);
+      if ("error" in guard) {
+        res.status(guard.status).json({ error: guard.error });
+        return;
+      }
+
+      const promoted = await prismaClient.queueItem.updateMany({
+        where: {
+          id: req.params.itemId,
+          roomId: guard.room.id,
+          status: QueueStatus.SUGGESTED,
+        },
+        data: {
+          status: QueueStatus.QUEUED,
+          position: await nextPosition(guard.room.id),
+        },
+      });
+
+      if (promoted.count === 0) {
+        res.status(404).json({ error: "That suggestion is gone." });
+        return;
+      }
+
+      announceQueue(guard.room.code);
+      res.status(200).json({ message: "Added to the queue." });
+    } catch (error) {
+      console.error("Error approving suggestion:", error);
+      res.status(500).json({ error: "Could not approve that." });
+    }
+  }
+);
+
 roomsRouter.delete("/:code/queue/:itemId", async (req: Request, res: Response) => {
+  try {
+    const guard = await requireMember(req.params.code, req.identity!);
+    if ("error" in guard) {
+      res.status(guard.status).json({ error: guard.error });
+      return;
+    }
+
+    const removed = await prismaClient.queueItem.deleteMany({
+      where: {
+        id: req.params.itemId,
+        roomId: guard.room.id,
+        ...(isController(guard.membership)
+          ? {}
+          : { addedBy: guard.membership.id }),
+      },
+    });
+
+    if (removed.count === 0) {
+      res.status(404).json({ error: "That item is not yours to remove." });
+      return;
+    }
+
+    announceQueue(guard.room.code);
+    res.status(200).json({ message: "Removed." });
+  } catch (error) {
+    console.error("Error removing from queue:", error);
+    res.status(500).json({ error: "Could not remove from queue." });
+  }
+});
+
+roomsRouter.post("/:code/next", async (req: Request, res: Response) => {
   try {
     const guard = await requireController(req.params.code, req.identity!);
     if ("error" in guard) {
@@ -274,19 +419,41 @@ roomsRouter.delete("/:code/queue/:itemId", async (req: Request, res: Response) =
       return;
     }
 
-    await prismaClient.queueItem.deleteMany({
-      where: { id: req.params.itemId, roomId: guard.room.id },
+    const afterVideoId = req.body?.afterVideoId;
+    if (
+      typeof afterVideoId === "string" &&
+      guard.room.currentVideoId !== afterVideoId
+    ) {
+      res.status(200).json({ advanced: false });
+      return;
+    }
+
+    const head = await prismaClient.queueItem.findFirst({
+      where: { roomId: guard.room.id, status: QueueStatus.QUEUED },
+      orderBy: { position: "asc" },
+      include: { video: true },
     });
 
-    redisManager.sendRoomEvent({
-      roomId: guard.room.code,
-      type: "queue:updated",
-    });
+    if (!head) {
+      res.status(200).json({ advanced: false });
+      return;
+    }
 
-    res.status(200).json({ message: "Removed." });
+    const claimed = await prismaClient.queueItem.deleteMany({
+      where: { id: head.id },
+    });
+    if (claimed.count === 0) {
+      res.status(200).json({ advanced: false });
+      return;
+    }
+
+    await setCurrentVideo(guard.room, guard.membership, head.videoId);
+    announceQueue(guard.room.code);
+
+    res.status(200).json({ advanced: true, video: serializeVideo(head.video) });
   } catch (error) {
-    console.error("Error removing from queue:", error);
-    res.status(500).json({ error: "Could not remove from queue." });
+    console.error("Error advancing the queue:", error);
+    res.status(500).json({ error: "Could not play the next thing." });
   }
 });
 

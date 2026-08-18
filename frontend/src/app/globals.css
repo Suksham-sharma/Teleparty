@@ -111,6 +111,12 @@
     object-fit: contain;
   }
 
+  .frame-fill .plyr__video-embed,
+  .frame-fill .plyr__video-embed iframe {
+    height: 100%;
+    padding-bottom: 0;
+  }
+
   /* Small uppercase mono label, for metadata that should recede. */
   .label-mute {
     @apply font-mono text-[11px] uppercase tracking-[0.13em] text-butter-mute;

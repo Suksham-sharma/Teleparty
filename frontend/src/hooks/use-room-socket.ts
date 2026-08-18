@@ -38,6 +38,8 @@ interface UseRoomSocket {
   members: RoomMember[];
   messages: LiveMessage[];
   reactions: { id: string; emoji: string; name: string }[];
+  roomRevision: number;
+  hasEnded: boolean;
   sendChat: (body: string) => void;
   sendReaction: (emoji: string) => void;
 }
@@ -64,6 +66,8 @@ export function useRoomSocket(
   const [reactions, setReactions] = useState<
     { id: string; emoji: string; name: string }[]
   >([]);
+  const [roomRevision, setRoomRevision] = useState(0);
+  const [hasEnded, setHasEnded] = useState(false);
 
   const socketRef = useRef<WebSocket | null>(null);
 
@@ -119,6 +123,15 @@ export function useRoomSocket(
           });
           break;
         }
+
+        case "queue:updated":
+        case "room:roles-updated":
+          setRoomRevision((n) => n + 1);
+          break;
+
+        case "room:ended":
+          setHasEnded(true);
+          break;
 
         case "room:presence":
           setMembers(toMembers(data.members as WireParticipant[]));
@@ -187,5 +200,15 @@ export function useRoomSocket(
     [code]
   );
 
-  return { status, playback, members, messages, reactions, sendChat, sendReaction };
+  return {
+    status,
+    playback,
+    members,
+    messages,
+    reactions,
+    roomRevision,
+    hasEnded,
+    sendChat,
+    sendReaction,
+  };
 }

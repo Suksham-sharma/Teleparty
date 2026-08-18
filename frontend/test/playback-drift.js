@@ -20,6 +20,7 @@ const {
   HARD_SEEK_SECONDS,
   MAX_RATE_DELTA,
   SEEK_COOLDOWN_MS,
+  SEEK_ONLY_THRESHOLD_SECONDS,
 } = require(path.join(outDir, "playback-drift.js"));
 
 const results = [];
@@ -296,6 +297,47 @@ check(
     offset: 0.4,
     settledOffset: 0.4,
   })
+);
+
+const seekOnly = (localTime, hostTime, hostIsPlaying = true) =>
+  resolveDrift({
+    localTime,
+    hostTime,
+    hostIsPlaying,
+    secondsSinceAnchor: 0,
+    canNudge: false,
+  });
+
+const ytSmall = seekOnly(30.9, 30);
+check(
+  "a source that cannot be nudged holds instead of changing rate",
+  ytSmall.correction.kind === "hold",
+  `(offset ${ytSmall.offset.toFixed(2)}s, under ${SEEK_ONLY_THRESHOLD_SECONDS}s)`
+);
+
+const ytNudgeable = playing(30.9, 30);
+check(
+  "the same offset is nudged when the source supports fine rates",
+  ytNudgeable.correction.kind === "rate"
+);
+
+const ytSeek = seekOnly(32.1, 30);
+check(
+  "past its threshold a nudge-less source seeks to the projected position",
+  ytSeek.correction.kind === "seek" && near(ytSeek.correction.to, 30)
+);
+
+const ytEarlierThanHtml5 = seekOnly(31.6, 30);
+check(
+  "a nudge-less source seeks earlier than the 2s hard-seek threshold",
+  ytEarlierThanHtml5.correction.kind === "seek" &&
+    playing(31.6, 30).correction.kind === "rate"
+);
+
+const ytPaused = seekOnly(30.5, 30, false);
+check(
+  "a paused nudge-less source still seeks small offsets",
+  ytPaused.correction.kind === "seek" && near(ytPaused.correction.to, 30)
 );
 
 fs.rmSync(outDir, { recursive: true, force: true });

@@ -43,8 +43,15 @@ export const joinRoomData = z.object({
   displayName: z.string().min(1).max(40).optional(),
 });
 
-export const queueAddData = z.object({
-  videoId: z.string(),
+export const queueAddData = z
+  .object({
+    url: z.string().min(1).max(2048).optional(),
+    videoId: z.string().optional(),
+  })
+  .refine((data) => Boolean(data.url || data.videoId));
+
+export const setSourceData = z.object({
+  url: z.string().min(1).max(2048),
 });
 
 export const setRoleData = z.object({

@@ -122,6 +122,7 @@ export function RoomView({ code }: { code: string }) {
       membership={membership}
       displayName={displayName}
       onRoomChange={setRoom}
+      onRoomEnded={() => setPhase("ended")}
     />
   );
 }

@@ -1,6 +1,16 @@
-import { Prisma, Role, Room, RoomMember, RoomStatus } from "@prisma/client";
+import {
+  Prisma,
+  QueueStatus,
+  Role,
+  Room,
+  RoomMember,
+  RoomStatus,
+  Video,
+} from "@prisma/client";
 import prismaClient from "./prismaClient";
 import { CDN_HOST } from "./config";
+import { playbackUrlFor } from "./videoSource";
+import { redisManager } from "./redisManager";
 import type { Identity } from "../types";
 
 /**
@@ -23,10 +33,22 @@ export const displayNameOf = (
   user?: { username: string } | null
 ) => user?.username ?? member.guestName ?? "Guest";
 
+type MemberWithUser = RoomMember & { user?: { username: string } | null };
+
 type RoomWithMembers = Room & {
-  members: RoomMember[];
+  members: MemberWithUser[];
+  currentVideo?: Video | null;
   queue?: (Prisma.QueueItemGetPayload<{ include: { video: true } }>)[];
 };
+
+export const roomInclude = {
+  members: { include: { user: { select: { username: true } } } },
+  currentVideo: true,
+  queue: {
+    include: { video: true },
+    orderBy: [{ position: "asc" }, { createdAt: "asc" }],
+  },
+} satisfies Prisma.RoomInclude;
 
 type Guard =
   | { room: Room; membership: RoomMember }
@@ -62,12 +84,56 @@ export const requireHost = (code: string, identity: Identity) =>
 export const requireController = (code: string, identity: Identity) =>
   guard(code, identity, CONTROLLERS);
 
+export const requireMember = (code: string, identity: Identity) =>
+  guard(code, identity, [Role.HOST, Role.COHOST, Role.VIEWER]);
+
+export const isController = (member: Pick<RoomMember, "role">) =>
+  CONTROLLERS.includes(member.role);
+
+export const serializeVideo = (video: Video) => ({
+  id: video.id,
+  title: video.title,
+  source: video.source,
+  url: playbackUrlFor(video),
+  status: video.status,
+  durationMs: video.durationMs,
+  thumbnailUrl:
+    video.thumbnailUrl ??
+    (video.thumbnailId
+      ? `${CDN_HOST}/Thumbnails/${video.thumbnailId}.jpeg`
+      : null),
+});
+
+export const setCurrentVideo = async (
+  room: Room,
+  membership: RoomMember,
+  videoId: string
+) => {
+  await prismaClient.room.update({
+    where: { id: room.id },
+    data: {
+      currentVideoId: videoId,
+      positionMs: 0,
+      isPlaying: false,
+      status: RoomStatus.LIVE,
+    },
+  });
+
+  await redisManager.sendUpdatesToWs({
+    userId: membership.id,
+    videoId,
+    roomId: room.code,
+    action: "update",
+  });
+};
+
 export const serializeRoom = (room: RoomWithMembers) => ({
   code: room.code,
   title: room.title,
   status: room.status,
   visibility: room.visibility,
   currentVideoId: room.currentVideoId,
+  currentVideo: room.currentVideo ? serializeVideo(room.currentVideo) : null,
   positionMs: room.positionMs,
   isPlaying: room.isPlaying,
   scheduledFor: room.scheduledFor,
@@ -75,22 +141,24 @@ export const serializeRoom = (room: RoomWithMembers) => ({
   members: room.members.map((m) => ({
     id: m.id,
     role: m.role,
-    name: m.guestName,
+    name: displayNameOf(m, m.user),
     userId: m.userId,
     joinedAt: m.joinedAt,
   })),
-  queue:
-    room.queue?.map((item) => ({
+  queue: serializeQueue(room, QueueStatus.QUEUED),
+  suggestions: serializeQueue(room, QueueStatus.SUGGESTED),
+});
+
+const serializeQueue = (room: RoomWithMembers, status: QueueStatus) =>
+  (room.queue ?? [])
+    .filter((item) => item.status === status)
+    .map((item) => ({
       id: item.id,
       position: item.position,
-      video: {
-        id: item.video.id,
-        title: item.video.title,
-        status: item.video.status,
-        durationMs: item.video.durationMs,
-        thumbnailUrl: item.video.thumbnailId
-          ? `${CDN_HOST}/Thumbnails/${item.video.thumbnailId}.jpeg`
-          : null,
-      },
-    })) ?? [],
-});
+      addedBy: item.addedBy,
+      addedByName: (() => {
+        const member = room.members.find((m) => m.id === item.addedBy);
+        return member ? displayNameOf(member, member.user) : "Someone";
+      })(),
+      video: serializeVideo(item.video),
+    }));

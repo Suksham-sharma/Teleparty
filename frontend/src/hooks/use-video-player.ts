@@ -4,13 +4,25 @@ import { useEffect, useMemo, useRef } from "react";
 import Plyr from "plyr";
 import Hls from "hls.js";
 
+export type SourceKind = "hls" | "file" | "youtube";
+
+export type PlayerEvent = "play" | "pause" | "timeupdate" | "ended" | "error";
+
+const RELAYED_EVENTS: PlayerEvent[] = [
+  "play",
+  "pause",
+  "timeupdate",
+  "ended",
+  "error",
+];
+
 interface UseVideoPlayerProps {
   src: string;
-  type?: string;
+  kind: SourceKind;
   canControl?: boolean;
 }
 
-interface VideoPlayerControls {
+export interface VideoPlayerControls {
   play: () => void;
   pause: () => void;
   getCurrentTime: () => number;
@@ -19,36 +31,61 @@ interface VideoPlayerControls {
   isPlaying: () => boolean;
   setPlaybackRate: (rate: number) => void;
   isMeasurable: () => boolean;
+  canNudgeRate: () => boolean;
+  on: (event: PlayerEvent, handler: () => void) => () => void;
 }
 
 export function useVideoPlayer({
   src,
-  type,
+  kind,
   canControl = true,
 }: UseVideoPlayerProps): {
-  videoRef: React.RefObject<HTMLVideoElement>;
+  containerRef: React.RefObject<HTMLDivElement>;
   controls: VideoPlayerControls;
 } {
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const plyrRef = useRef<Plyr>();
   const hlsRef = useRef<Hls | null>(null);
-  const isReadyRef = useRef<boolean>(false);
-
-  const isHLS =
-    type === "application/vnd.apple.mpegurl" || src.includes(".m3u8");
+  const mediaRef = useRef<HTMLVideoElement | null>(null);
+  const kindRef = useRef<SourceKind>(kind);
+  const isReadyRef = useRef(false);
+  const isSeekingRef = useRef(false);
+  const isTearingDownRef = useRef(false);
+  const listenersRef = useRef(new Map<PlayerEvent, Set<() => void>>());
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    kindRef.current = kind;
+    isReadyRef.current = false;
+    isSeekingRef.current = false;
+    isTearingDownRef.current = false;
+
+    const dispatch = (event: PlayerEvent) => {
+      if (isTearingDownRef.current) return;
+      listenersRef.current.get(event)?.forEach((handler) => handler());
+    };
+
+    const media = document.createElement(kind === "youtube" ? "div" : "video");
+
+    if (kind === "youtube") {
+      media.dataset.plyrProvider = "youtube";
+      media.dataset.plyrEmbedId = src;
+    } else {
+      const video = media as HTMLVideoElement;
+      video.className = "plyr-react plyr";
+      video.playsInline = true;
+      if (kind === "hls") video.crossOrigin = "anonymous";
+      mediaRef.current = video;
+    }
+
+    container.appendChild(media);
 
     let hls: Hls | null = null;
 
     const initPlyr = (qualityOptions?: number[]) => {
-      if (plyrRef.current) {
-        plyrRef.current.destroy();
-      }
-
-      plyrRef.current = new Plyr(video, {
+      const player = new Plyr(media, {
         controls: canControl
           ? [
               "play-large",
@@ -63,7 +100,7 @@ export function useVideoPlayer({
           : ["progress", "current-time", "mute", "volume", "settings", "fullscreen"],
         clickToPlay: canControl,
         keyboard: { focused: canControl, global: false },
-        ...(isHLS && qualityOptions
+        ...(qualityOptions
           ? {
               settings: ["quality", "speed"],
               quality: {
@@ -86,16 +123,21 @@ export function useVideoPlayer({
           : { selected: 1, options: [1] },
       });
 
-      plyrRef.current.on("ready", () => {
+      plyrRef.current = player;
+
+      player.on("ready", () => {
         isReadyRef.current = true;
       });
-
-      plyrRef.current.on("error", (error) => {
-        console.error("Plyr error:", error);
+      player.on("seeking", () => {
+        isSeekingRef.current = true;
       });
+      player.on("seeked", () => {
+        isSeekingRef.current = false;
+      });
+      RELAYED_EVENTS.forEach((event) => player.on(event, () => dispatch(event)));
     };
 
-    if (isHLS && Hls.isSupported()) {
+    if (kind === "hls" && Hls.isSupported()) {
       hls = new Hls({ debug: false });
       hlsRef.current = hls;
 
@@ -103,7 +145,7 @@ export function useVideoPlayer({
         const qualityOptions = data.levels
           .map((level) => level.height)
           .filter((h): h is number => h !== undefined);
-        initPlyr(qualityOptions);
+        initPlyr(qualityOptions.length > 0 ? qualityOptions : undefined);
       });
 
       hls.on(Hls.Events.ERROR, (event, data) => {
@@ -111,22 +153,31 @@ export function useVideoPlayer({
           console.error("Fatal HLS error:", data);
           hls?.destroy();
           hlsRef.current = null;
+          dispatch("error");
         }
       });
 
       hls.loadSource(src);
-      hls.attachMedia(video);
+      hls.attachMedia(media as HTMLVideoElement);
     } else {
-      video.src = src;
-      if (type) video.setAttribute("type", type);
+      if (kind !== "youtube") (media as HTMLVideoElement).src = src;
       initPlyr();
     }
 
     return () => {
+      isTearingDownRef.current = true;
       hls?.destroy();
-      plyrRef.current?.destroy();
+      hlsRef.current = null;
+      try {
+        plyrRef.current?.destroy();
+      } catch (error) {
+        console.error("Error destroying player:", error);
+      }
+      plyrRef.current = undefined;
+      mediaRef.current = null;
+      container.innerHTML = "";
     };
-  }, [src, type, isHLS, canControl]);
+  }, [src, kind, canControl]);
 
   const controls: VideoPlayerControls = useMemo(
     () => ({
@@ -155,16 +206,39 @@ export function useVideoPlayer({
       },
       isPlaying: () => !plyrRef.current?.paused,
       setPlaybackRate: (rate: number) => {
-        const video = videoRef.current;
+        if (kindRef.current === "youtube") {
+          const player = plyrRef.current;
+          if (player && player.speed !== rate) player.speed = rate;
+          return;
+        }
+        const video = mediaRef.current;
         if (video && video.playbackRate !== rate) video.playbackRate = rate;
       },
       isMeasurable: () => {
-        const video = videoRef.current;
+        if (kindRef.current === "youtube") {
+          const player = plyrRef.current;
+          return Boolean(
+            player &&
+              isReadyRef.current &&
+              !isSeekingRef.current &&
+              player.duration > 0
+          );
+        }
+        const video = mediaRef.current;
         return !!video && !video.seeking && video.readyState >= 2;
+      },
+      canNudgeRate: () => kindRef.current !== "youtube",
+      on: (event: PlayerEvent, handler: () => void) => {
+        const handlers = listenersRef.current.get(event) ?? new Set();
+        handlers.add(handler);
+        listenersRef.current.set(event, handlers);
+        return () => {
+          handlers.delete(handler);
+        };
       },
     }),
     []
   );
 
-  return { videoRef, controls };
+  return { containerRef, controls };
 }

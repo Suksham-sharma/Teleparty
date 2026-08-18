@@ -133,6 +133,13 @@ Also on `Video`, finally populated by the worker: `durationMs`, `status`
 (`PENDING | TRANSCODING | READY | FAILED`), `variants Json`, `spriteVttUrl`,
 `subtitleVttUrl`, `transcript`.
 
+And for pasted links: `source (UPLOAD | FILE | HLS | YOUTUBE)` plus a unique
+`sourceUrl` and `thumbnailUrl`, with `channelId` and `creatorId` nullable — an
+external source is a `Video` row that belongs to no library.
+
+`QueueItem` gains `status (SUGGESTED | QUEUED)` and `createdAt`. A viewer's
+addition lands as `SUGGESTED` and only a host or co-host can promote it.
+
 ---
 
 ## 4. HTTP API
@@ -146,6 +153,10 @@ POST   /api/rooms/:code/queue        { videoId }                     host/cohost
 DELETE /api/rooms/:code/queue/:id                                    host/cohost
 POST   /api/rooms/:code/role         { memberId, role }              host only
 GET    /api/rooms/:code/messages     ?before= paginated history
+POST   /api/rooms/:code/source     { url } → play a pasted link      host/cohost
+POST   /api/rooms/:code/queue        { url } | { videoId }             any member
+POST   /api/rooms/:code/queue/:id/approve  promote a suggestion        host/cohost
+POST   /api/rooms/:code/next         { afterVideoId } → play the head  host/cohost
 GET    /api/videos                   my library (replaces /channels/me)
 ```
 
@@ -341,7 +352,39 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
 - [x] Co-host grant (`POST /rooms/:code/role`) — UI for it still to come
 - [ ] **Persist chat to Postgres** — the `Message` table exists but the ws-server
       still keeps only an in-memory ring buffer, so history dies with the room
-- [ ] Queue + auto-advance on `ended` (API and schema done; player wiring pending)
+- [x] **Queue, viewer suggestions, and auto-advance on `ended`.**
+
+      `POST /rooms/:code/queue` takes a url or a videoId and the caller's role decides
+      where it lands: host and co-hosts queue directly, everyone else lands in
+      `SUGGESTED` and waits for approval. That is the "viewer asks, host approves"
+      rule applied to content rather than to roles, and it is the reason the room
+      survives its own link being forwarded — a stranger can ask, not hijack. Pending
+      suggestions are capped at 5 per member so the tray can't be flooded, and a
+      member may withdraw their own item but nobody else's.
+
+      - The sidebar is now tabbed **Chat | Up next**, with the count on the tab. The
+        panel carries now-playing, the queue, its own add field (labelled "Suggest"
+        for a viewer) and, for controllers only, the suggestions tray. Chat lost its
+        own header — the tab is the header now.
+      - Auto-advance: the controller's player posts `/next` on `ended`; the server
+        pops the head, and `deleteMany` is what claims it, so two controllers racing
+        produce one advance rather than two. `afterVideoId` rejects an advance for a
+        film the room has already left.
+      - **Real titles and thumbnails with no API key.** YouTube's oEmbed endpoint
+        gives the title (best-effort, 2.5s timeout, falls back to "YouTube video")
+        and the thumbnail is `i.ytimg.com/vi/<id>/hqdefault.jpg`. Rows created before
+        this refresh themselves the next time the same link is pasted, since dedupe
+        on `sourceUrl` would otherwise keep a placeholder title forever.
+
+      **The bug this shook out is the one worth remembering.** `ended` can fire while
+      Plyr is being torn down — and the player is torn down every time the film
+      changes. So one advance destroyed a player, that destruction emitted `ended`,
+      which advanced again: a single video ending drained the entire queue in about a
+      second. It took two guards. The event bus drops everything dispatched after
+      teardown begins, and the `ended` handler additionally refuses to advance unless
+      the player really is at the end (`duration > 0` and within 1.5s of it) — which
+      also covers YouTube's `ended` getter reading `currentTime === duration` as true
+      when both are still 0 at init.
 - [x] **Drift correction via `playbackRate` nudge; hard seek only past 2s; drift readout.**
 
       The interesting part was not the nudge, it was discovering that the thing
@@ -401,8 +444,8 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
         off it could not stay alive. Memoised; it only reads refs.
 
       Now verified against a real HLS stream. There are still no transcoded videos in
-      the dev database, so testing runs against a public test stream behind
-      `NEXT_PUBLIC_DEMO_HLS_URL` (see below). Confirmed by demoting a member to VIEWER:
+      the dev database, so testing ran against a public test stream — which is now
+      just a pasted link. Confirmed by demoting a member to VIEWER:
       jumps to 90s and 45s are both pulled back, and a settled viewer performs zero
       seeks over six seconds. Still unconfirmed: whether a ±8% nudge is imperceptible
       to a person, which needs two humans rather than two tabs.
@@ -459,15 +502,71 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
       surfaces and a literal reading condemns this one, but a scrim over moving
       picture is a legibility device, not elevation. Left as an explicit exception so
       the next pass does not "fix" it again — as this one did.
-- [ ] Co-host request flow (viewer asks, host approves)
-- [ ] **A demo film every room can reach.** Now that hosting needs an account this is
-      no longer about rescuing a guest host, but the dev database has no transcoded
-      videos at all, so there is nothing to test playback against. The stopgap is
-      `NEXT_PUBLIC_DEMO_HLS_URL` in `frontend/.env.local`, which points the reserved
-      video id `hls-demo` at a public HLS stream. It needs a matching `Video` row.
-      A real shared demo film would replace it.
-- [ ] **Paste-a-URL** — the biggest remaining content gap, and the feature Teleparty
-      and Watch2Gether actually compete on.
+- [ ] Co-host request flow (viewer asks to *control*; asking for content is done)
+- [x] ~~**A demo film every room can reach.**~~ Resolved by paste-a-URL rather than by
+      shipping a demo film: any room can now play a public link, so
+      `NEXT_PUBLIC_DEMO_HLS_URL`, the reserved `hls-demo` id and the
+      `frontend/.env.local` that carried them are all deleted.
+- [x] **Paste-a-URL.** A host or co-host pastes a link and the room plays it —
+      YouTube, a direct `.mp4`/`.webm`, or an external HLS `.m3u8`.
+
+      **An external source is a `Video` row, not a second kind of thing.** That is
+      what keeps it cheap: `Room.currentVideoId`, `QueueItem.videoId`, the snapshot
+      and the sync loop all keep working untouched. `Video` gained
+      `source (UPLOAD | FILE | HLS | YOUTUBE)` and a unique `sourceUrl`, and
+      `channelId`/`creatorId` became nullable — a pasted link belongs to no library,
+      and to no user at all when a guest co-host pastes it. `/library` reads through
+      `Channel.videos`, so external rows stay out of it with no filter to remember.
+
+      - Playback URLs are no longer derived on the client. `playbackUrlFor` resolves
+        `UPLOAD` by the old CDN convention and everything else to its own url, and
+        the room serializes a `currentVideo` alongside `currentVideoId`. The socket
+        still carries only an id, so the room refetches when it reports one the
+        client can't resolve — one request per film change.
+      - `Room.currentVideoId` is now a real foreign key (`onDelete: SetNull`). The
+        migration nulls orphan pointers before adding the constraint, because
+        `hls-demo` was exactly such an orphan.
+      - Validation lives in `backend/src/lib/videoSource.ts` and is a whitelist, not a
+        blacklist: http(s) only, YouTube hosts canonicalised to
+        `watch?v=<11-char id>`, otherwise an extension we can actually play. A
+        `javascript:` or `data:` url would otherwise reach a `<video src>`.
+        `backend/test/video-source.js` — 24 checks, no services needed.
+      - `POST /rooms/:code/source` goes through `requireController` like every other
+        control surface, and upserts on `sourceUrl` so the same link pasted twice is
+        one row.
+
+      **YouTube cost a player refactor, and the reason is worth recording.** A
+      YouTube embed has no `HTMLVideoElement`, so every listener the sync loop hung
+      off the media element had to move. `use-video-player.ts` now builds the media
+      element imperatively (React never owns a node Plyr replaces), takes a
+      `kind: hls | file | youtube`, and exposes a stable `controls.on()` event bus
+      that survives the player being torn down and rebuilt. `VideoPlayer.tsx` reports
+      play/pause/timeupdate through that bus instead of DOM listeners, so both
+      providers take the same path.
+
+      - **A ±8% rate nudge does nothing to YouTube.** Its API only accepts the rates
+        in `getAvailablePlaybackRates()` and silently ignores anything else, so the
+        drift corrector would have "nudged" forever while the viewer stayed out of
+        sync. `resolveDrift` takes a `canNudge` flag; without it, correction is seek
+        only, and the playing threshold tightens from 2s to 1.5s to compensate for
+        losing the fine control in between. Verified against a real embed: after a
+        host jump the viewer settles at a steady 0.6s behind and performs no further
+        seeks.
+      - `crossOrigin="anonymous"` is now set **only** for HLS. On a plain `<video>`
+        it turns an ordinary third-party mp4 into a load failure, since most hosts
+        send no `Access-Control-Allow-Origin` — and hls.js needs CORS regardless.
+      - The viewer lock had a hole a YouTube embed walks straight through: hiding
+        Plyr's controls leaves the iframe clickable, and a click there is a play
+        inside YouTube's own player. `.playback-locked` now also kills
+        `pointer-events` on the embed iframe.
+      - A link that doesn't load used to leave a silent black frame. Media errors are
+        relayed through the same bus and the frame now says so — the common cases are
+        private videos, region locks and hotlink protection, none of which we can
+        detect ahead of time.
+
+      Not covered: Vimeo and other providers, and anything requiring an account or
+      DRM (Netflix, Prime). YouTube's own title bar and "Watch on YouTube" button
+      appear on a paused embed; that is their branding requirement, not a bug to fix.
 
 ### Phase 3 — Video calls
 - [ ] Signaling message types + relay in `handlers.ts`
