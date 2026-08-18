@@ -345,11 +345,11 @@ server — `main-app.js` starts 404ing, React never hydrates, and it presents as
 stopped responding to clicks", which looks nothing like the cause. Kill the dev server,
 `rm -rf .next`, restart.
 
-### Phase 2 — Room UX (Tier 1) `[~]`
+### Phase 2 — Room UX (Tier 1) `[x]`
 - [x] Catch-up snapshot on join (position + play state + last 50 messages)
 - [x] Presence rail with named avatars
 - [x] Synced reactions
-- [x] Co-host grant (`POST /rooms/:code/role`) — UI for it still to come
+- [x] Co-host grant (`POST /rooms/:code/role`)
 - [x] **Chat persisted to Postgres, in batches.**
 
       The `Message` table existed and nothing wrote to it, so history died with the
@@ -543,7 +543,49 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
       surfaces and a literal reading condemns this one, but a scrim over moving
       picture is a legibility device, not elevation. Left as an explicit exception so
       the next pass does not "fix" it again — as this one did.
-- [ ] Co-host request flow (viewer asks to *control*; asking for content is done)
+- [x] **Co-host requests, and the People panel that answers them.**
+
+      Asking for *content* was done; asking for *control* was not, and the grant
+      endpoint had no UI at all — a host could only promote someone by hand-rolling
+      a POST.
+
+      **A request is a field on the membership, not a row of its own.** `RoomMember`
+      gained `controlRequestedAt`; null means nothing pending. One person can want
+      control or not want it, so a table would have needed the same per-member cap
+      the queue needed for suggestions, plus dedupe on every ask. As a nullable
+      timestamp the request is idempotent by construction, orders itself, and cannot
+      be flooded — asking twice is the same state.
+
+      - `POST /rooms/:code/control-request` to ask, `DELETE …/:memberId` to answer.
+        The delete is the withdraw *and* the decline: you may clear your own, the
+        host may clear anyone's. That mirrors the queue's "withdraw your own, not
+        someone else's" rule, extended by one case.
+      - **Approval is HOST-only, unlike queue approval, which any controller can do.**
+        A bad suggestion costs the room a film; a co-host who can appoint co-hosts is
+        a takeover path. `/role` already used `requireHost` and stays that way, and
+        any role change clears the pending flag so an approved request cannot linger.
+      - No new socket event: role changes already broadcast `room:roles-updated`, and
+        the client already refetches on it. The tray updates for free.
+      - The sidebar gained a third tab, **People** — the roster with the host's
+        promote/demote per row, the pending-request tray above it, and "Ask to
+        co-host" for anyone who is neither. The count on the tab is pending requests,
+        matching how the queue tab counts suggestions.
+      - The roster shown is the socket's (who is *here*, fresh on every join)
+        enriched from the REST members (roles and pending requests). Filtering REST
+        members by presence instead would have dropped anyone who joined since the
+        last refetch, because a join does not bump the room revision.
+
+      **The bug this shook out is worth recording.** `membership` is handed to the
+      room once, at join, and never updated — so `membership.role` was stale the
+      moment anyone's role changed. Promoting someone left them with the viewer UI
+      *and a read-only player* until they reloaded, which had been invisible only
+      because nothing could change a role without hand-writing a request. The live
+      role now comes from the roster, and the promotion lands across the whole room
+      at once: control chip, both paste-a-link surfaces, player authority.
+
+      Guard messages were wrong here too: a co-host refused a role change was told
+      "You do not control playback in this room", which they do. A host-only refusal
+      now says so.
 - [x] ~~**A demo film every room can reach.**~~ Resolved by paste-a-URL rather than by
       shipping a demo film: any room can now play a public link, so
       `NEXT_PUBLIC_DEMO_HLS_URL`, the reserved `hls-demo` id and the

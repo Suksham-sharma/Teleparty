@@ -78,6 +78,14 @@ export const setMemberRole = async (
   await axiosInstance.post(`/rooms/${code}/role`, { memberId, role });
 };
 
+export const requestControl = async (code: string) => {
+  await axiosInstance.post(`/rooms/${code}/control-request`);
+};
+
+export const clearControlRequest = async (code: string, memberId: string) => {
+  await axiosInstance.delete(`/rooms/${code}/control-request/${memberId}`);
+};
+
 export const getMessages = async (code: string): Promise<RoomMessage[]> => {
   const { data } = await axiosInstance.get(`/rooms/${code}/messages`);
   return data.messages;

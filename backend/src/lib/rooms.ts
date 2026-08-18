@@ -71,7 +71,13 @@ const guard = async (
   const membership = findMembership(room.members, identity);
   if (!membership) return { error: "You are not in this room.", status: 403 };
   if (!allowed.includes(membership.role))
-    return { error: "You do not control playback in this room.", status: 403 };
+    return {
+      error:
+        allowed.length === 1 && allowed[0] === Role.HOST
+          ? "Only the host can do that."
+          : "You do not control playback in this room.",
+      status: 403,
+    };
 
   return { room, membership };
 };
@@ -144,6 +150,7 @@ export const serializeRoom = (room: RoomWithMembers) => ({
     name: displayNameOf(m, m.user),
     userId: m.userId,
     joinedAt: m.joinedAt,
+    controlRequestedAt: m.controlRequestedAt,
   })),
   queue: serializeQueue(room, QueueStatus.QUEUED),
   suggestions: serializeQueue(room, QueueStatus.SUGGESTED),

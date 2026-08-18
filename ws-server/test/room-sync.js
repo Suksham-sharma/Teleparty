@@ -315,6 +315,7 @@ const first = (ws, type) => ws.received.find((m) => m.type === type);
   realHost.send(
     JSON.stringify({ type: "chat:message", roomId: CODE, chatMessage: "who is in?" })
   );
+  await wait(20);
   realGuest.send(
     JSON.stringify({ type: "chat:message", roomId: CODE, chatMessage: "me, one sec" })
   );
@@ -344,6 +345,75 @@ const first = (ws, type) => ws.received.find((m) => m.type === type);
   check(
     "a chat line from an unknown member is never written",
     !bodies.includes("starting in 2")
+  );
+
+  const memberIn = (jar, id) =>
+    get(jar, `/api/rooms/${CODE}`).room.members.find((m) => m.id === id);
+
+  post(GUEST_JAR, `/api/rooms/${CODE}/control-request`, {});
+  check(
+    "a viewer's ask for control is recorded",
+    Boolean(memberIn(JAR, guestMembership.id).controlRequestedAt)
+  );
+
+  const askedAt = memberIn(JAR, guestMembership.id).controlRequestedAt;
+  post(GUEST_JAR, `/api/rooms/${CODE}/control-request`, {});
+  check(
+    "asking twice does not queue a second request",
+    memberIn(JAR, guestMembership.id).controlRequestedAt === askedAt
+  );
+
+  check(
+    "the host has nothing to ask for",
+    post(JAR, `/api/rooms/${CODE}/control-request`, {}).error ===
+      "You already control this room."
+  );
+
+  check(
+    "a viewer cannot answer someone else's request",
+    del(GUEST_JAR, `/api/rooms/${CODE}/control-request/${hostMembership.id}`)
+      .error === "Only the host decides this."
+  );
+
+  del(GUEST_JAR, `/api/rooms/${CODE}/control-request/${guestMembership.id}`);
+  check(
+    "the asker can withdraw their own request",
+    memberIn(JAR, guestMembership.id).controlRequestedAt === null
+  );
+
+  post(GUEST_JAR, `/api/rooms/${CODE}/control-request`, {});
+  post(JAR, `/api/rooms/${CODE}/role`, {
+    memberId: guestMembership.id,
+    role: "COHOST",
+  });
+  const promoted = memberIn(JAR, guestMembership.id);
+  check("the host's approval promotes the asker", promoted.role === "COHOST");
+  check(
+    "approving clears the request rather than leaving it pending",
+    promoted.controlRequestedAt === null
+  );
+
+  check(
+    "a co-host cannot promote anyone else",
+    post(GUEST_JAR, `/api/rooms/${CODE}/role`, {
+      memberId: hostMembership.id,
+      role: "COHOST",
+    }).error === "Only the host can do that."
+  );
+
+  post(JAR, `/api/rooms/${CODE}/role`, {
+    memberId: guestMembership.id,
+    role: "VIEWER",
+  });
+  check(
+    "the host can demote a co-host again",
+    memberIn(JAR, guestMembership.id).role === "VIEWER"
+  );
+
+  check(
+    "declining a request nobody made is refused",
+    del(GUEST_JAR, `/api/rooms/${CODE}/control-request/${guestMembership.id}`)
+      .error === "No request to answer."
   );
 
   realHost.close();

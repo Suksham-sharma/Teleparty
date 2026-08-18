@@ -457,6 +457,83 @@ roomsRouter.post("/:code/next", async (req: Request, res: Response) => {
   }
 });
 
+roomsRouter.post("/:code/control-request", async (req: Request, res: Response) => {
+  try {
+    const guard = await requireMember(req.params.code, req.identity!);
+    if ("error" in guard) {
+      res.status(guard.status).json({ error: guard.error });
+      return;
+    }
+
+    if (isController(guard.membership)) {
+      res.status(400).json({ error: "You already control this room." });
+      return;
+    }
+
+    if (!guard.membership.controlRequestedAt) {
+      await prismaClient.roomMember.update({
+        where: { id: guard.membership.id },
+        data: { controlRequestedAt: new Date() },
+      });
+    }
+
+    redisManager.sendRoomEvent({
+      roomId: guard.room.code,
+      type: "room:roles-updated",
+    });
+
+    res.status(200).json({ message: "The host has been asked." });
+  } catch (error) {
+    console.error("Error requesting control:", error);
+    res.status(500).json({ error: "Could not ask for control." });
+  }
+});
+
+roomsRouter.delete(
+  "/:code/control-request/:memberId",
+  async (req: Request, res: Response) => {
+    try {
+      const guard = await requireMember(req.params.code, req.identity!);
+      if ("error" in guard) {
+        res.status(guard.status).json({ error: guard.error });
+        return;
+      }
+
+      const { memberId } = req.params;
+      const isOwn = memberId === guard.membership.id;
+
+      if (!isOwn && guard.membership.role !== Role.HOST) {
+        res.status(403).json({ error: "Only the host decides this." });
+        return;
+      }
+
+      const cleared = await prismaClient.roomMember.updateMany({
+        where: {
+          id: memberId,
+          roomId: guard.room.id,
+          controlRequestedAt: { not: null },
+        },
+        data: { controlRequestedAt: null },
+      });
+
+      if (cleared.count === 0) {
+        res.status(404).json({ error: "No request to answer." });
+        return;
+      }
+
+      redisManager.sendRoomEvent({
+        roomId: guard.room.code,
+        type: "room:roles-updated",
+      });
+
+      res.status(200).json({ message: isOwn ? "Withdrawn." : "Declined." });
+    } catch (error) {
+      console.error("Error clearing a control request:", error);
+      res.status(500).json({ error: "Could not answer that request." });
+    }
+  }
+);
+
 /** Promote or demote a member. Host only; the host cannot demote themselves. */
 roomsRouter.post("/:code/role", async (req: Request, res: Response) => {
   try {
@@ -479,7 +556,7 @@ roomsRouter.post("/:code/role", async (req: Request, res: Response) => {
 
     const updated = await prismaClient.roomMember.updateMany({
       where: { id: payload.data.memberId, roomId: guard.room.id },
-      data: { role: payload.data.role },
+      data: { role: payload.data.role, controlRequestedAt: null },
     });
 
     if (updated.count === 0) {
@@ -522,7 +599,7 @@ roomsRouter.get("/:code/messages", async (req: Request, res: Response) => {
         roomId: room.id,
         ...(before ? { createdAt: { lt: before } } : {}),
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit,
       select: {
         id: true,

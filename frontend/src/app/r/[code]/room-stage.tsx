@@ -17,6 +17,7 @@ import { RoomChat } from "./room-chat";
 import { PresenceRail } from "./presence-rail";
 import { PasteSource } from "./paste-source";
 import { RoomQueue } from "./room-queue";
+import { RoomPeople } from "./room-people";
 
 // Plyr reaches for `document` at import time, so it can never be evaluated
 // during SSR.
@@ -49,8 +50,7 @@ export function RoomStage({
   const { user } = useAuthStore();
   const [copied, setCopied] = useState(false);
   const [drift, setDrift] = useState<number | null>(null);
-  const [tab, setTab] = useState<"chat" | "queue">("chat");
-  const canControl = membership.role === "HOST" || membership.role === "COHOST";
+  const [tab, setTab] = useState<"chat" | "queue" | "people">("chat");
 
   const {
     status,
@@ -77,6 +77,24 @@ export function RoomStage({
   const videoId = playback.videoId ?? room.currentVideoId;
   const video = room.currentVideo?.id === videoId ? room.currentVideo : null;
   const roster = members.length > 0 ? members : room.members;
+
+  const known = new Map(room.members.map((member) => [member.id, member]));
+  const people = roster.map((member) => ({
+    ...member,
+    ...(known.get(member.id) ?? {}),
+  }));
+
+  const me = {
+    ...membership,
+    role: known.get(membership.id)?.role ?? membership.role,
+  };
+  const canControl = me.role === "HOST" || me.role === "COHOST";
+  const pendingRequests =
+    me.role === "HOST"
+      ? people.filter(
+          (member) => member.controlRequestedAt && member.role === "VIEWER"
+        ).length
+      : 0;
 
   useEffect(() => {
     if (!videoId || video) return;
@@ -123,7 +141,7 @@ export function RoomStage({
                 </span>
               </button>
 
-              {membership.role === "HOST" && (
+              {me.role === "HOST" && (
                 <Button
                   variant="outline"
                   size="sm"
@@ -213,6 +231,12 @@ export function RoomStage({
                     (canControl ? room.suggestions.length : 0)
                   }
                 />
+                <Tab
+                  active={tab === "people"}
+                  onClick={() => setTab("people")}
+                  label="People"
+                  count={pendingRequests}
+                />
 
                 <span className="ml-auto pr-2 text-sm text-grey">
                   {status === "open" ? (
@@ -231,6 +255,17 @@ export function RoomStage({
                     messages={messages}
                     memberId={membership.id}
                     onSend={sendChat}
+                  />
+                ) : tab === "people" ? (
+                  <RoomPeople
+                    code={code}
+                    members={people}
+                    membership={me}
+                    onChanged={() =>
+                      getRoom(code)
+                        .then(({ room: fresh }) => onRoomChange(fresh))
+                        .catch(() => {})
+                    }
                   />
                 ) : (
                   <RoomQueue

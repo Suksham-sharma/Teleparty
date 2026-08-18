@@ -158,6 +158,8 @@ model RoomMember {
   joinedAt   DateTime @default(now())
   lastSeenAt DateTime @updatedAt
 
+  controlRequestedAt DateTime?
+
   messages Message[]
 
   @@unique([roomId, userId])

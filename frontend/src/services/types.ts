@@ -17,6 +17,7 @@ export interface RoomMember {
   name: string | null;
   userId: string | null;
   joinedAt: string;
+  controlRequestedAt?: string | null;
 }
 
 export type VideoSource = "UPLOAD" | "FILE" | "HLS" | "YOUTUBE";

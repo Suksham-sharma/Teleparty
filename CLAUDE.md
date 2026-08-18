@@ -21,7 +21,7 @@ cd worker     && pnpm install && pnpm dev   # tsc -b + node dist (needs ffmpeg o
 cd frontend   && pnpm install && pnpm dev   # next dev         → :3000
 ```
 
-End-to-end sync check — 44 checks over the real API, Redis and sockets (needs all of the
+End-to-end sync check — 54 checks over the real API, Redis and sockets (needs all of the
 above running):
 
 ```bash
@@ -112,9 +112,11 @@ On join the server replies with a **`room:snapshot`** — current video, positio
 Consequences worth knowing:
 - **Room fanout state is in-process memory only** (`Map` in `RoomManager`) and the queue is a Redis *list*, not pub/sub, so `video-Data` is consumed by exactly one ws-server instance. Running more than one breaks sync for rooms split across instances. Horizontal scaling requires pub/sub plus room state in Redis (docs/REBUILD.md Phase 5).
 - The durable record lives in Postgres; the in-memory room is rebuilt from the API snapshot when someone returns.
+- **Roles change at runtime, so nothing may cache them.** A viewer asks for control with `POST /rooms/:code/control-request`, which sets `RoomMember.controlRequestedAt` — a nullable timestamp, not a row, so asking twice is the same state and no per-member cap is needed. `DELETE .../control-request/:memberId` is both withdraw (your own) and decline (host only); granting is HOST-only via `/role` and clears the flag. The room derives the caller's live role from the roster, **never from the `membership` prop** — that is fixed at join, and trusting it left a promoted co-host with a read-only player until they reloaded.
 - **The queue is role-aware.** `POST /rooms/:code/queue` takes a url or a videoId; a host or co-host queues directly, anyone else lands in `SUGGESTED` (capped at 5 pending per member) until a controller approves. The controller's player posts `/next` on `ended` to auto-advance, and the server claims the head with `deleteMany` so racing controllers advance once. Beware: `ended` also fires during player teardown, which happens on every film change — `use-video-player.ts` drops events dispatched after teardown starts, and `VideoPlayer` only advances when the player really is at the end. Without both, one ending drains the whole queue.
 - **Chat is persisted, but not by the ws-server.** It keeps its in-memory ring of the last 50 messages for the snapshot and additionally `LPUSH`es each line onto the Redis list `chat-persist`; the backend's `chatPersistence` consumer drains it in batches (blocking pop, 500ms linger, up to 200 per `createMany`) and is the only writer of `Message`. Attribution is resolved server-side from `memberId` — a line whose member is unknown, or belongs to another room than the code claims, is dropped. Ids are the ws-server's own UUIDs, so history and the live ring de-duplicate on id and the room merges them without a seam.
 - The roster is de-duplicated by `memberId`: one person with two tabs is one participant.
+- The sidebar is tabbed **Chat | Up next | People**. The People panel merges the socket roster (who is here, fresh on join) with the REST members (roles, pending requests); filtering REST members by presence instead drops anyone who joined since the last refetch, because a join does not bump the room revision.
 
 ### Upload / transcode pipeline
 
