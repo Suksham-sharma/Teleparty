@@ -221,7 +221,7 @@ export function RoomStage({
         </div>
 
         <div
-          className="mx-auto flex w-full flex-1 flex-col justify-center gap-4"
+          className="mx-auto flex w-full flex-col gap-4"
           style={shell}
         >
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
@@ -426,7 +426,6 @@ export function RoomStage({
 
           <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-x-5 gap-y-2">
             <div className="flex items-center gap-4">
-              <CallControls />
               {canControl ? (
                 <span className="rounded-full border border-butter-mute px-3.5 py-1 font-mono text-xs tracking-[0.06em] text-butter">
                   you control playback
@@ -437,6 +436,10 @@ export function RoomStage({
             </div>
 
             <div className="flex flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-2">
+              <span className="flex items-center border-r border-hair pr-4">
+                <CallControls />
+              </span>
+
               {canControl && (
                 <div className="w-full max-w-[340px]">
                   <PasteSource
