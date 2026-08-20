@@ -748,9 +748,11 @@ collapses to a rail and the frame takes the space back.
       Fixed alongside: a denied microphone used to tear down a connection that had
       already succeeded — connect and publish are now separate steps, so you land in the
       call able to listen.
-- [ ] `faces.tsx` at three sizes; delete `presence-rail.tsx`
-- [ ] Band + computed frame height in `room-stage.tsx`; call controls to the bottom strip
-- [ ] Lobby grid replacing `EmptyStage`'s empty frame
+- [x] `faces.tsx` at three sizes (`stage` / `band` / `rail`), merging the socket roster
+      with LiveKit participants on `memberId`. `presence-rail.tsx` and `room-call.tsx` gone
+- [x] Band + computed frame height in `room-stage.tsx`; call controls moved to the bottom
+      strip. Sizing lives in `lib/room-layout.ts` with 38 checks in `test/room-layout.js`
+- [x] Lobby grid replacing `EmptyStage`'s empty frame
 - [ ] The doorway: "Join with mic" / "Just watch", and `room-view.tsx` admission change
 - [ ] People-tab call badges
 
@@ -765,8 +767,13 @@ Three things the preview turned up that the spec now carries:
   is identical from one camera to four and there is no reflow as friends switch on one by
   one. Above four they shrink so everyone stays in one row.
 
-Not started, and worth deciding before the band lands: **narrow viewports have no plan.**
-Everything specced is the `lg:` layout.
+Narrow viewports fall back to the rail always, with the computed sizing applied only above
+1024px; the lobby grid still runs there. That is the minimum that works, not a designed
+mobile layout.
+
+**The band has not been seen against real cameras.** The browser pane blocks capture, so it
+is covered by the solver's unit tests and `/layout-preview` rather than a live two-camera
+room. Worth a real check with two machines before it is called done.
 
 ### Phase 4 — Pipeline (Tier 2)
 - [x] **Transcode loop closed.** The worker now reports completion on a third Redis list,

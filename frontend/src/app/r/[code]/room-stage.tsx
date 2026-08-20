@@ -14,10 +14,12 @@ import type { SourceKind } from "@/hooks/use-video-player";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/app/_components/site-header";
 import { RoomChat } from "./room-chat";
-import { PresenceRail } from "./presence-rail";
 import { PasteSource } from "./paste-source";
 import { RoomQueue } from "./room-queue";
 import { RoomPeople } from "./room-people";
+import { CallControls } from "./call-controls";
+import { FacesBand, FacesRail, FacesStage, useFaces, type Face } from "./faces";
+import { solveStage, GAP } from "@/lib/room-layout";
 
 // Plyr reaches for `document` at import time, so it can never be evaluated
 // during SSR.
@@ -25,11 +27,6 @@ const VideoPlayer = dynamic(() => import("@/components/VideoPlayer"), {
   ssr: false,
   loading: () => <div className="frame aspect-video w-full bg-card" />,
 });
-
-const RoomCall = dynamic(
-  () => import("./room-call").then((m) => m.RoomCall),
-  { ssr: false }
-);
 
 const kindOf = (source: VideoSource): SourceKind =>
   source === "YOUTUBE"
@@ -40,8 +37,21 @@ const kindOf = (source: VideoSource): SourceKind =>
         ? "file"
         : "hls";
 
-const stageWidth =
-  "mx-auto w-full lg:max-w-[calc((100vh-172px)*16/9+336px)]";
+const DESKTOP = 1024;
+
+function useViewport() {
+  const [size, setSize] = useState({ width: 1512, height: 945 });
+
+  useEffect(() => {
+    const measure = () =>
+      setSize({ width: window.innerWidth, height: window.innerHeight });
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+
+  return size;
+}
 
 export function RoomStage({
   code,
@@ -61,6 +71,7 @@ export function RoomStage({
   onRemoved: () => void;
 }) {
   const { user } = useAuthStore();
+  const viewport = useViewport();
   const [copied, setCopied] = useState(false);
   const [drift, setDrift] = useState<number | null>(null);
   const [engaged, setEngaged] = useState(false);
@@ -121,6 +132,19 @@ export function RoomStage({
     getRoom(code).then(({ room: fresh }) => onRoomChange(fresh)).catch(() => {});
   }, [videoId, video, code, onRoomChange]);
 
+  const { faces, onCamera, offCamera } = useFaces(people);
+  const isDesktop = viewport.width >= DESKTOP;
+  const layout = solveStage(
+    viewport.width,
+    viewport.height,
+    onCamera.length,
+    Boolean(videoId)
+  );
+  const stageMax = layout.colW + GAP + layout.sidebar;
+  const shell = isDesktop
+    ? { maxWidth: stageMax }
+    : { maxWidth: undefined };
+
   const advance = () => {
     if (!canControl || !videoId) return;
     setEngaged(true);
@@ -139,7 +163,8 @@ export function RoomStage({
       <header className="shrink-0 border-b border-hair">
         <div className="mx-auto w-full max-w-stage px-6">
           <div
-            className={`${stageWidth} flex h-14 items-center justify-between gap-4`}
+            className="mx-auto flex h-14 w-full items-center justify-between gap-4"
+            style={shell}
           >
             <Wordmark />
 
@@ -181,7 +206,8 @@ export function RoomStage({
 
       <div className="mx-auto flex w-full max-w-stage flex-1 flex-col px-6 pb-4 pt-3">
         <div
-          className={`${stageWidth} flex min-h-[28px] items-center justify-between gap-4`}
+          className="mx-auto flex min-h-[28px] w-full items-center justify-between gap-4"
+          style={shell}
         >
           <h1 className="truncate text-lg font-medium text-white">
             {room.title}
@@ -194,10 +220,23 @@ export function RoomStage({
           )}
         </div>
 
-        <div className={`${stageWidth} flex flex-1 flex-col justify-center gap-4`}>
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="relative">
+        <div
+          className="mx-auto flex w-full flex-1 flex-col justify-center gap-4"
+          style={shell}
+        >
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+            <div
+              className="flex min-w-0 flex-1 flex-col items-start gap-3"
+              style={isDesktop ? { width: layout.colW, flex: "none" } : undefined}
+            >
+              <div
+                className="relative w-full"
+                style={
+                  isDesktop
+                    ? { width: layout.frameW, height: layout.frameH }
+                    : undefined
+                }
+              >
                 {video ? (
                   <VideoPlayer
                     key={video.id}
@@ -213,15 +252,24 @@ export function RoomStage({
                     onEngage={() => setEngaged(true)}
                     onDrift={setDrift}
                     onEnded={advance}
-                    className="frame aspect-video w-full"
+                    className={
+                      isDesktop
+                        ? "frame frame-fill h-full w-full"
+                        : "frame aspect-video w-full"
+                    }
                   />
                 ) : videoId ? (
-                  <div className="frame aspect-video w-full bg-card" />
+                  <div
+                    className={`frame bg-card ${isDesktop ? "h-full w-full" : "aspect-video w-full"}`}
+                  />
                 ) : (
                   <EmptyStage
                     canControl={canControl}
                     isGuest={!user}
                     code={code}
+                    faces={faces}
+                    width={isDesktop ? layout.frameW : 0}
+                    height={isDesktop ? layout.frameH : 0}
                     onEngage={() => setEngaged(true)}
                   />
                 )}
@@ -241,8 +289,30 @@ export function RoomStage({
                 </div>
               </div>
 
+              {isDesktop && videoId && layout.mode === "band" && (
+                <FacesBand
+                  onCamera={onCamera}
+                  offCamera={offCamera}
+                  tileW={layout.tileW}
+                  tileH={layout.tileH}
+                  height={layout.bandH}
+                  width={layout.frameW}
+                />
+              )}
+
+              {videoId && (!isDesktop || layout.mode === "rail") && (
+                <FacesRail
+                  faces={faces}
+                  height={layout.bandH}
+                  width={isDesktop ? layout.frameW : 0}
+                />
+              )}
+
               {video && (
-                <div className="flex min-h-[36px] items-center justify-between gap-3">
+                <div
+                  className="flex min-h-[36px] w-full items-center justify-between gap-3"
+                  style={isDesktop ? { width: layout.frameW } : undefined}
+                >
                   <span className="min-w-0 truncate text-sm text-grey">
                     {upNext ? (
                       <>
@@ -268,10 +338,21 @@ export function RoomStage({
               )}
             </div>
 
-            <div className="flex flex-col gap-4 lg:w-[340px] lg:shrink-0">
-              <RoomCall />
-
-              <aside className="flex h-[380px] flex-col overflow-hidden rounded-lg bg-card lg:h-auto lg:min-h-0 lg:flex-1">
+            <div
+              className="flex flex-col gap-4 lg:shrink-0"
+              style={isDesktop ? { width: layout.sidebar } : undefined}
+            >
+              <aside
+                className="flex h-[380px] flex-col overflow-hidden rounded-lg bg-card lg:h-auto lg:min-h-0"
+                style={
+                  isDesktop
+                    ? {
+                        height: layout.frameH + layout.bandH + 12,
+                        flex: "none",
+                      }
+                    : undefined
+                }
+              >
               <div className="flex shrink-0 items-center gap-1 border-b border-hair p-2">
                 <Tab
                   active={tab === "chat"}
@@ -345,7 +426,7 @@ export function RoomStage({
 
           <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-x-5 gap-y-2">
             <div className="flex items-center gap-4">
-              <PresenceRail members={roster} />
+              <CallControls />
               {canControl ? (
                 <span className="rounded-full border border-butter-mute px-3.5 py-1 font-mono text-xs tracking-[0.06em] text-butter">
                   you control playback
@@ -451,34 +532,50 @@ function EmptyStage({
   canControl,
   isGuest,
   code,
+  faces,
+  width,
+  height,
   onEngage,
 }: {
   canControl: boolean;
   isGuest: boolean;
   code: string;
+  faces: Face[];
+  width: number;
+  height: number;
   onEngage?: () => void;
 }) {
-  return (
-    <div className="frame flex aspect-video w-full items-center justify-center bg-card">
-      <div className="w-full max-w-lg px-6 text-center">
-        <p className="label-mute mb-4">Nothing playing</p>
+  const sized = width > 0 && height > 0;
 
-        {!canControl && (
+  return (
+    <div
+      className={`frame flex flex-col bg-card p-4 ${sized ? "" : "aspect-video w-full"}`}
+      style={sized ? { width, height } : undefined}
+    >
+      {faces.length > 0 && sized ? (
+        <FacesStage
+          faces={faces}
+          width={width - 32}
+          height={height - 32 - 60}
+        />
+      ) : (
+        <div className="flex min-h-0 flex-1 items-center justify-center">
+          <p className="label-mute">Nobody here yet</p>
+        </div>
+      )}
+
+      <div className="mt-4 flex shrink-0 flex-col items-center gap-2">
+        {!canControl ? (
           <p className="text-base text-grey">
             Waiting for the host to start the screening.
           </p>
-        )}
-
-        {canControl && (
+        ) : (
           <>
-            <p className="mb-6 text-base text-grey">
-              Paste a video or song link and everyone here plays it together.
-            </p>
-
-            <PasteSource code={code} onEngage={onEngage} />
-
+            <div className="w-full max-w-xl">
+              <PasteSource code={code} size="sm" onEngage={onEngage} />
+            </div>
             {!isGuest && (
-              <p className="mt-5 text-base text-grey-dim">
+              <p className="text-base text-grey-dim">
                 or play something from your{" "}
                 <Link
                   href={`/library?room=${code}`}
