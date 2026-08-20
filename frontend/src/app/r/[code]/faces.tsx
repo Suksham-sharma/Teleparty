@@ -131,7 +131,7 @@ export function FacesStage({
   width: number;
   height: number;
 }) {
-  const grid = solveLobbyGrid(Math.max(faces.length, 1), width, height);
+  const grid = solveLobbyGrid(Math.max(faces.length, 1), width, height, 560);
 
   return (
     <div
@@ -304,4 +304,8 @@ function Avatar({ face, lit }: { face: Face; lit: boolean }) {
       />
     </span>
   );
+}
+
+export function FacesCluster({ faces }: { faces: Face[] }) {
+  return <AvatarStack faces={faces.slice(0, 8)} />;
 }

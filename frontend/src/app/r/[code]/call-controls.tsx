@@ -18,7 +18,12 @@ export function CallControls() {
 
   if (status !== "joined") {
     return (
-      <Button onClick={join} disabled={status === "joining"} size="sm">
+      <Button
+        onClick={join}
+        disabled={status === "joining"}
+        size="sm"
+        variant="outline"
+      >
         {status === "joining" ? (
           <Loader2 className="animate-spin" />
         ) : (

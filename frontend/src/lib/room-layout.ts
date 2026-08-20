@@ -90,7 +90,12 @@ export function solveStage(
   };
 }
 
-export function solveLobbyGrid(count: number, width: number, height: number) {
+export function solveLobbyGrid(
+  count: number,
+  width: number,
+  height: number,
+  maxTileW = Number.POSITIVE_INFINITY
+) {
   const n = Math.max(count, 1);
   let best = { cols: 1, tileW: 0, tileH: 0 };
 
@@ -98,7 +103,7 @@ export function solveLobbyGrid(count: number, width: number, height: number) {
     const rows = Math.ceil(n / cols);
     const byWidth = (width - LOBBY_GAP * (cols - 1)) / cols;
     const byHeight = ((height - LOBBY_GAP * (rows - 1)) / rows) * (16 / 9);
-    const tileW = Math.min(byWidth, byHeight);
+    const tileW = Math.min(byWidth, byHeight, maxTileW);
     if (tileW > best.tileW) best = { cols, tileW, tileH: (tileW * 9) / 16 };
   }
 

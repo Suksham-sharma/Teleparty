@@ -18,7 +18,14 @@ import { PasteSource } from "./paste-source";
 import { RoomQueue } from "./room-queue";
 import { RoomPeople } from "./room-people";
 import { CallControls } from "./call-controls";
-import { FacesBand, FacesRail, FacesStage, useFaces, type Face } from "./faces";
+import {
+  FacesBand,
+  FacesCluster,
+  FacesRail,
+  FacesStage,
+  useFaces,
+  type Face,
+} from "./faces";
 import { solveStage, GAP } from "@/lib/room-layout";
 
 // Plyr reaches for `document` at import time, so it can never be evaluated
@@ -268,8 +275,11 @@ export function RoomStage({
                     isGuest={!user}
                     code={code}
                     faces={faces}
+                    onCamera={onCamera}
                     width={isDesktop ? layout.frameW : 0}
                     height={isDesktop ? layout.frameH : 0}
+                    copied={copied}
+                    onCopy={copyLink}
                     onEngage={() => setEngaged(true)}
                   />
                 )}
@@ -440,7 +450,7 @@ export function RoomStage({
                 <CallControls />
               </span>
 
-              {canControl && (
+              {canControl && videoId && (
                 <div className="w-full max-w-[340px]">
                   <PasteSource
                     code={code}
@@ -536,47 +546,59 @@ function EmptyStage({
   isGuest,
   code,
   faces,
+  onCamera,
   width,
   height,
+  copied,
+  onCopy,
   onEngage,
 }: {
   canControl: boolean;
   isGuest: boolean;
   code: string;
   faces: Face[];
+  onCamera: Face[];
   width: number;
   height: number;
+  copied: boolean;
+  onCopy: () => void;
   onEngage?: () => void;
 }) {
   const sized = width > 0 && height > 0;
+  const others = faces.length - 1;
+
+  const presence =
+    others <= 0
+      ? "Just you in here so far"
+      : `${faces.length} people in here`;
 
   return (
     <div
-      className={`frame flex flex-col bg-card p-4 ${sized ? "" : "aspect-video w-full"}`}
+      className={`frame flex flex-col items-center justify-center gap-7 bg-card p-6 ${
+        sized ? "" : "aspect-video w-full"
+      }`}
       style={sized ? { width, height } : undefined}
     >
-      {faces.length > 0 && sized ? (
+      {onCamera.length > 0 ? (
         <FacesStage
-          faces={faces}
-          width={width - 32}
-          height={height - 32 - 60}
+          faces={onCamera}
+          width={width - 48}
+          height={height - 220}
         />
       ) : (
-        <div className="flex min-h-0 flex-1 items-center justify-center">
-          <p className="label-mute">Nobody here yet</p>
+        <div className="flex flex-col items-center gap-3">
+          {faces.length > 0 && <FacesCluster faces={faces} />}
+          <p className="text-base text-grey">{presence}</p>
         </div>
       )}
 
-      <div className="mt-4 flex shrink-0 flex-col items-center gap-2">
-        {!canControl ? (
-          <p className="text-base text-grey">
-            Waiting for the host to start the screening.
-          </p>
-        ) : (
+      <div className="flex w-full max-w-xl flex-col items-center gap-3">
+        {canControl ? (
           <>
-            <div className="w-full max-w-xl">
-              <PasteSource code={code} size="sm" onEngage={onEngage} />
-            </div>
+            <p className="text-lg font-medium text-white">
+              Put something on
+            </p>
+            <PasteSource code={code} onEngage={onEngage} />
             {!isGuest && (
               <p className="text-base text-grey-dim">
                 or play something from your{" "}
@@ -589,7 +611,38 @@ function EmptyStage({
               </p>
             )}
           </>
+        ) : (
+          <>
+            <p className="text-lg font-medium text-white">
+              Nothing playing yet
+            </p>
+            <p className="text-base text-grey">
+              The host is picking something. Say hello in the meantime.
+            </p>
+          </>
         )}
+      </div>
+
+      <div className="flex w-full max-w-xl flex-col items-center gap-3 border-t border-hair pt-6">
+        <p className="text-base text-grey">
+          Anyone with this link can walk in
+        </p>
+        <button
+          onClick={onCopy}
+          className="group inline-flex h-10 items-center gap-2.5 rounded-full border border-butter-mute pl-4 pr-1.5 transition-colors hover:border-butter"
+          aria-label={`Copy the invite link for room ${code}`}
+        >
+          <code className="text-md font-medium tracking-[0.1em] text-butter">
+            {code}
+          </code>
+          <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-card-2 transition-colors group-hover:bg-butter group-hover:text-black">
+            {copied ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </span>
+        </button>
       </div>
     </div>
   );
