@@ -741,7 +741,13 @@ collapses to a rail and the frame takes the space back.
 
 - [x] Spec written, with the sizing solved and checked against a live preview at
       `/layout-preview` (a throwaway route — delete it when the real layout lands)
-- [ ] Hoist `LiveKitRoom` to a provider so participants are readable outside the widget
+- [x] Hoist the connection to a `CallProvider` above `RoomStage` — a single long-lived
+      `Room` handed down through `RoomContext`, so the LiveKit hooks are always valid and
+      return nothing when disconnected, rather than throwing wherever there is no
+      connection. `RoomCall` renders identically; it just no longer owns the connection.
+      Fixed alongside: a denied microphone used to tear down a connection that had
+      already succeeded — connect and publish are now separate steps, so you land in the
+      call able to listen.
 - [ ] `faces.tsx` at three sizes; delete `presence-rail.tsx`
 - [ ] Band + computed frame height in `room-stage.tsx`; call controls to the bottom strip
 - [ ] Lobby grid replacing `EmptyStage`'s empty frame
