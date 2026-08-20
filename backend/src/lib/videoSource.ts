@@ -17,6 +17,15 @@ const YOUTUBE_ID = /^[A-Za-z0-9_-]{11}$/;
 
 const FILE_EXTENSIONS = new Set(["mp4", "webm", "ogg", "ogv", "mov", "m4v"]);
 const HLS_EXTENSIONS = new Set(["m3u8"]);
+const AUDIO_EXTENSIONS = new Set([
+  "mp3",
+  "m4a",
+  "aac",
+  "opus",
+  "wav",
+  "flac",
+  "weba",
+]);
 
 const MAX_URL_LENGTH = 2048;
 const MAX_TITLE_LENGTH = 80;
@@ -134,9 +143,18 @@ export function parseVideoSource(input: string): ParseResult {
     };
   }
 
+  if (extension && AUDIO_EXTENSIONS.has(extension)) {
+    return {
+      source: VideoSource.AUDIO,
+      url: url.toString(),
+      title: titleFromPath(url),
+      thumbnailUrl: null,
+    };
+  }
+
   return {
     error:
-      "Only YouTube links and direct video files (.mp4, .webm, .m3u8) can be played.",
+      "Only YouTube links, direct video files (.mp4, .webm, .m3u8) and audio files (.mp3, .m4a) can be played.",
   };
 }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Play } from "lucide-react";
+import { Play, AudioLines } from "lucide-react";
 import { useVideoPlayer, type SourceKind } from "@/hooks/use-video-player";
 import { usePlaybackSync } from "@/hooks/use-playback-sync";
 import "plyr/dist/plyr.css";
@@ -14,11 +14,14 @@ const END_TOLERANCE_SECONDS = 1.5;
 type VideoPlayerProps = {
   src: string;
   kind: SourceKind;
+  title?: string;
   isPlaying?: boolean;
   roomId: string;
   videoId: string;
   isChannelOwner?: boolean;
   currentTime?: number | null;
+  engaged?: boolean;
+  onEngage?: () => void;
   onDrift?: (drift: number | null) => void;
   onEnded?: () => void;
 } & React.HTMLAttributes<HTMLDivElement>;
@@ -26,12 +29,15 @@ type VideoPlayerProps = {
 const VideoPlayer: React.FC<VideoPlayerProps> = ({
   src,
   kind,
+  title,
   className,
   isPlaying,
   roomId,
   videoId,
   isChannelOwner,
   currentTime,
+  engaged,
+  onEngage,
   onDrift,
   onEnded,
 }) => {
@@ -40,7 +46,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
     kind,
     canControl: Boolean(isChannelOwner),
   });
-  const [showOverlay, setShowOverlay] = React.useState(true);
+  const [dismissed, setDismissed] = React.useState(false);
+  const showOverlay = !engaged && !dismissed;
   const [failed, setFailed] = React.useState(false);
   const reportTimeoutRef = React.useRef<NodeJS.Timeout>();
   const lastReportedTime = React.useRef<number>(0);
@@ -127,7 +134,8 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [isPlaying, controls, showOverlay]);
 
   const handleOverlayClick = () => {
-    setShowOverlay(false);
+    setDismissed(true);
+    onEngage?.();
     if (isPlaying) {
       controls.play();
     }
@@ -140,6 +148,20 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({
           isChannelOwner ? "" : " playback-locked"
         }`}
       >
+        {kind === "audio" && !failed && (
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-4 bg-coal px-6 text-center">
+            <span className="animate-filament inline-flex h-16 w-16 items-center justify-center rounded-full bg-butter/10 text-butter">
+              <AudioLines className="h-7 w-7" />
+            </span>
+            <div className="min-w-0">
+              <p className="label-mute mb-1.5">Now playing</p>
+              <p className="line-clamp-2 text-lg font-medium text-white">
+                {title ?? "Audio track"}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div ref={containerRef} className="h-full w-full" />
 
         {failed && (

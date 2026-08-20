@@ -52,6 +52,15 @@ export const addToQueue = async (
   return data.item;
 };
 
+export const submitSource = async (
+  code: string,
+  url: string
+): Promise<{ played: boolean; title: string; status?: "SUGGESTED" | "QUEUED" }> => {
+  const { data } = await axiosInstance.post(`/rooms/${code}/queue`, { url });
+  if (data.played) return { played: true, title: data.video.title };
+  return { played: false, title: data.item.video.title, status: data.item.status };
+};
+
 export const approveSuggestion = async (code: string, itemId: string) => {
   await axiosInstance.post(`/rooms/${code}/queue/${itemId}/approve`);
 };

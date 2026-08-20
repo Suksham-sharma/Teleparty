@@ -117,6 +117,21 @@
     padding-bottom: 0;
   }
 
+  .frame-fill .plyr--audio {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: auto;
+    --plyr-audio-controls-background: transparent;
+    --plyr-audio-control-color: hsl(var(--grey));
+    --plyr-audio-control-color-hover: hsl(var(--black));
+    --plyr-color-main: hsl(var(--butter));
+  }
+
+  .frame-fill .plyr--audio .plyr__controls {
+    padding: 12px 14px 16px;
+  }
+
   /* Small uppercase mono label, for metadata that should recede. */
   .label-mute {
     @apply font-mono text-[11px] uppercase tracking-[0.13em] text-butter-mute;

@@ -16,6 +16,13 @@ export const REDIS_URL = process.env.REDIS_URL ?? "redis://localhost:6379";
 
 export const JWT_SECRET = required("JWT_SECRET", "dev-only-insecure-secret");
 
+export const LIVEKIT_URL = process.env.LIVEKIT_URL ?? "";
+export const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY ?? "";
+export const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET ?? "";
+export const CALLS_ENABLED = Boolean(
+  LIVEKIT_URL && LIVEKIT_API_KEY && LIVEKIT_API_SECRET
+);
+
 export const S3_BUCKET = process.env.S3_BUCKET ?? "easy-deploy";
 export const AWS_REGION = process.env.AWS_REGION ?? "ap-south-1";
 export const CDN_HOST =

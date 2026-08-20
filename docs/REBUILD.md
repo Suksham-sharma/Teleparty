@@ -188,6 +188,10 @@ pub/sub and moving `RoomManager` state into Redis hashes. Tracked in Phase 5.
 
 ## 6. Video calls
 
+> **Superseded.** Calls ship on managed LiveKit Cloud, not this mesh design. See
+> [`CALLS-AND-MUSIC.md`](./CALLS-AND-MUSIC.md) and Phase 3 below. The section is kept as
+> the record of what was considered and why TURN operation was the thing that killed it.
+
 **WebRTC mesh over the existing ws-server signaling**, capped at 6 cameras.
 
 - Signaling rides the room's existing socket list — offers/answers/ICE are relayed by
@@ -676,12 +680,47 @@ stopped responding to clicks", which looks nothing like the cause. Kill the dev 
       re-roll — a room-level invite token, or account-gated rooms — and belongs with
       the Phase 5 platform work rather than bolted on here.
 
-### Phase 3 — Video calls
-- [ ] Signaling message types + relay in `handlers.ts`
-- [ ] Mesh peer connections, join/leave lifecycle, 6-peer cap
-- [ ] TURN deployment
-- [ ] Filmstrip UI, mute/cam, push-to-talk, speaking indicator
-- [ ] Audio ducking
+### Phase 3 — Voice + video calls `[x]`
+
+**The mesh plan in §6 is dead.** Calls run on managed **LiveKit Cloud** (an SFU), not
+WebRTC mesh over our own signaling. `docs/CALLS-AND-MUSIC.md` is the spec and supersedes
+§6 in full; where the two disagree, trust that document.
+
+The trade that decided it: a mesh needs TURN to work across home networks, and TURN means
+running coturn on a VPS and keeping it alive. LiveKit Cloud runs global STUN/TURN itself,
+so cross-network calls work on day one with no box to operate. It also adds no fifth
+service — the backend only mints tokens; media never touches our infrastructure.
+
+- [x] **Backend mints scoped access tokens.** `LiveKitManager` singleton
+      (`backend/src/lib/livekit.ts`) wrapping `AccessToken`, plus
+      `POST /api/rooms/:code/call-token` under `resolveIdentity`.
+      - Authorization is **membership, not control** — any viewer may join the call — so
+        it resolves through `requireMember`, never `requireController`.
+      - `identity = membership.id`. That is the same key the socket roster uses, which is
+        what lets one roster merge presence and call state later.
+      - A removed member (`removedAt` set) is refused, mirroring the ws-server eviction,
+        so a booted guest cannot rejoin the call.
+      - 503s cleanly when the LiveKit env vars are absent, so the app still runs without
+        them.
+- [x] **Frontend joins opt-in, headless.** `services/call.ts` + `room-call.tsx` built on
+      `useTracks` / `useParticipants` / `RoomAudioRenderer`. The prebuilt
+      `<VideoConference>` was deliberately avoided — it ships its own chrome and would
+      fight the design system.
+- [x] **Song on the main stage.** `AUDIO` added to `VideoSource`
+      (`20260818175858_audio_source`), an audio-extension branch in `videoSource.ts`, and
+      an `<audio>` branch in the player with a now-playing panel. A song is just a `Video`
+      whose media is audio, so it reuses the source → sync → drift → queue path wholesale.
+      Unlike YouTube an `<audio>` element **can** be rate-nudged, so it syncs better than
+      the YouTube path. `test/video-source.js` grew 24 → 34 checks.
+- [ ] Host moderation — `RoomServiceClient` for `mutePublishedTrack` / `removeParticipant`
+- [ ] Screen share (`setScreenShareEnabled` — nearly free on LiveKit)
+- [ ] Audio ducking while someone speaks
+- [ ] Uploaded songs (the worker's ladder is a 240/480/720p *video* ladder; audio needs
+      its own branch or an untranscoded passthrough)
+
+**No schema change for calls.** LiveKit holds call membership and track state. And the
+ws-server's single-instance limit is irrelevant here — call media never rides
+`video-Data`. It still gates playback-sync scaling, exactly as before.
 
 ### Phase 4 — Pipeline (Tier 2)
 - [x] **Transcode loop closed.** The worker now reports completion on a third Redis list,

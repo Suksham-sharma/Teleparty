@@ -22,6 +22,7 @@ import {
 } from "../lib/rooms";
 import { videoFromUrl } from "../lib/externalVideo";
 import { redisManager } from "../lib/redisManager";
+import { livekitManager } from "../lib/livekit";
 
 export const roomsRouter = Router();
 
@@ -114,6 +115,39 @@ roomsRouter.get("/:code", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error fetching room:", error);
     res.status(500).json({ error: "Could not fetch room." });
+  }
+});
+
+roomsRouter.post("/:code/call-token", async (req: Request, res: Response) => {
+  try {
+    if (!livekitManager.enabled) {
+      res.status(503).json({ error: "Calls are not configured." });
+      return;
+    }
+
+    const guard = await requireMember(req.params.code, req.identity!);
+    if ("error" in guard) {
+      res.status(guard.status).json({ error: guard.error });
+      return;
+    }
+
+    const identity = req.identity!;
+    const name =
+      identity.kind === "user"
+        ? identity.displayName
+        : guard.membership.guestName ?? "Guest";
+
+    const token = await livekitManager.mintToken({
+      roomCode: guard.room.code,
+      identity: guard.membership.id,
+      name,
+      role: guard.membership.role,
+    });
+
+    res.status(200).json({ token, url: livekitManager.url });
+  } catch (error) {
+    console.error("Error minting call token:", error);
+    res.status(500).json({ error: "Could not join the call." });
   }
 });
 
@@ -307,6 +341,12 @@ roomsRouter.post("/:code/queue", async (req: Request, res: Response) => {
       video = found;
     }
 
+    if (controls && !guard.room.currentVideoId) {
+      await setCurrentVideo(guard.room, guard.membership, video.id);
+      res.status(201).json({ played: true, video: serializeVideo(video) });
+      return;
+    }
+
     if (!controls) {
       const pending = await prismaClient.queueItem.count({
         where: {
@@ -337,6 +377,7 @@ roomsRouter.post("/:code/queue", async (req: Request, res: Response) => {
     announceQueue(guard.room.code);
 
     res.status(201).json({
+      played: false,
       item: {
         id: item.id,
         status: item.status,

@@ -4,11 +4,11 @@ import { useState } from "react";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { setRoomSource } from "@/services/room";
+import { submitSource } from "@/services/room";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-const PLACEHOLDER = "Paste a YouTube or .mp4 link";
+const PLACEHOLDER = "Paste a video or song link";
 
 const reasonFrom = (error: unknown) => {
   if (axios.isAxiosError(error)) {
@@ -21,9 +21,11 @@ const reasonFrom = (error: unknown) => {
 export function PasteSource({
   code,
   size = "default",
+  onEngage,
 }: {
   code: string;
   size?: "default" | "sm";
+  onEngage?: () => void;
 }) {
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,11 +44,18 @@ export function PasteSource({
       return;
     }
 
+    onEngage?.();
     setBusy(true);
     try {
-      const video = await setRoomSource(code, trimmed);
+      const result = await submitSource(code, trimmed);
       setUrl("");
-      toast.success(`Now playing — ${video.title}`);
+      if (result.played) {
+        toast.success(`Now playing — ${result.title}`);
+      } else if (result.status === "SUGGESTED") {
+        toast.success(`Suggested — the host can add it`);
+      } else {
+        toast.success(`Added to the queue — ${result.title}`);
+      }
     } catch (error) {
       toast.error(reasonFrom(error));
     } finally {

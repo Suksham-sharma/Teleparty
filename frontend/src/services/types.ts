@@ -20,7 +20,7 @@ export interface RoomMember {
   controlRequestedAt?: string | null;
 }
 
-export type VideoSource = "UPLOAD" | "FILE" | "HLS" | "YOUTUBE";
+export type VideoSource = "UPLOAD" | "FILE" | "HLS" | "YOUTUBE" | "AUDIO";
 
 export interface PlayableVideo {
   id: string;

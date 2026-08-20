@@ -13,10 +13,12 @@ export function RoomChat({
   messages,
   memberId,
   onSend,
+  connected,
 }: {
   messages: LiveMessage[];
   memberId: string;
   onSend: (body: string) => void;
+  connected: boolean;
 }) {
   const [value, setValue] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
@@ -67,12 +69,12 @@ export function RoomChat({
           onKeyDown={(event) => event.key === "Enter" && submit()}
           placeholder="Message the room"
           aria-label="Message the room"
-          disabled={status !== "open"}
+          disabled={!connected}
           className="h-10 min-w-0 flex-1 rounded-full bg-card-2 px-5 text-base text-white outline-none transition-colors placeholder:text-grey-dim focus:ring-2 focus:ring-butter disabled:opacity-50"
         />
         <button
           onClick={submit}
-          disabled={status !== "open" || !value.trim()}
+          disabled={!connected || !value.trim()}
           className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-butter text-black transition-colors hover:bg-butter-deep disabled:bg-card-2 disabled:text-grey-dim"
           aria-label="Send message"
         >

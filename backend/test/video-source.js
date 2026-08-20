@@ -15,6 +15,7 @@ fs.writeFileSync(
   FILE: "FILE",
   HLS: "HLS",
   YOUTUBE: "YOUTUBE",
+  AUDIO: "AUDIO",
 } as const;
 export type VideoSource = (typeof VideoSource)[keyof typeof VideoSource];
 export const CDN_HOST = "https://cdn.example";
@@ -102,6 +103,41 @@ check(
   "a percent-encoded filename is decoded for the title",
   encoded.source === "FILE" && encoded.title === "a quiet place",
   `(title "${encoded.title}")`
+);
+
+const mp3 = parse("https://songs.example/tracks/Blue_In_Green.mp3");
+check(
+  "a direct mp3 is an AUDIO source titled from its filename",
+  mp3.source === "AUDIO" && mp3.title === "Blue In Green",
+  `(title "${mp3.title}")`
+);
+
+["m4a", "aac", "opus", "wav", "flac", "weba"].forEach((ext) => {
+  const parsed = parse(`https://songs.example/clip.${ext}`);
+  check(
+    `a .${ext} file is an AUDIO source`,
+    !("error" in parsed) && parsed.source === "AUDIO"
+  );
+});
+
+const audioQuery = parse("https://cdn.example/stream.mp3?token=xyz");
+check(
+  "an audio url keeps its query string",
+  audioQuery.source === "AUDIO" && audioQuery.url.includes("token=xyz")
+);
+
+check(
+  "an ogg stays a video FILE rather than being reclassified as audio",
+  parse("https://films.example/reel.ogg").source === "FILE"
+);
+
+check(
+  "an external audio track plays from its own url",
+  playbackUrlFor({
+    id: "aud789",
+    source: "AUDIO",
+    sourceUrl: "https://songs.example/track.mp3",
+  }) === "https://songs.example/track.mp3"
 );
 
 check("a non-url is refused", rejects("not a link at all"));

@@ -122,7 +122,7 @@ export const setCurrentVideo = async (
     data: {
       currentVideoId: videoId,
       positionMs: 0,
-      isPlaying: false,
+      isPlaying: true,
       status: RoomStatus.LIVE,
     },
   });

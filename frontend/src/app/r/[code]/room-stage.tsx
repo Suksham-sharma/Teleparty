@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, SkipForward } from "lucide-react";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
 import { endRoom, getRoom, playNext } from "@/services/room";
@@ -26,8 +26,19 @@ const VideoPlayer = dynamic(() => import("@/components/VideoPlayer"), {
   loading: () => <div className="frame aspect-video w-full bg-card" />,
 });
 
+const RoomCall = dynamic(
+  () => import("./room-call").then((m) => m.RoomCall),
+  { ssr: false }
+);
+
 const kindOf = (source: VideoSource): SourceKind =>
-  source === "YOUTUBE" ? "youtube" : source === "FILE" ? "file" : "hls";
+  source === "YOUTUBE"
+    ? "youtube"
+    : source === "AUDIO"
+      ? "audio"
+      : source === "FILE"
+        ? "file"
+        : "hls";
 
 const stageWidth =
   "mx-auto w-full lg:max-w-[calc((100vh-172px)*16/9+336px)]";
@@ -52,6 +63,7 @@ export function RoomStage({
   const { user } = useAuthStore();
   const [copied, setCopied] = useState(false);
   const [drift, setDrift] = useState<number | null>(null);
+  const [engaged, setEngaged] = useState(false);
   const [tab, setTab] = useState<"chat" | "queue" | "people">("chat");
 
   const {
@@ -83,6 +95,7 @@ export function RoomStage({
 
   const videoId = playback.videoId ?? room.currentVideoId;
   const video = room.currentVideo?.id === videoId ? room.currentVideo : null;
+  const upNext = room.queue[0] ?? null;
   const roster = members.length > 0 ? members : room.members;
 
   const known = new Map(room.members.map((member) => [member.id, member]));
@@ -110,6 +123,7 @@ export function RoomStage({
 
   const advance = () => {
     if (!canControl || !videoId) return;
+    setEngaged(true);
     playNext(code, videoId).catch(() => {});
   };
 
@@ -182,47 +196,82 @@ export function RoomStage({
 
         <div className={`${stageWidth} flex flex-1 flex-col justify-center gap-4`}>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-            <div className="relative min-w-0 flex-1">
-              {video ? (
-                <VideoPlayer
-                  key={video.id}
-                  src={video.url}
-                  kind={kindOf(video.source)}
-                  videoId={video.id}
-                  roomId={code}
-                  isPlaying={playback.isPlaying}
-                  currentTime={playback.currentTime}
-                  isChannelOwner={canControl}
-                  onDrift={setDrift}
-                  onEnded={advance}
-                  className="frame aspect-video w-full"
-                />
-              ) : videoId ? (
-                <div className="frame aspect-video w-full bg-card" />
-              ) : (
-                <EmptyStage
-                  canControl={canControl}
-                  isGuest={!user}
-                  code={code}
-                />
-              )}
+            <div className="flex min-w-0 flex-1 flex-col gap-3">
+              <div className="relative">
+                {video ? (
+                  <VideoPlayer
+                    key={video.id}
+                    src={video.url}
+                    kind={kindOf(video.source)}
+                    title={video.title}
+                    videoId={video.id}
+                    roomId={code}
+                    isPlaying={playback.isPlaying}
+                    currentTime={playback.currentTime}
+                    isChannelOwner={canControl}
+                    engaged={engaged}
+                    onEngage={() => setEngaged(true)}
+                    onDrift={setDrift}
+                    onEnded={advance}
+                    className="frame aspect-video w-full"
+                  />
+                ) : videoId ? (
+                  <div className="frame aspect-video w-full bg-card" />
+                ) : (
+                  <EmptyStage
+                    canControl={canControl}
+                    isGuest={!user}
+                    code={code}
+                    onEngage={() => setEngaged(true)}
+                  />
+                )}
 
-              <div className="pointer-events-none absolute bottom-20 left-5 flex flex-col items-start gap-1.5">
-                {reactions.map((reaction) => (
-                  <span
-                    key={reaction.id}
-                    className="inline-flex animate-react-rise items-center gap-2 rounded-full border border-white/15 bg-black/70 py-1 pl-2.5 pr-3 text-sm text-white"
-                  >
-                    <span className="text-base leading-none">
-                      {reaction.emoji}
+                <div className="pointer-events-none absolute bottom-20 left-5 flex flex-col items-start gap-1.5">
+                  {reactions.map((reaction) => (
+                    <span
+                      key={reaction.id}
+                      className="inline-flex animate-react-rise items-center gap-2 rounded-full border border-white/15 bg-black/70 py-1 pl-2.5 pr-3 text-sm text-white"
+                    >
+                      <span className="text-base leading-none">
+                        {reaction.emoji}
+                      </span>
+                      {reaction.name}
                     </span>
-                    {reaction.name}
-                  </span>
-                ))}
+                  ))}
+                </div>
               </div>
+
+              {video && (
+                <div className="flex min-h-[36px] items-center justify-between gap-3">
+                  <span className="min-w-0 truncate text-sm text-grey">
+                    {upNext ? (
+                      <>
+                        Next up:{" "}
+                        <span className="text-ash">{upNext.video.title}</span>
+                      </>
+                    ) : (
+                      "Nothing queued next"
+                    )}
+                  </span>
+                  {canControl && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={advance}
+                      disabled={!upNext}
+                    >
+                      <SkipForward className="h-4 w-4" />
+                      Skip
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
 
-            <aside className="flex h-[380px] flex-col overflow-hidden rounded-lg bg-card lg:h-auto lg:w-[320px] lg:shrink-0">
+            <div className="flex flex-col gap-4 lg:w-[340px] lg:shrink-0">
+              <RoomCall code={code} />
+
+              <aside className="flex h-[380px] flex-col overflow-hidden rounded-lg bg-card lg:h-auto lg:min-h-0 lg:flex-1">
               <div className="flex shrink-0 items-center gap-1 border-b border-hair p-2">
                 <Tab
                   active={tab === "chat"}
@@ -262,6 +311,7 @@ export function RoomStage({
                     messages={messages}
                     memberId={membership.id}
                     onSend={sendChat}
+                    connected={status === "open"}
                   />
                 ) : tab === "people" ? (
                   <RoomPeople
@@ -289,7 +339,8 @@ export function RoomStage({
                   />
                 )}
               </div>
-            </aside>
+              </aside>
+            </div>
           </div>
 
           <div className="flex min-h-[40px] flex-wrap items-center justify-between gap-x-5 gap-y-2">
@@ -307,7 +358,11 @@ export function RoomStage({
             <div className="flex flex-1 flex-wrap items-center justify-end gap-x-4 gap-y-2">
               {canControl && (
                 <div className="w-full max-w-[340px]">
-                  <PasteSource code={code} size="sm" />
+                  <PasteSource
+                    code={code}
+                    size="sm"
+                    onEngage={() => setEngaged(true)}
+                  />
                 </div>
               )}
 
@@ -396,10 +451,12 @@ function EmptyStage({
   canControl,
   isGuest,
   code,
+  onEngage,
 }: {
   canControl: boolean;
   isGuest: boolean;
   code: string;
+  onEngage?: () => void;
 }) {
   return (
     <div className="frame flex aspect-video w-full items-center justify-center bg-card">
@@ -415,10 +472,10 @@ function EmptyStage({
         {canControl && (
           <>
             <p className="mb-6 text-base text-grey">
-              Paste a link and everyone here watches it together.
+              Paste a video or song link and everyone here plays it together.
             </p>
 
-            <PasteSource code={code} />
+            <PasteSource code={code} onEngage={onEngage} />
 
             {!isGuest && (
               <p className="mt-5 text-base text-grey-dim">

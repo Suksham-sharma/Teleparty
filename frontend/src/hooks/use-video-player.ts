@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import Plyr from "plyr";
 import Hls from "hls.js";
 
-export type SourceKind = "hls" | "file" | "youtube";
+export type SourceKind = "hls" | "file" | "youtube" | "audio";
 
 export type PlayerEvent = "play" | "pause" | "timeupdate" | "ended" | "error";
 
@@ -46,9 +46,10 @@ export function useVideoPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const plyrRef = useRef<Plyr>();
   const hlsRef = useRef<Hls | null>(null);
-  const mediaRef = useRef<HTMLVideoElement | null>(null);
+  const mediaRef = useRef<HTMLMediaElement | null>(null);
   const kindRef = useRef<SourceKind>(kind);
   const isReadyRef = useRef(false);
+  const wantsPlayRef = useRef(false);
   const isSeekingRef = useRef(false);
   const isTearingDownRef = useRef(false);
   const listenersRef = useRef(new Map<PlayerEvent, Set<() => void>>());
@@ -67,11 +68,16 @@ export function useVideoPlayer({
       listenersRef.current.get(event)?.forEach((handler) => handler());
     };
 
-    const media = document.createElement(kind === "youtube" ? "div" : "video");
+    const tag = kind === "youtube" ? "div" : kind === "audio" ? "audio" : "video";
+    const media = document.createElement(tag);
 
     if (kind === "youtube") {
       media.dataset.plyrProvider = "youtube";
       media.dataset.plyrEmbedId = src;
+    } else if (kind === "audio") {
+      const audio = media as HTMLAudioElement;
+      audio.className = "plyr-react plyr";
+      mediaRef.current = audio;
     } else {
       const video = media as HTMLVideoElement;
       video.className = "plyr-react plyr";
@@ -100,6 +106,14 @@ export function useVideoPlayer({
           : ["progress", "current-time", "mute", "volume", "settings", "fullscreen"],
         clickToPlay: canControl,
         keyboard: { focused: canControl, global: false },
+        captions: { active: false, language: "en", update: false },
+        youtube: {
+          cc_load_policy: 0,
+          cc_lang_pref: "",
+          iv_load_policy: 3,
+          modestbranding: 1,
+          rel: 0,
+        },
         ...(qualityOptions
           ? {
               settings: ["quality", "speed"],
@@ -125,9 +139,31 @@ export function useVideoPlayer({
 
       plyrRef.current = player;
 
+      const killCaptions = () => {
+        if (kindRef.current !== "youtube") return;
+        const embed = (player as unknown as { embed?: unknown }).embed as
+          | {
+              unloadModule?: (name: string) => void;
+              setOption?: (module: string, option: string, value: unknown) => void;
+            }
+          | undefined;
+        try {
+          ["captions", "cc"].forEach((module) => {
+            embed?.setOption?.(module, "track", {});
+            embed?.unloadModule?.(module);
+          });
+        } catch {}
+      };
+
       player.on("ready", () => {
         isReadyRef.current = true;
+        killCaptions();
+        if (wantsPlayRef.current) {
+          Promise.resolve(player.play()).catch(() => {});
+        }
       });
+      player.on("playing", killCaptions);
+      player.on("statechange", killCaptions);
       player.on("seeking", () => {
         isSeekingRef.current = true;
       });
@@ -182,21 +218,19 @@ export function useVideoPlayer({
   const controls: VideoPlayerControls = useMemo(
     () => ({
       play: async () => {
+        wantsPlayRef.current = true;
+        const player = plyrRef.current;
+        if (!player || !isReadyRef.current) return;
         try {
-          if (!plyrRef.current || !isReadyRef.current) {
-            setTimeout(() => {
-              if (plyrRef.current && isReadyRef.current) {
-                plyrRef.current.play();
-              }
-            }, 100);
-            return;
-          }
-          await plyrRef.current.play();
+          await player.play();
         } catch (error) {
           console.error("Error playing video:", error);
         }
       },
-      pause: () => plyrRef.current?.pause(),
+      pause: () => {
+        wantsPlayRef.current = false;
+        plyrRef.current?.pause();
+      },
       getCurrentTime: () => plyrRef.current?.currentTime || 0,
       getDuration: () => plyrRef.current?.duration || 0,
       seek: (time: number) => {

@@ -256,7 +256,7 @@ class RoomManager {
       case "update":
         room.currentVideoId = message.videoId;
         room.currentVideoTime = "0";
-        room.isCurrentlyPlaying = false;
+        room.isCurrentlyPlaying = true;
         break;
       case "timestamp":
         if (message.currentTime) room.currentVideoTime = message.currentTime;
