@@ -269,7 +269,7 @@ export function RoomStage({
             </div>
 
             <div className="flex flex-col gap-4 lg:w-[340px] lg:shrink-0">
-              <RoomCall code={code} />
+              <RoomCall />
 
               <aside className="flex h-[380px] flex-col overflow-hidden rounded-lg bg-card lg:h-auto lg:min-h-0 lg:flex-1">
               <div className="flex shrink-0 items-center gap-1 border-b border-hair p-2">

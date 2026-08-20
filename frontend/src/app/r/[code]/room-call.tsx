@@ -1,22 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import {
-  LiveKitRoom,
-  RoomAudioRenderer,
   VideoTrack,
   useConnectionState,
   useIsSpeaking,
   useLocalParticipant,
   useParticipants,
   useParticipantTracks,
-  useRoomContext,
 } from "@livekit/components-react";
-import {
-  ConnectionState,
-  Track,
-  type Participant,
-} from "livekit-client";
+import { ConnectionState, Track, type Participant } from "livekit-client";
 import {
   Loader2,
   Mic,
@@ -26,9 +18,8 @@ import {
   Video as VideoIcon,
   VideoOff,
 } from "lucide-react";
-import { toast } from "sonner";
-import { getCallToken, type CallCredentials } from "@/services/call";
 import { Button } from "@/components/ui/button";
+import { useCall } from "./call-provider";
 
 const initials = (name: string) =>
   name
@@ -39,33 +30,18 @@ const initials = (name: string) =>
     .join("")
     .toUpperCase() || "?";
 
-export function RoomCall({ code }: { code: string }) {
-  const [creds, setCreds] = useState<CallCredentials | null>(null);
-  const [connecting, setConnecting] = useState(false);
+export function RoomCall() {
+  const { status, join } = useCall();
 
-  const join = useCallback(async () => {
-    if (connecting) return;
-    setConnecting(true);
-    try {
-      setCreds(await getCallToken(code));
-    } catch {
-      toast.error("Couldn't join the call");
-    } finally {
-      setConnecting(false);
-    }
-  }, [code, connecting]);
-
-  const leave = useCallback(() => setCreds(null), []);
-
-  if (!creds) {
+  if (status !== "joined") {
     return (
       <div className="flex items-center justify-between gap-3 rounded-lg bg-card px-3.5 py-2.5">
         <span className="flex items-center gap-2 text-base text-grey">
           <VideoIcon className="h-4 w-4 shrink-0" />
           See everyone
         </span>
-        <Button onClick={join} disabled={connecting} size="sm">
-          {connecting ? (
+        <Button onClick={join} disabled={status === "joining"} size="sm">
+          {status === "joining" ? (
             <Loader2 className="animate-spin" />
           ) : (
             <Phone className="h-4 w-4" />
@@ -77,26 +53,13 @@ export function RoomCall({ code }: { code: string }) {
   }
 
   return (
-    <LiveKitRoom
-      serverUrl={creds.url}
-      token={creds.token}
-      connect
-      audio
-      video={false}
-      onDisconnected={leave}
-      onError={() => {
-        toast.error("The call dropped");
-        leave();
-      }}
-      className="flex min-h-0 flex-col overflow-hidden rounded-lg bg-card lg:flex-1"
-    >
-      <RoomAudioRenderer />
-      <CallBody onLeave={leave} />
-    </LiveKitRoom>
+    <div className="flex min-h-0 flex-col overflow-hidden rounded-lg bg-card lg:flex-1">
+      <CallBody />
+    </div>
   );
 }
 
-function CallBody({ onLeave }: { onLeave: () => void }) {
+function CallBody() {
   const participants = useParticipants();
   const state = useConnectionState();
   const connecting =
@@ -120,7 +83,7 @@ function CallBody({ onLeave }: { onLeave: () => void }) {
           </div>
         )}
       </div>
-      <CallControls onLeave={onLeave} />
+      <CallControls />
     </div>
   );
 }
@@ -129,7 +92,7 @@ function CallTile({ participant }: { participant: Participant }) {
   const speaking = useIsSpeaking(participant);
   const cameraTracks = useParticipantTracks(
     [Track.Source.Camera],
-    participant.identity
+    participant.identity,
   );
   const camera = cameraTracks[0];
   const name = participant.name || participant.identity;
@@ -164,15 +127,10 @@ function CallTile({ participant }: { participant: Participant }) {
   );
 }
 
-function CallControls({ onLeave }: { onLeave: () => void }) {
+function CallControls() {
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } =
     useLocalParticipant();
-  const room = useRoomContext();
-
-  const hangUp = () => {
-    room.disconnect();
-    onLeave();
-  };
+  const { leave } = useCall();
 
   return (
     <div className="flex shrink-0 items-center gap-1.5">
@@ -202,7 +160,7 @@ function CallControls({ onLeave }: { onLeave: () => void }) {
         )}
       </CircleButton>
 
-      <Button variant="outline" size="sm" onClick={hangUp}>
+      <Button variant="outline" size="sm" onClick={leave}>
         <PhoneOff className="h-4 w-4" />
         Leave
       </Button>

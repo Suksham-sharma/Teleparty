@@ -9,6 +9,7 @@ import { useAuthStore } from "@/store/authStore";
 import type { Membership, Room } from "@/services/types";
 import { JoinGate } from "./join-gate";
 import { RoomStage } from "./room-stage";
+import { CallProvider } from "./call-provider";
 
 type Phase = "loading" | "gate" | "in" | "missing" | "ended" | "removed";
 
@@ -133,15 +134,17 @@ export function RoomView({ code }: { code: string }) {
     "Guest";
 
   return (
-    <RoomStage
-      code={code}
-      room={room}
-      membership={membership}
-      displayName={displayName}
-      onRoomChange={setRoom}
-      onRoomEnded={() => setPhase("ended")}
-      onRemoved={() => setPhase("removed")}
-    />
+    <CallProvider code={code}>
+      <RoomStage
+        code={code}
+        room={room}
+        membership={membership}
+        displayName={displayName}
+        onRoomChange={setRoom}
+        onRoomEnded={() => setPhase("ended")}
+        onRemoved={() => setPhase("removed")}
+      />
+    </CallProvider>
   );
 }
 
