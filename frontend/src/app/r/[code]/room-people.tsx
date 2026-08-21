@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import axios from "axios";
-import { Check, Hand, Loader2, UserMinus, X } from "lucide-react";
+import { Check, Hand, Loader2, Mic, MicOff, UserMinus, Video, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   clearControlRequest,
@@ -13,6 +13,7 @@ import {
 } from "@/services/room";
 import { Button } from "@/components/ui/button";
 import type { Membership, RoomMember } from "@/services/types";
+import { useFaces } from "./faces";
 
 const TINTS = ["f2e3c8", "cfe0e8", "f0d4d4", "d9e5cd", "e3d8ec", "f0e6c4"];
 
@@ -29,6 +30,18 @@ const reasonFrom = (error: unknown) => {
   return "That didn't work.";
 };
 
+const callFor = (
+  state: Map<string, { isMicrophoneEnabled: boolean; isCameraEnabled: boolean } | undefined>,
+  memberId: string
+) => {
+  const participant = state.get(memberId);
+  if (!participant) return undefined;
+  return {
+    micOn: participant.isMicrophoneEnabled,
+    cameraOn: participant.isCameraEnabled,
+  };
+};
+
 const roleLabel = (role: RoomMember["role"]) =>
   role === "HOST" ? "host" : role === "COHOST" ? "co-host" : null;
 
@@ -43,6 +56,8 @@ export function RoomPeople({
   membership: Membership;
   onChanged: () => void;
 }) {
+  const { faces } = useFaces(members);
+  const callState = new Map(faces.map((face) => [face.id, face.participant]));
   const [actingOn, setActingOn] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -97,7 +112,11 @@ export function RoomPeople({
             <ul className="space-y-2">
               {requests.map((member, i) => (
                 <li key={member.id} className="flex items-center gap-2">
-                  <Row member={member} tint={TINTS[i % TINTS.length]} />
+                  <Row
+                    member={member}
+                    tint={TINTS[i % TINTS.length]}
+                    onCall={callFor(callState, member.id)}
+                  />
                   <IconButton
                     label={`Make ${member.name ?? "them"} a co-host`}
                     busy={actingOn === member.id}
@@ -172,6 +191,7 @@ export function RoomPeople({
                   member={member}
                   tint={TINTS[i % TINTS.length]}
                   you={member.id === membership.id}
+                  onCall={callFor(callState, member.id)}
                 />
                 {isHost && member.id !== membership.id && (
                   <>
@@ -245,10 +265,12 @@ function Row({
   member,
   tint,
   you,
+  onCall,
 }: {
   member: RoomMember;
   tint: string;
   you?: boolean;
+  onCall?: { micOn: boolean; cameraOn: boolean };
 }) {
   const label = roleLabel(member.role);
 
@@ -278,6 +300,22 @@ function Row({
           </p>
         )}
       </div>
+
+      {onCall && (
+        <span
+          className="flex shrink-0 items-center gap-1.5 text-grey-dim"
+          title={`On the call · mic ${onCall.micOn ? "on" : "off"}${
+            onCall.cameraOn ? " · camera on" : ""
+          }`}
+        >
+          {onCall.cameraOn && <Video className="h-3.5 w-3.5 text-butter" />}
+          {onCall.micOn ? (
+            <Mic className="h-3.5 w-3.5" />
+          ) : (
+            <MicOff className="h-3.5 w-3.5 text-butter" />
+          )}
+        </span>
+      )}
     </div>
   );
 }

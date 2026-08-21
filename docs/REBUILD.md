@@ -739,8 +739,8 @@ one component at three sizes, merging the socket roster with LiveKit participant
 the stage; playing → faces take a band beneath the frame; nobody on camera → the band
 collapses to a rail and the frame takes the space back.
 
-- [x] Spec written, with the sizing solved and checked against a live preview at
-      `/layout-preview` (a throwaway route — delete it when the real layout lands)
+- [x] Spec written, with the sizing solved against a throwaway `/layout-preview` route
+      (since deleted — the solver it validated now lives in `lib/room-layout.ts`)
 - [x] Hoist the connection to a `CallProvider` above `RoomStage` — a single long-lived
       `Room` handed down through `RoomContext`, so the LiveKit hooks are always valid and
       return nothing when disconnected, rather than throwing wherever there is no
@@ -754,7 +754,7 @@ collapses to a rail and the frame takes the space back.
       strip. Sizing lives in `lib/room-layout.ts` with 38 checks in `test/room-layout.js`
 - [x] Lobby grid replacing `EmptyStage`'s empty frame
 - [ ] The doorway: "Join with mic" / "Just watch", and `room-view.tsx` admission change
-- [ ] People-tab call badges
+- [x] People-tab call badges — mic and camera state per row, for anyone on the call
 
 Three things the preview turned up that the spec now carries:
 
@@ -771,9 +771,11 @@ Narrow viewports fall back to the rail always, with the computed sizing applied 
 1024px; the lobby grid still runs there. That is the minimum that works, not a designed
 mobile layout.
 
-**The band has not been seen against real cameras.** The browser pane blocks capture, so it
-is covered by the solver's unit tests and `/layout-preview` rather than a live two-camera
-room. Worth a real check with two machines before it is called done.
+The band has been checked against real cameras and holds up.
+
+Still open: **the doorway** is the only thing left in this phase, and it is the piece that
+decides whether any of this gets used. The sole route into a call today is an outline
+button in the bottom strip next to the reactions, which nobody will find.
 
 ### Phase 4 — Pipeline (Tier 2)
 - [x] **Transcode loop closed.** The worker now reports completion on a third Redis list,

@@ -49,6 +49,14 @@ Drift-correction logic — 29 checks, pure, no services or DOM needed (it compil
 cd frontend && node test/playback-drift.js
 ```
 
+Room layout solver — 38 checks, pure, no services or DOM (compiles
+`frontend/src/lib/room-layout.ts` to a temp dir). This is the sizing behind the frame,
+the face band and the lobby grid:
+
+```bash
+cd frontend && node test/room-layout.js
+```
+
 When restarting a service, kill by port rather than by script path — `pkill -f dist/index.js`
 matches several of these and a stale listener will silently keep serving old code while the
 new process dies with EADDRINUSE:
@@ -91,7 +99,8 @@ frontend (Next 15 App Router)
 This is the part that spans all four services — read it before touching playback:
 
 0. **What the room is playing is a `Video` row, whatever its origin.** `Video.source`
-   is `UPLOAD | FILE | HLS | YOUTUBE`; an external source carries a unique `sourceUrl`
+   is `UPLOAD | FILE | HLS | YOUTUBE | AUDIO` — a song is just a `Video` whose media is
+   audio, so it reuses the whole source → sync → drift → queue path; an external source carries a unique `sourceUrl`
    and has no `channelId`/`creatorId` (both nullable), so pasted links never appear in
    anyone's library. `POST /api/rooms/:code/source` parses and whitelists the URL in
    `backend/src/lib/videoSource.ts` before upserting the row. **The client no longer
@@ -117,6 +126,20 @@ Consequences worth knowing:
 - **The queue is role-aware.** `POST /rooms/:code/queue` takes a url or a videoId; a host or co-host queues directly, anyone else lands in `SUGGESTED` (capped at 5 pending per member) until a controller approves. The controller's player posts `/next` on `ended` to auto-advance, and the server claims the head with `deleteMany` so racing controllers advance once. Beware: `ended` also fires during player teardown, which happens on every film change — `use-video-player.ts` drops events dispatched after teardown starts, and `VideoPlayer` only advances when the player really is at the end. Without both, one ending drains the whole queue.
 - **Chat is persisted, but not by the ws-server.** It keeps its in-memory ring of the last 50 messages for the snapshot and additionally `LPUSH`es each line onto the Redis list `chat-persist`; the backend's `chatPersistence` consumer drains it in batches (blocking pop, 500ms linger, up to 200 per `createMany`) and is the only writer of `Message`. Attribution is resolved server-side from `memberId` — a line whose member is unknown, or belongs to another room than the code claims, is dropped. Ids are the ws-server's own UUIDs, so history and the live ring de-duplicate on id and the room merges them without a seam.
 - The roster is de-duplicated by `memberId`: one person with two tabs is one participant.
+- **Calls ride a separate plane and the sync loop knows nothing about them.** Voice and
+  video run on managed LiveKit Cloud (an SFU); the backend's only job is minting a scoped
+  token at `POST /rooms/:code/call-token`, and media never touches our services. Do **not**
+  route call media through the ws-server. `docs/CALLS-AND-MUSIC.md` is the spec. The token
+  sets `identity = membership.id`, which is the join key that lets one roster carry both
+  socket presence and call state.
+- **Faces are the room's presence layer, not a panel.** There is exactly one roster
+  component (`faces.tsx`) rendered at three sizes, and the room's layout follows its state
+  — nothing playing is a lobby grid, cameras on is a band under the frame, nobody on camera
+  collapses to a 64px rail. Sizing is solved in `lib/room-layout.ts`, never in a Tailwind
+  `calc()`; the connection is owned by `CallProvider` above `RoomStage` so a single
+  long-lived `Room` keeps the LiveKit hooks valid whether or not anyone is connected.
+  `docs/ROOM-LAYOUT.md` is the spec. Tiles are allocated to **cameras, not people** — in
+  both the band and the lobby.
 - The sidebar is tabbed **Chat | Up next | People**. The People panel merges the socket roster (who is here, fresh on join) with the REST members (roles, pending requests); filtering REST members by presence instead drops anyone who joined since the last refetch, because a join does not bump the room revision.
 
 ### Upload / transcode pipeline
