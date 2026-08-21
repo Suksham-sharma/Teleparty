@@ -722,6 +722,46 @@ service — the backend only mints tokens; media never touches our infrastructur
 ws-server's single-instance limit is irrelevant here — call media never rides
 `video-Data`. It still gates playback-sync scaling, exactly as before.
 
+### Phase 3.5 — Faces as a first-class layer `[~]`
+
+Calls shipped working but second-class: `<RoomCall>` is an island that mounts its own
+LiveKit connection, owns its own tiles, and renders in exactly one place — a block above
+the sidebar. Nothing else in the room knows it exists, so the room ends up with **three
+separate answers to "who is here"** (the presence rail, the People tab, the call tiles) and
+faces get whatever height the frame leaves over.
+
+Spec: [`ROOM-LAYOUT.md`](./ROOM-LAYOUT.md). It supersedes the room-shell description in
+`DESIGN.md` §7 and the UI half of `CALLS-AND-MUSIC.md`.
+
+The shape of it: the call stops being a panel and becomes the room's **presence layer** —
+one component at three sizes, merging the socket roster with LiveKit participants on
+`memberId`. Layout follows room state with no mode toggle: nothing playing → the call *is*
+the stage; playing → faces take a band beneath the frame; nobody on camera → the band
+collapses to a rail and the frame takes the space back.
+
+- [x] Spec written, with the sizing solved and checked against a live preview at
+      `/layout-preview` (a throwaway route — delete it when the real layout lands)
+- [ ] Hoist `LiveKitRoom` to a provider so participants are readable outside the widget
+- [ ] `faces.tsx` at three sizes; delete `presence-rail.tsx`
+- [ ] Band + computed frame height in `room-stage.tsx`; call controls to the bottom strip
+- [ ] Lobby grid replacing `EmptyStage`'s empty frame
+- [ ] The doorway: "Join with mic" / "Just watch", and `room-view.tsx` admission change
+- [ ] People-tab call badges
+
+Three things the preview turned up that the spec now carries:
+
+- **`stageWidth`'s `100vh-172px` was always wrong.** Real chrome is ~233px once the header,
+  title row, up-next row and bottom strip are counted.
+- **Sizing the sidebar off the frame is a trap.** It fills the dead side margins, but then
+  the chat panel resizes every time somebody toggles a camera. The sidebar has to derive
+  from the viewport alone.
+- **Four cameras set the band ceiling.** Below four, tiles do not grow — so the band height
+  is identical from one camera to four and there is no reflow as friends switch on one by
+  one. Above four they shrink so everyone stays in one row.
+
+Not started, and worth deciding before the band lands: **narrow viewports have no plan.**
+Everything specced is the `lg:` layout.
+
 ### Phase 4 — Pipeline (Tier 2)
 - [x] **Transcode loop closed.** The worker now reports completion on a third Redis list,
       `video-status`, and the API is the only writer of `Video.status`:
