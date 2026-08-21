@@ -753,7 +753,10 @@ collapses to a rail and the frame takes the space back.
 - [x] Band + computed frame height in `room-stage.tsx`; call controls moved to the bottom
       strip. Sizing lives in `lib/room-layout.ts` with 38 checks in `test/room-layout.js`
 - [x] Lobby grid replacing `EmptyStage`'s empty frame
-- [ ] The doorway: "Join with mic" / "Just watch", and `room-view.tsx` admission change
+- [x] The doorway: "Join with mic" / "Just watch" at the gate, and the `room-view.tsx`
+      admission change. Asked only when it means something — guests always, signed-in
+      visitors only when the room already has members, skipped entirely when you open your
+      own empty room or return to one you already joined
 - [x] People-tab call badges — mic and camera state per row, for anyone on the call
 
 Three things the preview turned up that the spec now carries:
@@ -773,9 +776,8 @@ mobile layout.
 
 The band has been checked against real cameras and holds up.
 
-Still open: **the doorway** is the only thing left in this phase, and it is the piece that
-decides whether any of this gets used. The sole route into a call today is an outline
-button in the bottom strip next to the reactions, which nobody will find.
+Phase complete. Not verified live: the name-less doorway variant a signed-in visitor sees,
+which needs an account to exercise.
 
 ### Phase 4 — Pipeline (Tier 2)
 - [x] **Transcode loop closed.** The worker now reports completion on a third Redis list,

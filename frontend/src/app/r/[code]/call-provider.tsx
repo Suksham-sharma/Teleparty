@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { RoomAudioRenderer, RoomContext } from "@livekit/components-react";
@@ -31,13 +32,16 @@ export const useCall = () => useContext(CallCtx);
 
 export function CallProvider({
   code,
+  autoJoin = false,
   children,
 }: {
   code: string;
+  autoJoin?: boolean;
   children: React.ReactNode;
 }) {
   const room = useMemo(() => new Room(), []);
   const [status, setStatus] = useState<CallStatus>("idle");
+  const autoJoined = useRef(false);
 
   useEffect(() => {
     const settle = () => setStatus("idle");
@@ -74,6 +78,12 @@ export function CallProvider({
   const leave = useCallback(() => {
     room.disconnect();
   }, [room]);
+
+  useEffect(() => {
+    if (!autoJoin || autoJoined.current) return;
+    autoJoined.current = true;
+    join();
+  }, [autoJoin, join]);
 
   const value = useMemo(() => ({ status, join, leave }), [status, join, leave]);
 

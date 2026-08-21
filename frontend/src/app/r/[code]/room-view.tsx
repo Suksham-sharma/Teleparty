@@ -18,6 +18,7 @@ export function RoomView({ code }: { code: string }) {
   const [phase, setPhase] = useState<Phase>("loading");
   const [room, setRoom] = useState<Room | null>(null);
   const [membership, setMembership] = useState<Membership | null>(null);
+  const [withMic, setWithMic] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -35,8 +36,13 @@ export function RoomView({ code }: { code: string }) {
         return;
       }
 
-      // A signed-in visitor can be admitted without a prompt; guests need a name.
+      // A signed-in visitor needs no name, so the doorway is only worth showing
+      // when there is a call to decide about — i.e. when someone is already here.
       if (user) {
+        if (fetched.members.length > 0) {
+          setPhase("gate");
+          return;
+        }
         setMembership(await joinRoom(code));
         setPhase("in");
         return;
@@ -52,9 +58,12 @@ export function RoomView({ code }: { code: string }) {
     load();
   }, [load]);
 
-  const handleJoin = async (displayName: string) => {
+  const handleJoin = async (displayName: string, joinWithMic: boolean) => {
     try {
-      setMembership(await joinRoom(code, displayName));
+      setWithMic(joinWithMic);
+      setMembership(
+        user ? await joinRoom(code) : await joinRoom(code, displayName)
+      );
       // Re-read so the roster includes us before the socket opens.
       const { room: fresh } = await getRoom(code);
       setRoom(fresh);
@@ -125,7 +134,14 @@ export function RoomView({ code }: { code: string }) {
   }
 
   if (phase === "gate" || !room || !membership) {
-    return <JoinGate room={room} code={code} onJoin={handleJoin} />;
+    return (
+      <JoinGate
+        room={room}
+        code={code}
+        needsName={!user}
+        onJoin={handleJoin}
+      />
+    );
   }
 
   const displayName =
@@ -134,7 +150,7 @@ export function RoomView({ code }: { code: string }) {
     "Guest";
 
   return (
-    <CallProvider code={code}>
+    <CallProvider code={code} autoJoin={withMic}>
       <RoomStage
         code={code}
         room={room}

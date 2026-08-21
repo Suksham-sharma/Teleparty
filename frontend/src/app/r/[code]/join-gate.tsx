@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mic, Eye } from "lucide-react";
 import type { Room } from "@/services/types";
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/app/_components/site-header";
@@ -18,26 +18,30 @@ const avatarFor = (seed: string, tint: string) =>
  * The no-signup door. A friend who opens /r/WOLF-42 gives a name and is in.
  *
  * Deliberately not a card on a slab: you see the room you're walking into —
- * its name, its code, who is already sitting there — and the prompt is one
- * line across the bottom of that, not a form you fill in first.
+ * its name, its code, who is already sitting there — and the prompt sits
+ * across the bottom of that, not a form you fill in first.
  */
 export function JoinGate({
   room,
   code,
+  needsName = true,
   onJoin,
 }: {
   room: Room | null;
   code: string;
-  onJoin: (displayName: string) => Promise<void>;
+  needsName?: boolean;
+  onJoin: (displayName: string, withMic: boolean) => Promise<void>;
 }) {
   const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"mic" | "watch" | null>(null);
 
-  const submit = async () => {
-    if (!name.trim()) return;
-    setBusy(true);
-    await onJoin(name.trim());
-    setBusy(false);
+  const ready = !needsName || Boolean(name.trim());
+
+  const submit = async (withMic: boolean) => {
+    if (!ready) return;
+    setBusy(withMic ? "mic" : "watch");
+    await onJoin(name.trim(), withMic);
+    setBusy(null);
   };
 
   const members = room?.members ?? [];
@@ -101,31 +105,56 @@ export function JoinGate({
             </p>
           </div>
 
-          {/* One line, not a form. */}
-          <div className="mt-9 flex flex-col gap-2.5 sm:flex-row">
-            <input
-              autoFocus
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              onKeyDown={(event) => event.key === "Enter" && submit()}
-              placeholder="What should we call you?"
-              aria-label="What should we call you?"
-              maxLength={40}
-              className="h-[52px] flex-1 rounded-full border border-hair bg-card px-6 text-md text-white outline-none transition-colors placeholder:text-grey-dim focus:border-butter focus:bg-card-2"
-            />
-            <Button
-              onClick={submit}
-              disabled={busy || !name.trim()}
-              className="h-[52px] px-9"
-            >
-              {busy && <Loader2 className="animate-spin" />}
-              Join
-            </Button>
+          <div className="mt-9 flex flex-col gap-3">
+            {needsName && (
+              <input
+                autoFocus
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && submit(true)}
+                placeholder="What should we call you?"
+                aria-label="What should we call you?"
+                maxLength={40}
+                className="h-[52px] w-full rounded-full border border-hair bg-card px-6 text-md text-white outline-none transition-colors placeholder:text-grey-dim focus:border-butter focus:bg-card-2"
+              />
+            )}
+
+            <div className="flex flex-col gap-2.5 sm:flex-row">
+              <Button
+                onClick={() => submit(true)}
+                disabled={Boolean(busy) || !ready}
+                className="h-[52px] px-8"
+              >
+                {busy === "mic" ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
+                Join with mic
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => submit(false)}
+                disabled={Boolean(busy) || !ready}
+                className="h-[52px] px-8"
+              >
+                {busy === "watch" ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+                Just watch
+              </Button>
+            </div>
           </div>
 
           <p className="mt-4 text-base text-grey-dim">
-            No account needed. Your name is only shown inside this room.
+            Your camera stays off either way — you can turn it on inside.
+            {needsName &&
+              " No account needed; your name is only shown in this room."}
           </p>
+
         </div>
       </div>
     </main>

@@ -5,8 +5,8 @@ accessory. This supersedes the room-shell description in `DESIGN.md` §7 and the
 of `CALLS-AND-MUSIC.md` Feature B. Where it and either of those disagree about the room,
 trust this.
 
-Status: **built**, except the doorway. The three states, the sizing and the presence layer
-are live; `lib/room-layout.ts` holds the solver with `test/room-layout.js` over it.
+Status: **built.** The three states, the sizing, the presence layer and the doorway are
+live; `lib/room-layout.ts` holds the solver with `test/room-layout.js` over it.
 
 ---
 
